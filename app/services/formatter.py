@@ -1,10 +1,7 @@
 class OCRFormatter:
     @staticmethod
-    def structure(result, image_path: str, filename: str, content_type: str):
+    def structure(result):
         structured = {
-            "file": filename,
-            "path": image_path,
-            "type": content_type,
             "pages": [],
         }
 
@@ -35,5 +32,4 @@ class OCRFormatter:
                 }
             )
 
-        print(structured)
         return structured

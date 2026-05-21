@@ -1,10 +1,12 @@
 import shutil
+import time
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, UploadFile, File
-from schemas.ocr import OCRResponse
+from datetime import datetime, timezone
+from fastapi import APIRouter, File, Query, UploadFile
+
+from schemas.response import APIResponse, ResponseMetadata
 from services.ocr import ocr_service
 from enum import Enum
-from fastapi.responses import PlainTextResponse
 
 
 class OutputFormat(str, Enum):
@@ -15,25 +17,49 @@ class OutputFormat(str, Enum):
 router = APIRouter(prefix="/ocr", tags=["ocr"])
 
 
-@router.post("/parse", response_model=OCRResponse)
+@router.post("/parse")
 async def parse_file(
-    file: UploadFile = File(...), format: OutputFormat = OutputFormat.json
+    file: UploadFile = File(...),
+    output_format: OutputFormat = Query(default=OutputFormat.json, alias="format"),
 ):
-    if not file or not file.filename:
-        raise HTTPException(
-            status_code=400, detail="Invalid file upload or missing filename"
-        )
-
     tmp_path = Path(f"/tmp/{file.filename}")
+    start = time.time()
 
-    with tmp_path.open("wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    try:
+        with tmp_path.open("wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
 
-    if format == OutputFormat.markdown:
-        content = ocr_service.to_markdown(str(tmp_path), file)
-        tmp_path.unlink()
-        return PlainTextResponse(content=content, media_type="text/markdown")
+        if output_format == OutputFormat.markdown:
+            content = ocr_service.to_markdown(str(tmp_path), file)
+            elapsed = round((time.time() - start) * 1000, 2)
+            return APIResponse(
+                success=True,
+                metadata=ResponseMetadata(
+                    timestamp=datetime.now(timezone.utc),
+                    model="PP-OCRv4",
+                    format=output_format.value,
+                    processing_time_ms=elapsed,
+                    file_name=file.filename,
+                    file_type=file.content_type,
+                ),
+                data=content,
+            ).model_dump(exclude_none=True)
 
-    result = ocr_service.process(str(tmp_path), file)
-    tmp_path.unlink()
-    return OCRResponse(**result)
+        result = ocr_service.process(str(tmp_path), file)
+        elapsed = round((time.time() - start) * 1000, 2)
+        return APIResponse(
+            success=True,
+            metadata=ResponseMetadata(
+                timestamp=datetime.now(timezone.utc),
+                model="PP-OCRv4",
+                format=output_format.value,
+                processing_time_ms=elapsed,
+                file_name=file.filename,
+                file_type=file.content_type,
+            ),
+            data=result,
+        ).model_dump(exclude_none=True)
+
+    finally:
+        if tmp_path.exists():
+            tmp_path.unlink()
