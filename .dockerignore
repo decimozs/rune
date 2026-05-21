@@ -1,0 +1,4 @@
+app/datasets/
+.venv/
+.git/
+.python-version
