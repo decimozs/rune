@@ -1,4 +1,5 @@
 app/datasets/
+app/outputs/
 .venv/
 .git/
 .python-version
