@@ -152,6 +152,7 @@ Convenience scripts in `scripts/` for automated testing:
 | `benchmark.sh [runs=3] [url]` | Run OCR N times per file, print min/max/avg/median timing stats |
 | `stress.sh [concurrency=5] [url]` | Fire N parallel requests per file, report success rate and RPS |
 | `compare_runs.sh [url]` | Run OCR twice, diff outputs (ignoring timestamps), exit 0 if identical |
+| `run_test.sh [url]` | Execute full pipeline: parse, benchmark, compare, stress |
 | `cleanup.sh [--older-than N \| --all \| --dry-run]` | List and delete old test output directories with confirmation |
 
 **Examples:**
@@ -161,6 +162,7 @@ Convenience scripts in `scripts/` for automated testing:
 ./scripts/benchmark.sh 5
 ./scripts/stress.sh 10
 ./scripts/compare_runs.sh
+./scripts/run_test.sh
 ./scripts/cleanup.sh --older-than 7
 ```
 
@@ -192,6 +194,7 @@ scripts/                  # Automation & testing scripts
 ├── benchmark.sh
 ├── stress.sh
 ├── compare_runs.sh
+├── run_test.sh
 └── cleanup.sh
 
 tests/
