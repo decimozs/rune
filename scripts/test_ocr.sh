@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-OUTDIR="tests/outputs/$(date +%Y%m%d_%H%M%S)"
+OUTDIR="tests/outputs/test_ocr_$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$OUTDIR"
 
 if [ ! -d "app/datasets" ] || [ -z "$(ls -A app/datasets 2>/dev/null)" ]; then
