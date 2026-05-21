@@ -44,12 +44,22 @@ docker run -p 8000:80 exist-ocr
 
 Extract text from an uploaded image file.
 
+**Query Parameters:**
+- `format` — `json` (default) or `markdown`
+
 **Request:** `multipart/form-data` with field `file`
 
-**cURL:**
+**cURL (JSON):**
 
 ```bash
 curl -X POST http://localhost:8000/ocr/parse \
+  -F "file=@path/to/image.png"
+```
+
+**cURL (Markdown):**
+
+```bash
+curl -X POST "http://localhost:8000/ocr/parse?format=markdown" \
   -F "file=@path/to/image.png"
 ```
 
@@ -84,7 +94,10 @@ app/
 ├── routes/
 │   └── ocr.py           # OCR endpoint handlers
 ├── services/
-│   └── ocr.py           # PaddleOCR wrapper
+│   ├── ocr.py           # Orchestrator (composes modules)
+│   ├── engine.py        # PaddleOCR model init + prediction
+│   ├── formatter.py     # Result structuring
+│   └── markdown.py      # Markdown conversion + file I/O
 └── schemas/
     └── ocr.py           # Pydantic response models
 ```
