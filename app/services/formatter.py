@@ -1,3 +1,8 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 class OCRFormatter:
     @staticmethod
     def structure(result):
@@ -6,6 +11,7 @@ class OCRFormatter:
         }
 
         if not result or result[0] is None:
+            logger.warning("OCR returned empty result for file")
             return structured
 
         for page_num, page in enumerate(result, start=1):
@@ -20,7 +26,9 @@ class OCRFormatter:
                     {
                         "text": text,
                         "confidence": round(float(score), 4),
-                        "bbox": box.tolist() if hasattr(box, "tolist") else box,
+                        "bbox": {
+                            "points": box.tolist() if hasattr(box, "tolist") else box
+                        },
                     }
                 )
 

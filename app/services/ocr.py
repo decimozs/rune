@@ -14,6 +14,7 @@ class OCRService:
 
     async def init(self):
         await self.engine.init()
+        await self.structure_engine.init()
 
     def _validate_file(self, file: UploadFile) -> tuple[str, str]:
         if not file.filename:
@@ -30,7 +31,9 @@ class OCRService:
     def to_markdown(self, image_path: str, file: UploadFile) -> str:
         self._validate_file(file)
         result = self.structure_engine.predict(image_path)
-        return self.markdown_converter.convert(result, image_path, file.filename, file.content_type)
+        return self.markdown_converter.convert(
+            result, image_path, file.filename, file.content_type
+        )
 
 
 ocr_service = OCRService()

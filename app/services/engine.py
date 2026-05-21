@@ -1,4 +1,5 @@
 from paddleocr import PaddleOCR, PPStructureV3
+from config import settings
 
 
 class OCREngine:
@@ -7,10 +8,10 @@ class OCREngine:
 
     async def init(self):
         self.ocr_model = PaddleOCR(
-            use_textline_orientation=True,
-            lang="en",
-            enable_mkldnn=False,
-            ocr_version="PP-OCRv4",
+            use_textline_orientation=settings.use_textline_orientation,
+            lang=settings.lang,
+            enable_mkldnn=settings.enable_mkldnn,
+            ocr_version=settings.version,
         )
 
     def predict(self, file_path: str):
@@ -21,15 +22,23 @@ class OCREngine:
 
 class StructureEngine:
     def __init__(self):
-        self.engine = PPStructureV3(
-            use_textline_orientation=True,
-            ocr_version="PP-OCRv4",
-            lang="en",
-            enable_mkldnn=False,
+        self._engine: PPStructureV3 | None = None
+
+    async def init(self):
+        self._engine = PPStructureV3(
+            use_textline_orientation=settings.use_textline_orientation,
+            ocr_version=settings.version,
+            lang=settings.lang,
+            enable_mkldnn=settings.enable_mkldnn,
         )
 
+    def _get_engine(self) -> PPStructureV3:
+        if self._engine is None:
+            raise RuntimeError("StructureEngine not initialized. Call init() first.")
+        return self._engine
+
     def predict(self, file_path: str):
-        return self.engine.predict(file_path)
+        return self._get_engine().predict(file_path)
 
     def concatenate_pages(self, markdown_list):
-        return self.engine.concatenate_markdown_pages(markdown_list)
+        return self._get_engine().concatenate_markdown_pages(markdown_list)

@@ -9,5 +9,9 @@ wheels/
 # Virtual environments
 .venv
 
+# Environment
+.env
+
 # Generated outputs
 app/outputs/
+tests

@@ -8,4 +8,6 @@ dependencies = [
     "fastapi[standard]>=0.136.1",
     "paddleocr[all]>=3.5.0",
     "paddlepaddle>=3.3.1",
+    "pydantic-settings>=2.0",
+    "aiofiles>=0.24.0",
 ]

@@ -1,19 +1,18 @@
 from pathlib import Path
+from config import settings
 
 
 class MarkdownConverter:
-    OUTPUT_DIR = Path("app/outputs")
-
     def __init__(self, structure_engine):
         self.engine = structure_engine
 
     def convert(self, result, image_path: str, filename: str, content_type: str) -> str:
-        self.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        settings.output_dir_path.mkdir(parents=True, exist_ok=True)
 
         if content_type == "application/pdf":
-            return self._handle_pdf(result, filename)
+            return self._handle_pdf(result, filename).lstrip("\n")
 
-        return self._handle_image(result, image_path)
+        return self._handle_image(result, image_path).lstrip("\n")
 
     def _handle_pdf(self, result, filename: str) -> str:
         markdown_list = []
@@ -41,7 +40,9 @@ class MarkdownConverter:
                 ]
             )
 
-        mkd_file_path = self.OUTPUT_DIR / f"{filename}.md"
+        raw_markdown_text = raw_markdown_text.lstrip("\n")
+
+        mkd_file_path = settings.output_dir_path / f"{filename}.md"
         with open(mkd_file_path, "w", encoding="utf-8") as f:
             f.write(raw_markdown_text)
 
@@ -49,7 +50,7 @@ class MarkdownConverter:
             if item:
                 for path, image in item.items():
                     if path and image:
-                        file_path = self.OUTPUT_DIR / path
+                        file_path = settings.output_dir_path / path
                         file_path.parent.mkdir(parents=True, exist_ok=True)
                         image.save(file_path)
 
@@ -57,16 +58,16 @@ class MarkdownConverter:
 
     def _handle_image(self, result, image_path: str) -> str:
         for res in result:
-            res.save_to_markdown(save_path=str(self.OUTPUT_DIR))
+            res.save_to_markdown(save_path=str(settings.output_dir_path))
 
         img_stem = Path(image_path).stem
-        saved_md_path = self.OUTPUT_DIR / img_stem / f"{img_stem}_saved.md"
+        saved_md_path = settings.output_dir_path / img_stem / f"{img_stem}_saved.md"
 
         if not saved_md_path.exists():
-            saved_md_path = self.OUTPUT_DIR / f"{img_stem}.md"
+            saved_md_path = settings.output_dir_path / f"{img_stem}.md"
 
         if saved_md_path.exists():
             with open(saved_md_path, "r", encoding="utf-8") as f:
-                return f.read()
+                return f.read().lstrip("\n")
 
         return ""
