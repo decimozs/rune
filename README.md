@@ -65,34 +65,51 @@ Settings loaded from `.env` file (see `.env.example`) or environment variables w
 | `OCR_ALLOWED_CONTENT_TYPES` | `image/jpeg,image/png,...` | Allowed MIME types |
 | `OCR_OUTPUT_DIR` | `app/outputs` | Markdown output directory |
 | `OCR_LOG_LEVEL` | `INFO` | Log level |
+| `OCR_GOTENBERG_URL` | `http://localhost:3000` | Gotenberg document conversion API |
 
 ## API
 
 ### `POST /ocr/parse`
 
-Upload an image or PDF for OCR extraction.
+Upload an image, PDF, or office document for OCR extraction. Office documents (DOCX, PPT, RTF, CSV, XLS, XLSX) are automatically converted to PDF via Gotenberg before processing.
 
 **Query Parameters:**
 - `format` — `json` (default) or `markdown`
 
 **Request:** `multipart/form-data` with field `file`
 
-**Allowed MIME types:** `image/jpeg`, `image/png`, `image/bmp`, `image/tiff`, `image/webp`, `application/pdf`
+**Allowed MIME types:**
 
-**Validation:** Content-Type header checked against allowed list, then actual file bytes verified via `python-magic` (MIME sniffing).
+| Category | MIME Type | Format |
+|---|---|---|
+| Image | `image/jpeg` | JPEG |
+| Image | `image/png` | PNG |
+| Image | `image/bmp` | BMP |
+| Image | `image/tiff` | TIFF |
+| Image | `image/webp` | WebP |
+| Document | `application/pdf` | PDF |
+| Document | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | DOCX |
+| Presentation | `application/vnd.ms-powerpoint` | PPT |
+| Presentation | `application/vnd.openxmlformats-officedocument.presentationml.presentation` | PPTX |
+| Document | `text/rtf` | RTF |
+| Spreadsheet | `text/csv` | CSV |
+| Spreadsheet | `application/vnd.ms-excel` | XLS |
+| Spreadsheet | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` | XLSX |
 
-**cURL (JSON):**
+**Validation:** Content-Type header checked against allowed list. Images and PDFs also verified via `python-magic` MIME sniffing. Office documents forwarded to Gotenberg (server-side validation).
+
+**cURL (JSON — image):**
 
 ```bash
 curl -X POST http://localhost:8000/ocr/parse \
   -F "file=@path/to/image.png"
 ```
 
-**cURL (Markdown):**
+**cURL (Markdown — office document):**
 
 ```bash
 curl -X POST "http://localhost:8000/ocr/parse?format=markdown" \
-  -F "file=@path/to/image.png"
+  -F "file=@path/to/document.docx;type=application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 ```
 
 **Success Response (200):**
@@ -135,7 +152,7 @@ curl -X POST "http://localhost:8000/ocr/parse?format=markdown" \
 | 400 | `VALIDATION_ERROR` | Missing filename |
 | 413 | `FILE_TOO_LARGE` | Exceeds `OCR_MAX_FILE_SIZE` |
 | 415 | `UNSUPPORTED_MEDIA_TYPE` | MIME type not in allowed list |
-| 415 | `CONTENT_MISMATCH` | Declared MIME type does not match actual file bytes |
+| 502 | `CONVERSION_ERROR` | Gotenberg document conversion failed |
 | 500 | `OCR_ERROR` | Engine processing failure |
 | 500 | `INTERNAL_ERROR` | Unhandled exception |
 
@@ -161,6 +178,7 @@ Convenience scripts in `scripts/` for automated testing:
 | `compare_runs.sh [url]` | Run OCR twice, diff outputs (ignoring timestamps), exit 0 if identical |
 | `run_test.sh [url]` | Execute full pipeline: parse, benchmark, compare, stress |
 | `convert.sh <format> [url]` | Convert datasets to PDF via Gotenberg (formats: docx, ppt, rtf, csv, xls, xlsx, spreadsheet, all) |
+| `test_formats.sh [url]` | Test all supported formats (docx, ppt, rtf, csv, xls, xlsx) against OCR endpoint |
 | `cleanup.sh [--older-than N \| --all \| --dry-run]` | List and delete old test output directories with confirmation |
 
 **Examples:**
@@ -173,6 +191,7 @@ Convenience scripts in `scripts/` for automated testing:
 ./scripts/convert.sh docx
 ./scripts/convert.sh spreadsheet
 ./scripts/convert.sh all
+./scripts/test_formats.sh
 ./scripts/run_test.sh
 ./scripts/cleanup.sh --older-than 7
 ```
@@ -192,6 +211,7 @@ app/
 │   ├── engine.py         # PaddleOCR + PPStructureV3 model init & prediction
 │   ├── formatter.py      # Raw OCR output → structured JSON
 │   ├── markdown.py       # PPStructureV3 markdown conversion + image saving
+│   ├── converter.py      # Gotenberg document-to-PDF conversion
 │   └── exceptions.py     # Custom exceptions (OCRValidationError, OCRRuntimeError)
 ├── schemas/
 │   ├── ocr.py            # Domain models: BoundingBox, WordBlock, OCRPage, OCRResponse
@@ -211,6 +231,7 @@ scripts/                  # Automation & testing scripts
 ├── compare_runs.sh
 ├── convert.sh
 ├── run_test.sh
+├── test_formats.sh
 └── cleanup.sh
 
 tests/

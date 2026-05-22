@@ -11,6 +11,7 @@ from fastapi import APIRouter, File, Query, UploadFile, HTTPException
 from config import settings
 from schemas.response import APIResponse, ResponseMetadata
 from services.ocr import ocr_service
+from services.converter import converter
 
 
 class OutputFormat(str, Enum):
@@ -32,9 +33,20 @@ def validate_upload(file: UploadFile) -> None:
         )
 
 
+TEXT_BASED_TYPES = {
+    "text/csv",
+    "text/plain",
+    "text/rtf",
+    "text/html",
+    "message/rfc822",
+}
+
+
 def validate_magic_bytes(file_path: Path, declared_content_type: str) -> None:
+    if declared_content_type in TEXT_BASED_TYPES:
+        return
+
     detected = magic.from_file(str(file_path), mime=True)
-    # allow image/* flexibility (e.g. jpeg vs jpg variants)
     if detected != declared_content_type:
         file_path.unlink(missing_ok=True)
         raise HTTPException(
@@ -92,6 +104,11 @@ async def parse_file(
 
     filename = cast(str, file.filename)
     content_type = cast(str, file.content_type)
+
+    if converter.needs_conversion(content_type):
+        tmp_path = await converter.to_pdf(tmp_path, content_type)
+        content_type = "application/pdf"
+
     start = time.time()
 
     try:

@@ -12,10 +12,23 @@ class Settings(BaseSettings):
     # File Upload
     max_file_size: int = 50 * 1024 * 1024  # 50MB
     upload_dir: str = "/tmp"
-    allowed_content_types: str = "image/jpeg,image/png,image/bmp,image/tiff,image/webp,application/pdf"
+    allowed_content_types: str = (
+        "image/jpeg,image/png,image/bmp,image/tiff,image/webp,"
+        "application/pdf,"
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document,"
+        "application/vnd.ms-powerpoint,"
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation,"
+        "text/rtf,"
+        "text/csv,"
+        "application/vnd.ms-excel,"
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
     # Output
     output_dir: str = "app/outputs"
+
+    # Gotenberg
+    gotenberg_url: str = "http://localhost:3000"
 
     # Logging
     log_level: str = "INFO"

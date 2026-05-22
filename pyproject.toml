@@ -11,4 +11,5 @@ dependencies = [
     "pydantic-settings>=2.0",
     "aiofiles>=0.24.0",
     "python-magic>=0.4.27",
+    "httpx>=0.27",
 ]
