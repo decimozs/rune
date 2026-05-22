@@ -11,6 +11,7 @@ Internal OCR service for **Exist Software Labs**. Uses [PaddleOCR](https://githu
 - **PaddleOCR** — OCR engine (PP-OCRv4)
 - **pydantic-settings** — environment config
 - **aiofiles** — async file I/O
+- **python-magic** — MIME type validation
 - **uv** — package & project management
 - **Docker** — containerized deployment
 
@@ -72,6 +73,8 @@ Upload an image or PDF for OCR extraction.
 
 **Allowed MIME types:** `image/jpeg`, `image/png`, `image/bmp`, `image/tiff`, `image/webp`, `application/pdf`
 
+**Validation:** Content-Type header checked against allowed list, then actual file bytes verified via `python-magic` (MIME sniffing).
+
 **cURL (JSON):**
 
 ```bash
@@ -100,9 +103,6 @@ curl -X POST "http://localhost:8000/ocr/parse?format=markdown" \
     "file_type": "image/png"
   },
   "data": {
-    "file": "image.png",
-    "path": "/tmp/a1b2c3d4_image.png",
-    "type": "image/png",
     "pages": [
       {
         "page": 1,
@@ -129,6 +129,7 @@ curl -X POST "http://localhost:8000/ocr/parse?format=markdown" \
 | 400 | `VALIDATION_ERROR` | Missing filename |
 | 413 | `FILE_TOO_LARGE` | Exceeds `OCR_MAX_FILE_SIZE` |
 | 415 | `UNSUPPORTED_MEDIA_TYPE` | MIME type not in allowed list |
+| 415 | `CONTENT_MISMATCH` | Declared MIME type does not match actual file bytes |
 | 500 | `OCR_ERROR` | Engine processing failure |
 | 500 | `INTERNAL_ERROR` | Unhandled exception |
 

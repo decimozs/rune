@@ -27,8 +27,5 @@ class OCRPage(BaseModel):
     extracted_text: str
 
 
-class OCRResponse(BaseModel):
-    file: str
-    path: str
-    type: str
+class OCRResult(BaseModel):
     pages: list[OCRPage]

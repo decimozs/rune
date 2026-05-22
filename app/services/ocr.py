@@ -1,8 +1,9 @@
-from fastapi import UploadFile
+import logging
 from services.engine import OCREngine, StructureEngine
 from services.formatter import OCRFormatter
 from services.markdown import MarkdownConverter
-from services.exceptions import OCRValidationError, OCRRuntimeError
+
+logger = logging.getLogger(__name__)
 
 
 class OCRService:
@@ -16,23 +17,22 @@ class OCRService:
         await self.engine.init()
         await self.structure_engine.init()
 
-    def _validate_file(self, file: UploadFile) -> tuple[str, str]:
-        if not file.filename:
-            raise OCRValidationError("Uploaded file has no filename")
-        if not file.content_type:
-            raise OCRValidationError("Uploaded file has no content type")
-        return file.filename, file.content_type
-
-    def process(self, file_path: str, file: UploadFile):
-        self._validate_file(file)
+    def process(self, file_path: str, filename: str, content_type: str) -> dict:
         result = self.engine.predict(file_path)
         return self.formatter.structure(result)
 
-    def to_markdown(self, image_path: str, file: UploadFile) -> str:
-        self._validate_file(file)
-        result = self.structure_engine.predict(image_path)
+    def to_markdown(
+        self,
+        file_path: str,
+        filename: str,
+        content_type: str,
+    ) -> str:
+        result = self.structure_engine.predict(file_path)
         return self.markdown_converter.convert(
-            result, image_path, file.filename, file.content_type
+            result,
+            file_path,
+            filename,
+            content_type,
         )
 
 
