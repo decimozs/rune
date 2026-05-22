@@ -154,6 +154,7 @@ Convenience scripts in `scripts/` for automated testing:
 | `stress.sh [concurrency=5] [url]` | Fire N parallel requests per file, report success rate and RPS |
 | `compare_runs.sh [url]` | Run OCR twice, diff outputs (ignoring timestamps), exit 0 if identical |
 | `run_test.sh [url]` | Execute full pipeline: parse, benchmark, compare, stress |
+| `convert.sh <format> [url]` | Convert datasets to PDF via Gotenberg (formats: docx, ppt, rtf, csv, xls, xlsx, spreadsheet, all) |
 | `cleanup.sh [--older-than N \| --all \| --dry-run]` | List and delete old test output directories with confirmation |
 
 **Examples:**
@@ -163,6 +164,9 @@ Convenience scripts in `scripts/` for automated testing:
 ./scripts/benchmark.sh 5
 ./scripts/stress.sh 10
 ./scripts/compare_runs.sh
+./scripts/convert.sh docx
+./scripts/convert.sh spreadsheet
+./scripts/convert.sh all
 ./scripts/run_test.sh
 ./scripts/cleanup.sh --older-than 7
 ```
@@ -186,15 +190,18 @@ app/
 ├── schemas/
 │   ├── ocr.py            # Domain models: BoundingBox, WordBlock, OCRPage, OCRResponse
 │   └── response.py       # API envelope: APIResponse, ResponseMetadata, ErrorDetail
-└── datasets/             # Sample files for testing
-    ├── sample_image.png
-    └── sample_pdf.pdf
+└── datasets/             # Sample files for testing (converted to PDF via Gotenberg)
+    ├── docx/
+    ├── ppt/
+    ├── rtf/
+    └── spreadsheets/     # CSV, XLS, XLSX
 
 scripts/                  # Automation & testing scripts
 ├── test_ocr.sh
 ├── benchmark.sh
 ├── stress.sh
 ├── compare_runs.sh
+├── convert.sh
 ├── run_test.sh
 └── cleanup.sh
 
