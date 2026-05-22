@@ -1,4 +1,6 @@
+from datetime import datetime
 from pydantic import BaseModel, field_validator
+from typing import Any, Optional
 
 
 class BoundingBox(BaseModel):
@@ -29,3 +31,35 @@ class OCRPage(BaseModel):
 
 class OCRResult(BaseModel):
     pages: list[OCRPage]
+
+
+class BatchItemResult(BaseModel):
+    file_name: str
+    file_type: str
+    processing_time_ms: float
+    success: bool
+    data: Optional[Any] = None
+    error: Optional[dict] = None
+
+
+class BatchStatus(BaseModel):
+    batch_id: str
+    status: str
+    total_files: int
+    completed: int
+    failed: int
+    processing_time_ms: Optional[float] = None
+    items: list[Optional[BatchItemResult]]
+    created_at: datetime
+
+
+class SingleJobStatus(BaseModel):
+    job_id: str
+    status: str
+    file_name: str
+    file_type: str
+    created_at: datetime
+    completed_at: Optional[datetime] = None
+    processing_time_ms: Optional[float] = None
+    data: Optional[Any] = None
+    error: Optional[dict] = None

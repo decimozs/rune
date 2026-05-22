@@ -6,6 +6,8 @@ from contextlib import asynccontextmanager
 from config import settings
 from routes.ocr import router
 from services.ocr import ocr_service
+from services.batch import batch_processor
+from services.background import background_processor
 from services.exceptions import OCRValidationError, OCRRuntimeError
 
 logging.basicConfig(
@@ -18,9 +20,13 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     await ocr_service.init()
-    logger.info("OCR service initialized")
+    await batch_processor.start()
+    await background_processor.start()
+    logger.info("OCR service initialized, batch and background processors started")
     yield
-    logger.info("Shutting down OCR service")
+    await background_processor.stop()
+    await batch_processor.stop()
+    logger.info("Shutdown complete")
 
 
 app = FastAPI(lifespan=lifespan)
