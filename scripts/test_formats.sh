@@ -11,6 +11,9 @@ if ! curl -sf --connect-timeout 3 "$BASE_URL/docs" > /dev/null 2>&1; then
 fi
 
 TESTS=(
+  "png:app/datasets/images/sample1.png:image/png"
+  "png2:app/datasets/images/sample2.png:image/png"
+  "png3:app/datasets/images/sample3.png:image/png"
   "docx:app/datasets/docx/sample1.docx:application/vnd.openxmlformats-officedocument.wordprocessingml.document"
   "ppt:app/datasets/ppt/sample1.ppt:application/vnd.ms-powerpoint"
   "rtf:app/datasets/rtf/sample1.rtf:text/rtf"

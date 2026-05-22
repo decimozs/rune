@@ -1,5 +1,8 @@
+import logging
 from paddleocr import PaddleOCR, PPStructureV3
 from config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class OCREngine:
@@ -13,6 +16,10 @@ class OCREngine:
             enable_mkldnn=settings.enable_mkldnn,
             ocr_version=settings.version,
         )
+
+    async def shutdown(self):
+        self.ocr_model = None
+        logger.info("OCREngine released")
 
     def predict(self, file_path: str):
         if self.ocr_model is None:
@@ -31,6 +38,10 @@ class StructureEngine:
             lang=settings.lang,
             enable_mkldnn=settings.enable_mkldnn,
         )
+
+    async def shutdown(self):
+        self._engine = None
+        logger.info("StructureEngine released")
 
     def _get_engine(self) -> PPStructureV3:
         if self._engine is None:

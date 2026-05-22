@@ -8,8 +8,8 @@ class ResponseMetadata(BaseModel):
     model: str
     format: str
     processing_time_ms: Optional[float] = None
-    file_name: str
-    file_type: str
+    file_name: Optional[str] = None
+    file_type: Optional[str] = None
 
 
 class ErrorDetail(BaseModel):
