@@ -18,7 +18,7 @@ Internal OCR service for **Exist Software Labs**. Uses [PaddleOCR](https://githu
 
 ```mermaid
 flowchart TB
-  Client[Client / curl / Scripts]
+  Client(["Client / curl / Scripts"])
 
   subgraph FastAPI["FastAPI Application"]
     Routes["routes/ocr.py\nPOST /ocr/parse\nPOST /ocr/parse/batch\nGET /ocr/parse/batch/{id}\nPOST /ocr/parse/jobs\nGET /ocr/parse/jobs/{id}"]
@@ -57,11 +57,18 @@ flowchart TB
   Routes -->|write| FS
   OCRS -->|read| FS
 
-  style Client fill:#e1f5fe
-  style FastAPI fill:#f3e5f5
-  style Paddle fill:#e8f5e9
-  style Gotenberg fill:#fff3e0
-  style FS fill:#fce4ec
+  style Client fill:#333,stroke:#000,stroke-width:1px,color:#fff
+  style FastAPI fill:#fafafa,stroke:#999,stroke-width:1px,color:#666,stroke-dasharray:6 4
+  style Paddle fill:#fafafa,stroke:#999,stroke-width:1px,color:#666,stroke-dasharray:6 4
+  style Routes fill:#eee,stroke:#555,stroke-width:1px,color:#000
+  style BP fill:#eee,stroke:#555,stroke-width:1px,color:#000
+  style BJP fill:#eee,stroke:#555,stroke-width:1px,color:#000
+  style OCRS fill:#ccc,stroke:#000,stroke-width:2px,color:#000
+  style Conv fill:#eee,stroke:#555,stroke-width:1px,color:#000
+  style ENGINE fill:#eee,stroke:#555,stroke-width:1px,color:#000
+  style STRUCT fill:#eee,stroke:#555,stroke-width:1px,color:#000
+  style Gotenberg fill:#fff,stroke:#000,stroke-width:2px,color:#000
+  style FS fill:#fff,stroke:#000,stroke-width:2px,color:#000
 ```
 
 ## Documentation
