@@ -13,6 +13,7 @@ Internal OCR service for **Exist Software Labs**. Uses [PaddleOCR](https://githu
 - **aiofiles** — async file I/O
 - **python-magic** — MIME type validation
 - **uv** — package & project management
+- **Gotenberg** — document-to-PDF conversion (docker-compose)
 - **Docker** — containerized deployment
 
 ## Quick Start
@@ -37,12 +38,17 @@ uv run fastapi dev app/main.py --port 8000
 
 Server at `http://localhost:8000`. Interactive docs at `http://localhost:8000/docs`.
 
-### Run with Docker
+### Run with Docker Compose
 
 ```bash
-docker build -t exist-ocr .
-docker run -p 8000:80 exist-ocr
+# Start both services (API + Gotenberg)
+docker compose up -d
+
+# Stop
+docker compose down
 ```
+
+API at `http://localhost:8000`, Gotenberg at `http://localhost:3000`.
 
 ## Configuration
 
@@ -195,6 +201,8 @@ app/
     ├── ppt/
     ├── rtf/
     └── spreadsheets/     # CSV, XLS, XLSX
+
+docker-compose.yml        # API + Gotenberg services
 
 scripts/                  # Automation & testing scripts
 ├── test_ocr.sh

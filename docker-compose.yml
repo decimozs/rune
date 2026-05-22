@@ -1,0 +1,14 @@
+services:
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  ocr-api:
+    build: .
+    ports:
+      - "8000:80"
+    depends_on:
+      - gotenberg
+    restart: unless-stopped
