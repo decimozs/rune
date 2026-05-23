@@ -80,7 +80,7 @@ flowchart TB
 ## Documentation
 
 | Topic | Description |
-|---|---|---|
+|---|---|
 | [Quick Start](docs/quickstart.md) | Prerequisites, local run, docker-compose, make |
 | [Configuration](docs/configuration.md) | Environment variables table |
 | [API Reference](docs/api.md) | All endpoints with curl examples and responses (JSON, Markdown, XML) |
