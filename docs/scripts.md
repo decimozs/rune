@@ -20,7 +20,7 @@ Convenience scripts in `scripts/` for automated integration testing:
 | `test_formats.sh [url]` | Test all supported formats (docx, ppt, rtf, csv, xls, xlsx) against OCR endpoint |
 | `batch_ocr.sh [url] [poll=2] [format=json] <files...>` | Submit files to batch endpoint, poll until completion, save per-file outputs to `tests/outputs/batch_{id}/` |
 | `ocr_job.sh [url] [poll=2] [format=json] <file>` | Submit single file to background job endpoint, poll, save result to `tests/outputs/job_{id}/` |
-| `test_routes.sh [url] [timeout=60]` | Test all 7 routes (health, sync, jobs, batch, 404, 422, 413), validate response structure, exit non-zero on failure |
+| `test_routes.sh [url] [timeout=60]` | Test all routes (health, sync, jobs, batch, URL, HTML, edge cases), validate response structure, exit non-zero on failure |
 | `parallel_ocr.sh [url] [poll=2] [format=json] <files...>` | Submit each file as individual background job in one burst, poll all concurrently, progressive output |
 | `cleanup.sh [--older-than N \| --all \| --dry-run]` | List and delete old test output directories with confirmation |
 

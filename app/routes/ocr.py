@@ -1,13 +1,30 @@
 from datetime import datetime, timezone
 from typing import cast
 from enum import Enum
-from fastapi import APIRouter, File, Query, UploadFile, HTTPException
+from fastapi import APIRouter, File, Form, Query, UploadFile, HTTPException
 from config import settings
 from schemas.response import APIResponse, ResponseMetadata
-from services.processor import process_file
+from services.processor import process_file, process_url, process_html
 from services.batch import batch_processor, MAX_BATCH_SIZE
 from services.background import background_processor
 from schemas.ocr import BatchItemResult, BatchStatus, SingleJobStatus
+
+
+def _split_group_by_html(entries: list[tuple[str, bytes]]) -> list[list[tuple[str, bytes]]]:
+    items = []
+    current = []
+    for name, content in entries:
+        if name.endswith((".html", ".htm")):
+            if current:
+                items.append(current)
+            current = [(name, content)]
+        else:
+            if current:
+                current.append((name, content))
+    if current:
+        items.append(current)
+    # drop groups with no HTML file (assets orphaned before first HTML)
+    return [g for g in items if any(n.endswith((".html", ".htm")) for n, _ in g)]
 
 
 class OutputFormat(str, Enum):
@@ -217,3 +234,126 @@ async def get_batch_status(batch_id: str):
             created_at=job.created_at,
         ),
     ).model_dump(exclude_none=True)
+
+
+# ── URL ──────────────────────────────────────────────────────────────
+
+@router.post("/parse/url")
+async def parse_url(
+    url: str = Form(...),
+    output_format: OutputFormat = Query(default=OutputFormat.json, alias="format"),
+):
+    data, error, elapsed = await process_url(url, output_format.value)
+    if error:
+        raise HTTPException(500, detail=error)
+    return build_response(data, output_format, url, "source/url", elapsed)
+
+
+@router.post("/parse/url/jobs", status_code=202)
+async def create_url_job(
+    url: str = Form(...),
+    output_format: OutputFormat = Query(OutputFormat.json, alias="format"),
+):
+    job_id = background_processor.create_job(
+        url, "source/url", b"", output_format.value,
+        source_type="url", extra_data=url,
+    )
+    job = background_processor.get_job(job_id)
+    return APIResponse(
+        success=True,
+        metadata=ResponseMetadata(timestamp=datetime.now(timezone.utc), model=settings.version, format=output_format.value),
+        data={"job_id": job_id, "status": job.status, "file_name": url, "file_type": "source/url", "created_at": job.created_at.isoformat()},
+    ).model_dump(exclude_none=True)
+
+
+@router.post("/parse/url/batch", status_code=202)
+async def parse_url_batch(
+    url: list[str] = Form(...),
+    output_format: OutputFormat = Query(OutputFormat.json, alias="format"),
+):
+    if len(url) > MAX_BATCH_SIZE:
+        raise HTTPException(413, f"Max {MAX_BATCH_SIZE} URLs per batch")
+    if len(url) == 0:
+        raise HTTPException(400, "At least one URL required")
+    batch_id = batch_processor.create_job(url, output_format.value, source_type="url")
+    job = batch_processor.get_job(batch_id)
+    return APIResponse(
+        success=True,
+        metadata=ResponseMetadata(timestamp=datetime.now(timezone.utc), model=settings.version, format=output_format.value),
+        data={"batch_id": batch_id, "status": job.status, "total_files": job.total_files, "created_at": job.created_at.isoformat()},
+    ).model_dump(exclude_none=True)
+
+
+# ── HTML ─────────────────────────────────────────────────────────────
+
+@router.post("/parse/html")
+async def parse_html(
+    files: list[UploadFile] = File(...),
+    output_format: OutputFormat = Query(default=OutputFormat.json, alias="format"),
+):
+    if not files:
+        raise HTTPException(400, "At least one file required (index.html)")
+    file_tuples = []
+    for f in files:
+        content = await f.read()
+        if len(content) > settings.max_file_size:
+            raise HTTPException(413, f"File too large: {f.filename}")
+        file_tuples.append((cast(str, f.filename), content))
+    data, error, elapsed = await process_html(file_tuples, output_format.value)
+    if error:
+        raise HTTPException(500, detail=error)
+    return build_response(data, output_format, "index.html", "source/html", elapsed)
+
+
+@router.post("/parse/html/jobs", status_code=202)
+async def create_html_job(
+    files: list[UploadFile] = File(...),
+    output_format: OutputFormat = Query(OutputFormat.json, alias="format"),
+):
+    if not files:
+        raise HTTPException(400, "At least one file required (index.html)")
+    file_tuples = []
+    for f in files:
+        content = await f.read()
+        if len(content) > settings.max_file_size:
+            raise HTTPException(413, f"File too large: {f.filename}")
+        file_tuples.append((cast(str, f.filename), content))
+    job_id = background_processor.create_job(
+        "index.html", "source/html", b"", output_format.value,
+        source_type="html", extra_data=file_tuples,
+    )
+    job = background_processor.get_job(job_id)
+    return APIResponse(
+        success=True,
+        metadata=ResponseMetadata(timestamp=datetime.now(timezone.utc), model=settings.version, format=output_format.value),
+        data={"job_id": job_id, "status": job.status, "file_name": "index.html", "file_type": "source/html", "created_at": job.created_at.isoformat()},
+    ).model_dump(exclude_none=True)
+
+
+@router.post("/parse/html/batch", status_code=202)
+async def parse_html_batch(
+    files: list[UploadFile] = File(...),
+    output_format: OutputFormat = Query(OutputFormat.json, alias="format"),
+):
+    file_tuples = []
+    for f in files:
+        content = await f.read()
+        if len(content) > settings.max_file_size:
+            raise HTTPException(413, f"File too large: {f.filename}")
+        file_tuples.append((cast(str, f.filename), content))
+
+    items = _split_group_by_html(file_tuples)
+    if not items:
+        raise HTTPException(400, "At least one HTML file required")
+    if len(items) > MAX_BATCH_SIZE:
+        raise HTTPException(413, f"Max {MAX_BATCH_SIZE} file sets per batch")
+
+    batch_id = batch_processor.create_job(items, output_format.value, source_type="html")
+    job = batch_processor.get_job(batch_id)
+    return APIResponse(
+        success=True,
+        metadata=ResponseMetadata(timestamp=datetime.now(timezone.utc), model=settings.version, format=output_format.value),
+        data={"batch_id": batch_id, "status": job.status, "total_files": job.total_files, "created_at": job.created_at.isoformat()},
+    ).model_dump(exclude_none=True)
+
+

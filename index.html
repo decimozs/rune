@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Exist OCR – Demo</title>
+  <title>Exist OCR</title>
   <style>
     *,
     *::before,
@@ -794,6 +794,7 @@
         font-size: 14px
       }
     }
+
     /* viz - single image */
     .viz-wrap {
       position: relative;
@@ -872,6 +873,180 @@
       color: var(--text-dim);
       font-size: 13px
     }
+
+    /* source type tabs */
+    .source-bar {
+      display: flex;
+      gap: 2px;
+      background: var(--border);
+      border-radius: var(--radius-sm);
+      padding: 2px;
+      margin-bottom: 16px
+    }
+
+    .source-tab {
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 14px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      background: transparent;
+      color: var(--text-dim);
+      transition: all .15s;
+      flex: 1;
+      text-align: center
+    }
+
+    .source-tab:hover {
+      color: var(--text)
+    }
+
+    .source-tab.active {
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, .08)
+    }
+
+    .source-panel {
+      display: none
+    }
+
+    .source-panel.active {
+      display: block
+    }
+
+    .url-area {
+      background: var(--surface);
+      border: 2px dashed var(--border-bold);
+      border-radius: var(--radius);
+      padding: 24px 20px;
+      text-align: center;
+      margin-bottom: 16px
+    }
+
+    .url-area .url-field {
+      font-family: var(--mono);
+      font-size: 14px;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--bg);
+      color: var(--text);
+      width: 100%;
+      max-width: 480px;
+      outline: 0;
+      transition: border-color .15s
+    }
+
+    .url-area .url-field:focus {
+      border-color: var(--accent)
+    }
+
+    .url-area .url-hint {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 8px
+    }
+
+    .url-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+      min-height: 0
+    }
+
+    .batch-urls {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 12px
+    }
+
+    .batch-urls .url-row {
+      display: flex;
+      gap: 6px;
+      align-items: center
+    }
+
+    .batch-urls .url-row input {
+      flex: 1;
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--bg);
+      color: var(--text);
+      outline: 0
+    }
+
+    .batch-urls .url-row input:focus {
+      border-color: var(--accent)
+    }
+
+    .batch-urls .url-row .url-remove {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: none;
+      background: var(--border);
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all .15s
+    }
+
+    .batch-urls .url-row .url-remove:hover {
+      background: var(--error);
+      color: #fff
+    }
+
+    .url-add-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 4px
+    }
+
+    .url-add-row input {
+      flex: 1;
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--bg);
+      color: var(--text);
+      outline: 0
+    }
+
+    .url-add-row input:focus {
+      border-color: var(--accent)
+    }
+
+    .url-add-row .btn-url-add {
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 14px;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      background: var(--primary);
+      color: #fff;
+      transition: all .15s;
+      white-space: nowrap
+    }
+
+    .url-add-row .btn-url-add:hover {
+      background: var(--primary-light)
+    }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
@@ -892,6 +1067,12 @@
   </header>
 
   <main>
+    <div class="source-bar">
+      <button class="source-tab active" data-source="file">📄 File</button>
+      <button class="source-tab" data-source="url">🔗 URL</button>
+      <button class="source-tab" data-source="html">🕸️ HTML</button>
+    </div>
+
     <div class="controls">
       <div class="control-group">
         <label>Format</label>
@@ -916,14 +1097,46 @@
       <span>Upload one or more files. Direct mode waits for the result inline.</span>
     </div>
 
-    <div class="dropzone" id="dropzone">
-      <div class="icon">📄</div>
-      <div class="label">Drag &amp; drop files here</div>
-      <div class="sublabel">or <strong>click</strong> to select</div>
-      <div class="formats-hint">Supports: JPEG, PNG, BMP, TIFF, WebP, PDF, DOC, DOCX, PPT, PPTX, RTF, CSV, XLS, XLSX</div>
-      <input type="file" id="fileInput" multiple
-        accept=".jpg,.jpeg,.png,.bmp,.tiff,.tif,.webp,.pdf,.doc,.docx,.ppt,.pptx,.rtf,.csv,.xls,.xlsx">
+    <div class="source-panel active" id="panel-file">
+      <div class="dropzone" id="dropzone">
+        <div class="icon">📄</div>
+        <div class="label">Drag &amp; drop files here</div>
+        <div class="sublabel">or <strong>click</strong> to select</div>
+        <div class="formats-hint">Supports: JPEG, PNG, BMP, TIFF, WebP, PDF, DOC, DOCX, PPT, PPTX, RTF, CSV, XLS, XLSX
+        </div>
+        <input type="file" id="fileInput" multiple
+          accept=".jpg,.jpeg,.png,.bmp,.tiff,.tif,.webp,.pdf,.doc,.docx,.ppt,.pptx,.rtf,.csv,.xls,.xlsx">
+      </div>
     </div>
+
+    <div class="source-panel" id="panel-url">
+      <div class="url-area" id="urlArea">
+        <div class="url-hint">Enter a URL to convert to PDF and OCR</div>
+        <div class="batch-urls" id="batchUrls">
+          <div class="url-row">
+            <input type="url" class="url-field-single" id="urlInput" placeholder="https://example.com"
+              spellcheck="false">
+          </div>
+        </div>
+        <div class="url-add-row" id="urlAddRow" style="display:none">
+          <input type="url" id="urlAddInput" placeholder="https://example.com" spellcheck="false">
+          <button class="btn-url-add" id="urlAddBtn">+ Add</button>
+        </div>
+        <div class="url-list" id="urlList"></div>
+      </div>
+    </div>
+
+    <div class="source-panel" id="panel-html">
+      <div class="dropzone" id="htmlDropzone">
+        <div class="icon">🕸️</div>
+        <div class="label">Upload HTML files</div>
+        <div class="sublabel">Include <strong>index.html</strong> plus optional assets (CSS, images)</div>
+        <div class="formats-hint">Reference assets by filename only (no subdirectories). CDN URLs work.</div>
+        <input type="file" id="htmlInput" multiple
+          accept=".html,.htm,.css,.js,.png,.jpg,.jpeg,.gif,.svg,.webp,.ico,.woff,.woff2,.ttf">
+      </div>
+    </div>
+
 
     <div class="file-list" id="fileList"></div>
 
@@ -986,6 +1199,42 @@
       const apiUrl = () => $('apiUrl').value.replace(/\/+$/, '')
       const format = () => $('formatGroup').querySelector('.active').dataset.value
       const mode = () => $('modeGroup').querySelector('.active').dataset.value
+      const sourceType = () => document.querySelector('.source-tab.active')?.dataset?.source || 'file'
+
+      // ---- source tabs ----
+      document.querySelectorAll('.source-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.source-tab').forEach(t => t.classList.remove('active'))
+          tab.classList.add('active')
+          document.querySelectorAll('.source-panel').forEach(p => p.classList.remove('active'))
+          const panel = $(`panel-${tab.dataset.source}`)
+          if (panel) panel.classList.add('active')
+          onSourceChange()
+        })
+      })
+
+      function onSourceChange() {
+        const src = sourceType()
+        const isUrl = src === 'url'
+        const m = mode()
+
+        if (isUrl) {
+          selectedFiles.forEach(f => {if (f.blobUrl) URL.revokeObjectURL(f.blobUrl)})
+          selectedFiles = []
+          renderFiles()
+        }
+
+        $('urlAddRow').style.display = isUrl && m === 'batch' ? '' : 'none'
+        $('urlInput').style.display = isUrl && m !== 'batch' ? '' : 'none'
+        if (!isUrl && m !== 'batch' && selectedFiles.length > 1) {
+          for (var sj = 1; sj < selectedFiles.length; sj++) {
+            if (selectedFiles[sj].blobUrl) URL.revokeObjectURL(selectedFiles[sj].blobUrl)
+          }
+          selectedFiles = [selectedFiles[0]]
+          renderFiles()
+        }
+        onModeChange()
+      }
 
       // ---- toggle buttons ----
       document.querySelectorAll('.btn-group').forEach(group => {
@@ -1001,17 +1250,32 @@
 
       function onModeChange() {
         const m = mode()
+        const src = sourceType()
+        const isUrl = src === 'url'
         const help = $('helpText')
-        if (m === 'direct') {
-          help.innerHTML = '<span>ⓘ</span><span>Upload one or more files. Each file processed synchronously — result shown inline.</span>'
-          $('fileInput').multiple = false
-        } else if (m === 'job') {
-          help.innerHTML = '<span>ⓘ</span><span>Upload a single file. Creates a background job — polled every 2s until complete. You can close the page and revisit with the job id.</span>'
-          $('fileInput').multiple = false
+        if (isUrl) {
+          if (m === 'direct') {
+            help.innerHTML = '<span>ⓘ</span><span>Enter a URL. Converted to PDF via Chromium, then OCR\'d. Result shown inline.</span>'
+          } else if (m === 'job') {
+            help.innerHTML = '<span>ⓘ</span><span>Enter a URL. Creates a background job — polled every 2s.</span>'
+          } else {
+            help.innerHTML = '<span>ⓘ</span><span>Enter multiple URLs (max 20). Each URL converted + OCR\'d as a batch.</span>'
+          }
+        } else if (src === 'html') {
+          help.innerHTML = '<span>ⓘ</span><span>Upload <strong>index.html</strong> plus assets. Converted to PDF via Chromium, then OCR\'d.</span>'
         } else {
-          help.innerHTML = '<span>ⓘ</span><span>Upload multiple files (max 20). Processed sequentially as a batch — polled every 2s. One failure does not stop others.</span>'
-          $('fileInput').multiple = true
+          if (m === 'direct') {
+            help.innerHTML = '<span>ⓘ</span><span>Upload one or more files. Each file processed synchronously — result shown inline.</span>'
+          } else if (m === 'job') {
+            help.innerHTML = '<span>ⓘ</span><span>Upload a single file. Creates a background job — polled every 2s until complete. You can close the page and revisit with the job id.</span>'
+          } else {
+            help.innerHTML = '<span>ⓘ</span><span>Upload multiple files (max 20). Processed sequentially as a batch — polled every 2s. One failure does not stop others.</span>'
+          }
         }
+        const input = $('fileInput')
+        if (input) input.multiple = (m === 'batch')
+        $('urlAddRow').style.display = isUrl && m === 'batch' ? '' : 'none'
+        $('urlInput').style.display = isUrl && m !== 'batch' ? '' : 'none'
         if (m !== 'batch' && selectedFiles.length > 1) {
           for (var si = 1; si < selectedFiles.length; si++) {
             if (selectedFiles[si].blobUrl) URL.revokeObjectURL(selectedFiles[si].blobUrl)
@@ -1022,38 +1286,98 @@
         updateProcessBtn()
       }
 
-      // ---- drop zone ----
+      // ---- input: file drop zone ----
       const dz = $('dropzone')
       const fi = $('fileInput')
-
       dz.addEventListener('click', () => fi.click())
-
-      fi.addEventListener('change', () => {
-        if (fi.files.length) addFiles(fi.files)
-        fi.value = ''
-      })
-
+      fi.addEventListener('change', () => {if (fi.files.length) addFiles(fi.files); fi.value = ''})
       dz.addEventListener('dragover', e => {e.preventDefault(); dz.classList.add('dragover')})
       dz.addEventListener('dragleave', () => dz.classList.remove('dragover'))
       dz.addEventListener('drop', e => {
-        e.preventDefault()
-        dz.classList.remove('dragover')
+        e.preventDefault(); dz.classList.remove('dragover')
         if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files)
       })
 
+      // ---- input: HTML drop zone ----
+      const hz = $('htmlDropzone')
+      const hi = $('htmlInput')
+      hz.addEventListener('click', () => hi.click())
+      hi.addEventListener('change', () => {if (hi.files.length) addFiles(hi.files); hi.value = ''})
+      hz.addEventListener('dragover', e => {e.preventDefault(); hz.classList.add('dragover')})
+      hz.addEventListener('dragleave', () => hz.classList.remove('dragover'))
+      hz.addEventListener('drop', e => {
+        e.preventDefault(); hz.classList.remove('dragover')
+        if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files)
+      })
+
+      // ---- input: URL ----
+      const urlInput = $('urlInput')
+      const urlAddInput = $('urlAddInput')
+      const urlAddBtn = $('urlAddBtn')
+      const urlList = $('urlList')
+      let urlEntries = []
+
+      urlInput.addEventListener('keydown', e => {if (e.key === 'Enter') addUrl(urlInput.value)})
+      urlAddBtn.addEventListener('click', () => {const v = urlAddInput.value.trim(); if (v) {addUrl(v); urlAddInput.value = ''} })
+      urlAddInput.addEventListener('keydown', e => {if (e.key === 'Enter') {const v = urlAddInput.value.trim(); if (v) {addUrl(v); urlAddInput.value = ''} } })
+
+      function addUrl(u) {
+        u = u.trim()
+        if (!u) return
+        if (!u.startsWith('http://') && !u.startsWith('https://')) u = 'https://' + u
+        const m = mode()
+        if (m === 'batch') {
+          if (urlEntries.length >= MAX_BATCH_SIZE) {addResultCard('URL batch', 'fail', null, 'Max ' + MAX_BATCH_SIZE + ' URLs'); return }
+          urlEntries.push(u)
+          renderUrlList()
+        } else {
+          urlEntries = [u]
+          renderUrlList()
+        }
+        updateProcessBtn()
+      }
+
+      function removeUrl(index) {
+        urlEntries.splice(index, 1)
+        renderUrlList()
+        updateProcessBtn()
+      }
+
+      function renderUrlList() {
+        urlList.innerHTML = urlEntries.map((u, i) =>
+          '<div class="chip"><span class="name">' + esc(u) + '</span><button class="remove" data-index="' + i + '" title="Remove">✕</button></div>'
+        ).join('')
+        urlList.querySelectorAll('.remove').forEach(b => {
+          b.addEventListener('click', () => removeUrl(parseInt(b.dataset.index)))
+        })
+      }
+
       function addFiles(fileList) {
+        const src = sourceType()
+        if (src === 'html') {
+          const newFiles = []
+          for (const f of fileList) {
+            if (f.size > MAX_FILE_SIZE) {addResultCard(f.name, 'fail', null, 'File exceeds 50MB limit'); continue}
+            newFiles.push({file: f, mime: f.type || 'application/octet-stream', blobUrl: URL.createObjectURL(f)})
+          }
+          const m = mode()
+          if (m !== 'batch') selectedFiles = newFiles  // keep all files for HTML/MD
+          else {
+            const remaining = MAX_BATCH_SIZE - selectedFiles.length
+            selectedFiles = selectedFiles.concat(newFiles.slice(0, remaining))
+            if (newFiles.length > remaining) addResultCard('batch', 'fail', null, 'Batch max 20 files. Excess ignored.')
+          }
+          renderFiles()
+          updateProcessBtn()
+          return
+        }
+        // File source type
         const newFiles = []
         for (const f of fileList) {
           const ext = f.name.split('.').pop().toLowerCase()
           const mime = EXT_TO_MIME[ext] || f.type || ''
-          if (!ALLOWED_TYPES.has(mime)) {
-            addResultCard(f.name, 'fail', null, 'Unsupported file type')
-            continue
-          }
-          if (f.size > MAX_FILE_SIZE) {
-            addResultCard(f.name, 'fail', null, 'File exceeds 50MB limit')
-            continue
-          }
+          if (!ALLOWED_TYPES.has(mime)) {addResultCard(f.name, 'fail', null, 'Unsupported file type'); continue}
+          if (f.size > MAX_FILE_SIZE) {addResultCard(f.name, 'fail', null, 'File exceeds 50MB limit'); continue}
           newFiles.push({file: f, mime, blobUrl: URL.createObjectURL(f)})
         }
         const m = mode()
@@ -1062,9 +1386,7 @@
           const remaining = MAX_BATCH_SIZE - selectedFiles.length
           const add = newFiles.slice(0, remaining)
           selectedFiles = selectedFiles.concat(add)
-          if (newFiles.length > remaining) {
-            addResultCard('batch', 'fail', null, 'Batch max 20 files. Excess ignored.')
-          }
+          if (newFiles.length > remaining) addResultCard('batch', 'fail', null, 'Batch max 20 files. Excess ignored.')
         }
         renderFiles()
         updateProcessBtn()
@@ -1074,20 +1396,14 @@
         const container = $('fileList')
         if (!selectedFiles.length) {container.innerHTML = ''; return }
         container.innerHTML = selectedFiles.map((f, i) =>
-          `<div class="chip">
-        <span class="name">${esc(f.file.name)}</span>
-        <span class="size">${fmtSize(f.file.size)}</span>
-        <button class="remove" data-index="${i}" title="Remove">✕</button>
-      </div>`
+          '<div class="chip"><span class="name">' + esc(f.file.name) + '</span><span class="size">' + fmtSize(f.file.size) + '</span><button class="remove" data-index="' + i + '" title="Remove">✕</button></div>'
         ).join('')
         container.querySelectorAll('.remove').forEach(btn => {
           btn.addEventListener('click', () => {
             const idx = parseInt(btn.dataset.index)
             const entry = selectedFiles[idx]
             if (entry && entry.blobUrl) URL.revokeObjectURL(entry.blobUrl)
-            selectedFiles.splice(idx, 1)
-            renderFiles()
-            updateProcessBtn()
+            selectedFiles.splice(idx, 1); renderFiles(); updateProcessBtn()
           })
         })
       }
@@ -1097,11 +1413,41 @@
 
       function updateProcessBtn() {
         const btn = $('processBtn')
-        btn.disabled = selectedFiles.length === 0 || processing
+        const src = sourceType()
+        if (src === 'url') {
+          btn.disabled = urlEntries.length === 0 || processing
+        } else {
+          btn.disabled = selectedFiles.length === 0 || processing
+        }
+      }
+
+      function currentEndpoint(ep) {
+        const src = sourceType()
+        if (src === 'url') return '/ocr/parse/url' + ep
+        if (src === 'html') return '/ocr/parse/html' + ep
+        return '/ocr/parse' + ep
+      }
+
+      function currentFileIdent() {
+        const src = sourceType()
+        if (src === 'url') return urlEntries[0] || 'url'
+        if (src === 'html') return 'index.html'
+        return selectedFiles[0]?.file?.name || 'file'
+      }
+
+      function fieldName() {
+        const src = sourceType()
+        if (src === 'file') return 'file'
+        return 'files'
       }
 
       async function process() {
-        if (processing || !selectedFiles.length) return
+        const src = sourceType()
+        if (src === 'url') {
+          if (processing || !urlEntries.length) return
+        } else {
+          if (processing || !selectedFiles.length) return
+        }
         processing = true
         const btn = $('processBtn')
         btn.classList.add('loading')
@@ -1126,41 +1472,76 @@
       }
 
       async function processDirect() {
-        const f = selectedFiles[0]
-        const fd = new FormData()
-        fd.append('file', f.file, f.file.name)
+        const src = sourceType()
+        if (src === 'url') {
+          const resp = await fetch(`${apiUrl()}${currentEndpoint('')}?format=${format()}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'url=' + encodeURIComponent(urlEntries[0])
+          })
+          const json = await resp.json()
+          if (!resp.ok) {
+            const msg = json.detail || json.error?.message || `HTTP ${resp.status}`
+            addResultCard(urlEntries[0], 'fail', null, msg)
+            return
+          }
+          const ms = json.metadata?.processing_time_ms
+          addResultCard(urlEntries[0], 'ok', ms, json.data || json, json.metadata)
+          return
+        }
 
-        const resp = await fetch(`${apiUrl()}/ocr/parse?format=${format()}`, {
-          method: 'POST', body: fd
-        })
+        const fn = fieldName()
+        const fd = new FormData()
+        for (const e of selectedFiles) fd.append(fn, e.file, e.file.name)
+        const ep = currentEndpoint('')
+        const label = src === 'html' ? currentFileIdent() : selectedFiles[0]?.file?.name
+        const resp = await fetch(`${apiUrl()}${ep}?format=${format()}`, {method: 'POST', body: fd})
         const json = await resp.json()
         if (!resp.ok) {
           const msg = json.detail || json.error?.message || `HTTP ${resp.status}`
-          addResultCard(f.file.name, 'fail', null, msg)
+          addResultCard(label, 'fail', null, msg)
           return
         }
         const ms = json.metadata?.processing_time_ms
-        addResultCard(f.file.name, 'ok', ms, json.data || json, json.metadata)
+        addResultCard(label, 'ok', ms, json.data || json, json.metadata)
       }
 
       async function processJob() {
-        const f = selectedFiles[0]
-        const fd = new FormData()
-        fd.append('file', f.file, f.file.name)
+        const src = sourceType()
+        const ident = currentFileIdent()
+        const ep = currentEndpoint('/jobs')
 
-        const resp = await fetch(`${apiUrl()}/ocr/parse/jobs?format=${format()}`, {
-          method: 'POST', body: fd
-        })
-        const json = await resp.json()
-        if (!resp.ok) {
-          const msg = json.detail || json.error?.message || `HTTP ${resp.status}`
-          addResultCard(f.file.name, 'fail', null, msg)
+        if (src === 'url') {
+          const resp = await fetch(`${apiUrl()}${ep}?format=${format()}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: 'url=' + encodeURIComponent(urlEntries[0])
+          })
+          const json = await resp.json()
+          if (!resp.ok) {
+            const msg = json.detail || json.error?.message || `HTTP ${resp.status}`
+            addResultCard(ident, 'fail', null, msg)
+            return
+          }
+          const jobId = json.data.job_id
+          const card = addResultCard(ident, 'pending', null, 'Job created — polling...')
+          pollJob(jobId, card)
           return
         }
 
+        const fn = fieldName()
+        const fd = new FormData()
+        for (const e of selectedFiles) fd.append(fn, e.file, e.file.name)
+        const label = src === 'html' ? ident : selectedFiles[0]?.file?.name
+        const resp = await fetch(`${apiUrl()}${ep}?format=${format()}`, {method: 'POST', body: fd})
+        const json = await resp.json()
+        if (!resp.ok) {
+          const msg = json.detail || json.error?.message || `HTTP ${resp.status}`
+          addResultCard(label, 'fail', null, msg)
+          return
+        }
         const jobId = json.data.job_id
-        const card = addResultCard(f.file.name, 'pending', null, 'Job created — polling...')
-
+        const card = addResultCard(label, 'pending', null, 'Job created — polling...')
         pollJob(jobId, card)
       }
 
@@ -1191,24 +1572,43 @@
       }
 
       async function processBatch() {
-        const fd = new FormData()
-        for (const f of selectedFiles) {
-          fd.append('file', f.file, f.file.name)
+        const src = sourceType()
+        const ep = currentEndpoint('/batch')
+
+        if (src === 'url') {
+          var params = new URLSearchParams()
+          for (var ui = 0; ui < urlEntries.length; ui++) params.append('url', urlEntries[ui])
+          const resp = await fetch(`${apiUrl()}${ep}?format=${format()}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: params.toString()
+          })
+          const json = await resp.json()
+          if (!resp.ok) {
+            const msg = json.detail || json.error?.message || `HTTP ${resp.status}`
+            addResultCard('URL batch', 'fail', null, msg)
+            return
+          }
+          const batchId = json.data.batch_id
+          const card = addResultCard('URL Batch #' + batchId.slice(0, 8), 'pending', null, 'Processing...')
+          pollBatch(batchId, card)
+          return
         }
 
-        const resp = await fetch(`${apiUrl()}/ocr/parse/batch?format=${format()}`, {
-          method: 'POST', body: fd
-        })
+        const fn = fieldName()
+        const fd = new FormData()
+        for (const f of selectedFiles) {
+          fd.append(fn, f.file, f.file.name)
+        }
+        const resp = await fetch(`${apiUrl()}${ep}?format=${format()}`, {method: 'POST', body: fd})
         const json = await resp.json()
         if (!resp.ok) {
           const msg = json.detail || json.error?.message || `HTTP ${resp.status}`
           addResultCard('batch', 'fail', null, msg)
           return
         }
-
         const batchId = json.data.batch_id
-        const card = addResultCard(`Batch #${batchId.slice(0, 8)}`, 'pending', null, 'Processing...')
-
+        const card = addResultCard('Batch #' + batchId.slice(0, 8), 'pending', null, 'Processing...')
         pollBatch(batchId, card)
       }
 
@@ -1383,7 +1783,7 @@
         var allWords = []
         for (var pi = 0; pi < dataPages.length; pi++) {
           var pg = dataPages[pi]
-          if (pg.words) { for (var wi = 0; wi < pg.words.length; wi++) allWords.push(pg.words[wi]) }
+          if (pg.words) {for (var wi = 0; wi < pg.words.length; wi++) allWords.push(pg.words[wi])}
         }
         if (!allWords.length) {
           container.innerHTML = '<div class="viz-empty">No bounding boxes found.</div>'
@@ -1398,7 +1798,7 @@
 
       function renderPDFPage(pageEl, pageIndex, pdf, scale, ocrPage) {
         pdf.getPage(pageIndex + 1).then(function (page) {
-          var viewport = page.getViewport({ scale: scale })
+          var viewport = page.getViewport({scale: scale})
           var inner = document.createElement('div')
           inner.className = 'viz-page-inner'
           inner.style.position = 'relative'
@@ -1421,7 +1821,7 @@
           overlay.style.pointerEvents = 'none'
           inner.appendChild(overlay)
 
-          return page.render({ canvasContext: c.getContext('2d'), viewport: viewport }).promise.then(function () {
+          return page.render({canvasContext: c.getContext('2d'), viewport: viewport}).promise.then(function () {
             requestAnimationFrame(function () {
               var dw = c.offsetWidth
               var dh = c.offsetHeight
@@ -1470,7 +1870,7 @@
       function renderVisualization(container, fileName) {
         var entry = null
         for (var i = 0; i < selectedFiles.length; i++) {
-          if (selectedFiles[i].file.name === fileName) { entry = selectedFiles[i]; break }
+          if (selectedFiles[i].file.name === fileName) {entry = selectedFiles[i]; break}
         }
         if (!entry || !entry.blobUrl) {
           container.innerHTML = '<div class="viz-empty">File unavailable for visualization.</div>'
@@ -1503,7 +1903,7 @@
                 renderPageWithBBoxes(el, pg.page_image_url, words, pg.ocr_width, pg.ocr_height)
               }
             }
-          }, { rootMargin: '200px' })
+          }, {rootMargin: '200px'})
 
           for (var pi = 0; pi < data.pages.length; pi++) {
             var pageEl = document.createElement('div')
@@ -1530,7 +1930,7 @@
                   renderPDFPage(el, idx, pdf, scale, data.pages[idx] || null)
                 }
               }
-            }, { rootMargin: '200px' })
+            }, {rootMargin: '200px'})
 
             for (var pi = 0; pi < numPages; pi++) {
               var pageEl = document.createElement('div')
@@ -1573,7 +1973,7 @@
         const isMd = isMarkdown(meta, content) && !isObj && status !== 'fail'
         const fileName = meta && meta.file_name
         const canViz = isObj && meta && meta.format === 'json' && status === 'ok' &&
-                       fileName && selectedFiles.some(function (f) { return f.file.name === fileName })
+          fileName && selectedFiles.some(function (f) {return f.file.name === fileName})
 
         if (!isMd && !canViz) return '<div class="body open"><pre>' + esc(text) + '</pre></div>'
 

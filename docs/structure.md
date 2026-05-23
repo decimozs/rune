@@ -16,7 +16,7 @@ app/
 │   ├── formatter.py      # Raw OCR output → structured JSON
 │   ├── xml_formatter.py  # OCRResult dict → pretty-printed XML
 │   ├── markdown.py       # PPStructureV3 markdown conversion + image saving
-│   ├── converter.py      # Gotenberg document-to-PDF conversion (reused httpx client)
+│   ├── converter.py      # Gotenberg document-to-PDF conversion via LibreOffice + Chromium URL/HTML (reused httpx client)
 │   ├── processor.py      # Shared file pipeline: write → magic → convert → OCR → cleanup
 │   ├── batch.py          # Batch processor: in-memory queue, per-file isolation, 1hr TTL
 │   ├── background.py     # Background job processor: single-file async with TTL cleanup

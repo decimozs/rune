@@ -82,7 +82,9 @@ uv sync
 
 ## Gotenberg (for Office Documents)
 
-OCR service uses [Gotenberg](https://gotenberg.dev) to convert office documents (DOCX, PPT, XLSX, RTF, CSV, XLS, DOC) to PDF before OCR.
+OCR service uses [Gotenberg](https://gotenberg.dev) for two conversion paths:
+- **LibreOffice** — converts office documents (DOCX, PPT, XLSX, RTF, CSV, XLS, DOC) to PDF
+- **Chromium** — renders URLs and HTML files (with optional assets) to PDF
 
 ```bash
 docker run -d --rm -p 3000:3000 --name gotenberg gotenberg/gotenberg:8
@@ -94,7 +96,7 @@ Verify it is running:
 curl http://localhost:3000/health
 ```
 
-If you do not need office document support, Gotenberg is optional — image and PDF OCR work without it.
+If you do not need office document, URL, or HTML support, Gotenberg is optional — image and PDF OCR work without it.
 
 ---
 

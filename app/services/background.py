@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from services.processor import process_file
+from services.processor import process_file, process_url, process_html
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +21,8 @@ class BackgroundJob:
         file_type: str,
         content: bytes,
         output_format: str,
+        source_type: str = "file",
+        extra_data: Any = None,
     ):
         self.id = job_id
         self.status = "pending"
@@ -33,6 +35,8 @@ class BackgroundJob:
         self.data: Any = None
         self.error: Optional[dict] = None
         self._content = content
+        self.source_type = source_type
+        self.extra_data = extra_data
 
 
 class BackgroundProcessor:
@@ -66,10 +70,11 @@ class BackgroundProcessor:
                 logger.info("Expired background job %s", jid)
 
     def create_job(
-        self, file_name: str, file_type: str, content: bytes, output_format: str
+        self, file_name: str, file_type: str, content: bytes, output_format: str,
+        source_type: str = "file", extra_data: Any = None,
     ) -> str:
         job_id = uuid.uuid4().hex[:12]
-        job = BackgroundJob(job_id, file_name, file_type, content, output_format)
+        job = BackgroundJob(job_id, file_name, file_type, content, output_format, source_type, extra_data)
         self._jobs[job_id] = job
         asyncio.create_task(self._run_job(job_id))
         return job_id
@@ -82,8 +87,13 @@ class BackgroundProcessor:
         job.status = "processing"
         start = time.time()
 
-        fn, ct, content = job.file_name, job.file_type, job._content
-        data, error, elapsed = await process_file(content, fn, ct, job.output_format)
+        if job.source_type == "url":
+            data, error, elapsed = await process_url(job.extra_data, job.output_format)
+        elif job.source_type == "html":
+            data, error, elapsed = await process_html(job.extra_data, job.output_format)
+        else:
+            fn, ct, content = job.file_name, job.file_type, job._content
+            data, error, elapsed = await process_file(content, fn, ct, job.output_format)
 
         if error:
             job.error = {"code": "PROCESSING_ERROR", "message": error}

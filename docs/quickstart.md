@@ -18,7 +18,7 @@ sudo apt-get update && sudo apt-get install -y \
 # Install Python dependencies
 uv sync
 
-# Start Gotenberg (for office document conversion)
+# Start Gotenberg (for office doc + URL/HTML conversion)
 docker run -d --rm -p 3000:3000 --name gotenberg gotenberg/gotenberg:8
 
 # Production
@@ -51,7 +51,7 @@ Run `make help` to list all targets.
 
 ## Demo UI
 
-Open [`index.html`](../index.html) in a browser (no server needed — opens as `file://`). Drag-and-drop files, choose mode (sync/background/batch), toggle Raw/Preview/Visualize tabs. Visualize tab renders confidence-colored bboxes overlaid on the original image via canvas. CORS enabled for file:// access.
+Open [`index.html`](../index.html) in a browser (no server needed — opens as `file://`). Three source types: **File** (drag-and-drop), **URL** (text input), **HTML** (upload + assets). Choose mode (sync/background/batch), toggle Raw/Preview/Visualize tabs. Visualize tab renders confidence-colored bboxes overlaid on the original image via canvas. CORS enabled for file:// access.
 
 ## Run with Docker Compose
 

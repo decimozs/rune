@@ -39,11 +39,55 @@ class DocumentConverter:
                 f"{settings.gotenberg_url}/forms/libreoffice/convert",
                 files={"files": (path.name, f, content_type)},
             )
-        resp.raise_for_status()
+        try:
+            resp.raise_for_status()
+        except httpx.HTTPStatusError:
+            logger.error("Gotenberg %s %s: %s", resp.status_code, resp.url, resp.text)
+            raise
         pdf_path.write_bytes(resp.content)
         path.unlink(missing_ok=True)
         logger.info("Converted %s -> %s", path.name, pdf_path.name)
         return pdf_path
+
+    async def url_to_pdf(self, url: str, output_path: Path) -> Path:
+        resp = await self._client.post(
+            f"{settings.gotenberg_url}/forms/chromium/convert/url",
+            data={"url": url},
+            files={"": ""},
+        )
+        try:
+            resp.raise_for_status()
+        except httpx.HTTPStatusError:
+            logger.error("Gotenberg %s %s: %s", resp.status_code, resp.url, resp.text)
+            raise
+        output_path.write_bytes(resp.content)
+        logger.info("URL -> %s", output_path.name)
+        return output_path
+
+    async def html_to_pdf(self, files: dict[str, bytes], output_path: Path) -> Path:
+        req = []
+        for name, content in files.items():
+            if name.endswith((".html", ".htm")):
+                field = "index.html"
+                mime = "text/html"
+                send_name = "index.html"
+            else:
+                field = "files"
+                mime = "application/octet-stream"
+                send_name = name
+            req.append((field, (send_name, content, mime)))
+        resp = await self._client.post(
+            f"{settings.gotenberg_url}/forms/chromium/convert/html",
+            files=req,
+        )
+        try:
+            resp.raise_for_status()
+        except httpx.HTTPStatusError:
+            logger.error("Gotenberg %s %s: %s", resp.status_code, resp.url, resp.text)
+            raise
+        output_path.write_bytes(resp.content)
+        logger.info("HTML -> %s", output_path.name)
+        return output_path
 
 
 converter = DocumentConverter()

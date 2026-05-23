@@ -69,3 +69,51 @@ async def process_file(
 
         finally:
             safe.unlink(missing_ok=True)
+
+
+async def process_url(url_str: str, output_format: str) -> tuple[object, str | None, float]:
+    async with _ocr_semaphore:
+        start = time.time()
+        stem = uuid.uuid4().hex
+        safe = settings.upload_dir_path / f"{stem}.pdf"
+        try:
+            safe = await converter.url_to_pdf(url_str, safe)
+            display_name = f"{stem}.pdf"
+            if output_format == "markdown":
+                result = await asyncio.to_thread(ocr_service.to_markdown, str(safe), display_name, "application/pdf")
+            elif output_format == "xml":
+                result = await asyncio.to_thread(ocr_service.to_xml, str(safe), display_name, "application/pdf")
+            else:
+                result = await asyncio.to_thread(ocr_service.process, str(safe), display_name, "application/pdf")
+            elapsed = round((time.time() - start) * 1000, 2)
+            return result, None, elapsed
+        except Exception as e:
+            elapsed = round((time.time() - start) * 1000, 2)
+            return None, f"{type(e).__name__}: {e}", elapsed
+        finally:
+            safe.unlink(missing_ok=True)
+
+
+async def process_html(files: list[tuple[str, bytes]], output_format: str) -> tuple[object, str | None, float]:
+    async with _ocr_semaphore:
+        start = time.time()
+        stem = uuid.uuid4().hex
+        safe = settings.upload_dir_path / f"{stem}.pdf"
+        try:
+            files_dict = {name: content for name, content in files}
+            safe = await converter.html_to_pdf(files_dict, safe)
+            display_name = f"{stem}.pdf"
+            if output_format == "markdown":
+                result = await asyncio.to_thread(ocr_service.to_markdown, str(safe), display_name, "application/pdf")
+            elif output_format == "xml":
+                result = await asyncio.to_thread(ocr_service.to_xml, str(safe), display_name, "application/pdf")
+            else:
+                result = await asyncio.to_thread(ocr_service.process, str(safe), display_name, "application/pdf")
+            elapsed = round((time.time() - start) * 1000, 2)
+            return result, None, elapsed
+        except Exception as e:
+            elapsed = round((time.time() - start) * 1000, 2)
+            return None, f"{type(e).__name__}: {e}", elapsed
+        finally:
+            safe.unlink(missing_ok=True)
+

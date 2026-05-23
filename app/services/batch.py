@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from services.processor import process_file
+from services.processor import process_file, process_url, process_html
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class BatchItemResult:
 
 
 class BatchJob:
-    def __init__(self, batch_id: str, files: list, output_format: str):
+    def __init__(self, batch_id: str, files: list, output_format: str, source_type: str = "file"):
         self.id = batch_id
         self.status = "pending"
         self.output_format = output_format
@@ -43,6 +43,7 @@ class BatchJob:
         self.completed_at: Optional[datetime] = None
         self.processing_time_ms: Optional[float] = None
         self._files = files
+        self.source_type = source_type
 
 
 class BatchProcessor:
@@ -75,9 +76,9 @@ class BatchProcessor:
                 del self._jobs[bid]
                 logger.info("Expired batch %s", bid)
 
-    def create_job(self, files: list, output_format: str) -> str:
+    def create_job(self, files: list, output_format: str, source_type: str = "file") -> str:
         batch_id = uuid.uuid4().hex[:12]
-        job = BatchJob(batch_id, files, output_format)
+        job = BatchJob(batch_id, files, output_format, source_type)
         self._jobs[batch_id] = job
         asyncio.create_task(self._run_job(batch_id))
         return batch_id
@@ -91,10 +92,20 @@ class BatchProcessor:
         start = time.time()
 
         async def process_one(index: int):
-            fn, ct, content = job._files[index]
-            data, error, elapsed = await process_file(
-                content, fn, ct, job.output_format
-            )
+            if job.source_type == "url":
+                url_str = job._files[index]
+                data, error, elapsed = await process_url(url_str, job.output_format)
+                fn = url_str
+                ct = "source/url"
+            elif job.source_type == "html":
+                data, error, elapsed = await process_html(job._files[index], job.output_format)
+                fn = f"html_{index}"
+                ct = "source/html"
+            else:
+                fn, ct, content = job._files[index]
+                data, error, elapsed = await process_file(
+                    content, fn, ct, job.output_format
+                )
             job.results[index] = BatchItemResult(
                 file_name=fn,
                 file_type=ct,
