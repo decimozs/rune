@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import Any
 from config import settings
 from schemas.ocr import BoundingBox, WordBlock, OCRPage, OCRResult
 
@@ -8,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 class OCRFormatter:
     @staticmethod
-    def structure(result, stem: str | None = None) -> dict:
+    def structure(result: list[dict[str, Any]] | None, stem: str | None = None) -> dict[str, Any]:
         if not result or result[0] is None:
             logger.warning("OCR returned empty result")
             return OCRResult(pages=[]).model_dump()

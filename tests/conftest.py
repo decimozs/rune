@@ -1,4 +1,7 @@
-import sys
-from pathlib import Path
+import pytest
+from app.services.formatter import OCRFormatter
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "app"))
+
+@pytest.fixture
+def formatter():
+    return OCRFormatter()

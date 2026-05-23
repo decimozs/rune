@@ -1,6 +1,7 @@
 import httpx
 import logging
 from pathlib import Path
+from typing import Self
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -18,16 +19,16 @@ CONVERTIBLE_TYPES = {
 
 
 class DocumentConverter:
-    def __init__(self):
+    def __init__(self) -> None:
         self._client: httpx.AsyncClient | None = None
 
     def needs_conversion(self, content_type: str) -> bool:
         return content_type in CONVERTIBLE_TYPES
 
-    async def start(self):
+    async def start(self) -> None:
         self._client = httpx.AsyncClient(timeout=httpx.Timeout(120))
 
-    async def stop(self):
+    async def stop(self) -> None:
         if self._client:
             await self._client.aclose()
 

@@ -1,9 +1,10 @@
 from xml.etree.ElementTree import Element, SubElement, tostring
 from xml.dom import minidom
+from typing import Any
 from schemas.ocr import OCRResult
 
 
-def to_xml(result: dict) -> str:
+def to_xml(result: dict[str, Any]) -> str:
     ocr = OCRResult(**result)
     root = Element("ocrResult")
 
@@ -25,7 +26,7 @@ def to_xml(result: dict) -> str:
     return dom.toprettyxml(indent="  ")
 
 
-def _build_bbox(parent: Element, points: list[list[float]]) -> None:
+def _build_bbox(parent: Element, points: list[list[float | int]]) -> None:
     bbox_el = SubElement(parent, "bbox")
     for pt in points:
         SubElement(bbox_el, "point", x=str(int(pt[0])), y=str(int(pt[1])))
