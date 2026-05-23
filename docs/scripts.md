@@ -1,6 +1,16 @@
-# Testing Scripts
+# Testing
 
-Convenience scripts in `scripts/` for automated testing:
+## Unit Tests (pytest)
+
+Fast unit tests covering schemas, formatter, XML output, converter, and processor logic — no PaddleOCR required.
+
+```bash
+make test          # or: uv run pytest tests/ -v
+```
+
+## Integration Scripts
+
+Convenience scripts in `scripts/` for automated integration testing:
 
 | Script | Purpose |
 |---|---|

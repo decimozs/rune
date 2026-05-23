@@ -14,5 +14,5 @@ wheels/
 
 # Generated outputs
 app/outputs/
-tests
+tests/outputs/
 app/datasets/

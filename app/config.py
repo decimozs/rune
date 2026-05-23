@@ -27,6 +27,10 @@ class Settings(BaseSettings):
 
     # Output
     output_dir: str = "app/outputs"
+    output_ttl: int = 3600  # old page images / markdown assets cleaned after this
+
+    # Concurrency
+    max_concurrent_jobs: int = 2
 
     # Gotenberg
     gotenberg_url: str = "http://localhost:3000"

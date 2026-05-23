@@ -7,7 +7,7 @@ API_URL ?= http://localhost:8000
 COMPOSE ?= docker compose
 SERVICE ?= ocr
 
-.PHONY: help install dev run up down build rebuild restart logs ps app-logs \
+.PHONY: help install dev run test up down build rebuild restart logs ps app-logs \
         pull shell health test-routes test-formats benchmark stress convert clean
 
 help: ## Show this help
@@ -63,6 +63,9 @@ health: ## Check liveness + readiness
 	@curl -sf $(API_URL)/health && echo " ok" || echo " FAIL"
 	@echo "=== Readiness ==="
 	@curl -sf $(API_URL)/health/ready && echo " ok" || echo " FAIL"
+
+test: ## Run unit tests (pytest)
+	uv run pytest tests/ -v
 
 test-routes: ## Validate all API routes
 	scripts/test_routes.sh $(API_URL)

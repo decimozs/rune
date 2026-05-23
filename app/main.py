@@ -13,6 +13,7 @@ from services.ocr import ocr_service
 from services.batch import batch_processor
 from services.background import background_processor
 from services.converter import converter
+from services.cleanup import output_cleaner
 from services.exceptions import OCRValidationError, OCRRuntimeError
 
 logging.basicConfig(
@@ -29,8 +30,10 @@ async def lifespan(_app: FastAPI):
     await converter.start()
     await batch_processor.start()
     await background_processor.start()
+    await output_cleaner.start()
     logger.info("OCR service initialized, converters and processors started")
     yield
+    await output_cleaner.stop()
     await background_processor.stop()
     await batch_processor.stop()
     await converter.stop()

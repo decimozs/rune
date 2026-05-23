@@ -1,0 +1,81 @@
+import asyncio
+import contextlib
+import logging
+import time
+from pathlib import Path
+from typing import Optional
+
+from config import settings
+
+logger = logging.getLogger(__name__)
+
+_SWEEP_INTERVAL = 300  # 5 min between sweeps
+
+
+class OutputCleaner:
+    def __init__(self):
+        self._task: Optional[asyncio.Task] = None
+
+    async def start(self):
+        self._task = asyncio.create_task(self._sweep_loop())
+
+    async def stop(self):
+        if self._task:
+            self._task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._task
+            self._task = None
+
+    async def _sweep_loop(self):
+        while True:
+            await asyncio.sleep(_SWEEP_INTERVAL)
+            self._sweep()
+
+    def _sweep(self):
+        now = time.time()
+        ttl = settings.output_ttl
+        base = settings.output_dir_path
+        for sub in ("pages", "imgs"):
+            target = base / sub
+            if not target.is_dir():
+                continue
+            if sub == "pages":
+                self._sweep_pages(target, now, ttl)
+            else:
+                self._sweep_imgs(target, now, ttl)
+
+    def _sweep_pages(self, pages_dir: Path, now: float, ttl: int):
+        for entry in pages_dir.iterdir():
+            if not entry.is_dir():
+                continue
+            try:
+                mtime = entry.stat().st_mtime
+            except OSError:
+                continue
+            if now - mtime > ttl:
+                _rmtree(entry)
+                logger.info("Cleaned expired page dir %s", entry.name)
+
+    def _sweep_imgs(self, imgs_dir: Path, now: float, ttl: int):
+        for entry in imgs_dir.iterdir():
+            if not entry.is_file():
+                continue
+            try:
+                mtime = entry.stat().st_mtime
+            except OSError:
+                continue
+            if now - mtime > ttl:
+                entry.unlink(missing_ok=True)
+                logger.info("Cleaned expired markdown image %s", entry.name)
+
+
+def _rmtree(d: Path):
+    for child in d.iterdir():
+        if child.is_dir():
+            _rmtree(child)
+        else:
+            child.unlink(missing_ok=True)
+    d.rmdir()
+
+
+output_cleaner = OutputCleaner()
