@@ -64,7 +64,7 @@ Synchronous endpoint — blocks until OCR completes. For non-blocking alternativ
 Upload an image, PDF, or office document for OCR extraction. Office documents (DOCX, PPT, RTF, CSV, XLS, XLSX) are automatically converted to PDF via Gotenberg before processing.
 
 **Query Parameters:**
-- `format` — `json` (default) or `markdown`
+- `format` — `json` (default), `markdown`, or `xml`
 
 **Request:** `multipart/form-data` with field `file`
 
@@ -102,7 +102,16 @@ curl -X POST "http://localhost:8000/ocr/parse?format=markdown" \
   -F "file=@path/to/document.docx;type=application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 ```
 
+**cURL (XML):**
+
+```bash
+curl -X POST "http://localhost:8000/ocr/parse?format=xml" \
+  -F "file=@path/to/image.png"
+```
+
 **Markdown mode:** Returns extracted markdown with images saved to `app/outputs/imgs/` and paths rewritten to `/assets/imgs/...`. Access images at `http://localhost:8000/assets/imgs/...`.
+
+**XML mode:** Returns OCR result as pretty-printed XML string in the `data` field.
 
 **CORS:** Endpoints allow `*` origin for internal demo access (e.g., `file://` origins from the standalone frontend).
 
@@ -139,6 +148,23 @@ curl -X POST "http://localhost:8000/ocr/parse?format=markdown" \
 }
 ```
 
+**Success Response — XML (200):**
+
+```json
+{
+  "success": true,
+  "metadata": {
+    "timestamp": "2026-05-21T12:00:00Z",
+    "model": "PP-OCRv4",
+    "format": "xml",
+    "processing_time_ms": 123.45,
+    "file_name": "image.png",
+    "file_type": "image/png"
+  },
+  "data": "<?xml version=\"1.0\" ?>\n<ocrResult>\n  <page number=\"1\">\n    <words>\n      <word confidence=\"0.9876\">\n        <text>Hello World</text>\n        <bbox>\n          <point x=\"10\" y=\"20\"/>\n          <point x=\"100\" y=\"20\"/>\n          <point x=\"100\" y=\"40\"/>\n          <point x=\"10\" y=\"40\"/>\n        </bbox>\n      </word>\n    </words>\n    <extractedText>Hello World</extractedText>\n  </page>\n</ocrResult>"
+}
+```
+
 **Error Responses:**
 
 | Status | Code | Description |
@@ -170,7 +196,7 @@ Errors are per-file isolated in batch/background jobs — one failure does not a
 Upload multiple files for asynchronous batch processing. Returns immediately with a `batch_id`. Poll `GET /ocr/parse/batch/{batch_id}` for status and per-file results.
 
 **Query Parameters:**
-- `format` — `json` (default) or `markdown`
+- `format` — `json` (default), `markdown`, or `xml`
 
 **cURL:**
 ```bash
@@ -238,7 +264,7 @@ Batch results expire after 1 hour and are cleaned up automatically on a 60s inte
 Upload a single file for asynchronous background processing. Like `/ocr/parse` but non-blocking — returns a `job_id` immediately. Poll `GET /ocr/parse/jobs/{job_id}` for the result.
 
 **Query Parameters:**
-- `format` — `json` (default) or `markdown`
+- `format` — `json` (default), `markdown`, or `xml`
 
 **cURL:**
 ```bash

@@ -4,6 +4,7 @@
 
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/)
+- `make` (optional — for Makefile automation)
 
 ## Run Locally
 
@@ -19,6 +20,25 @@ uv run fastapi dev app/main.py --port 8000
 ```
 
 Server at `http://localhost:8000`. Interactive docs at `http://localhost:8000/docs`.
+
+## Makefile
+
+Common tasks automated via `make`:
+
+```bash
+make dev          # hot-reload dev server
+make run          # production server
+make up           # docker compose up -d
+make down         # docker compose down
+make logs         # tail all container logs
+make rebuild      # full clean rebuild (down + build --no-cache + up)
+make test-routes  # validate all API routes
+make test-formats # test all file formats
+make benchmark    # run OCR benchmark
+make health       # check liveness + readiness
+```
+
+Run `make help` to list all targets.
 
 ## Demo UI
 

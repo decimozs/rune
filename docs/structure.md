@@ -11,6 +11,7 @@ app/
 │   ├── ocr.py            # Orchestrator (composes engine, formatter, markdown)
 │   ├── engine.py         # PaddleOCR + PPStructureV3 model init & prediction
 │   ├── formatter.py      # Raw OCR output → structured JSON
+│   ├── xml_formatter.py  # OCRResult dict → pretty-printed XML
 │   ├── markdown.py       # PPStructureV3 markdown conversion + image saving
 │   ├── converter.py      # Gotenberg document-to-PDF conversion (reused httpx client)
 │   ├── processor.py      # Shared file pipeline: write → magic → convert → OCR → cleanup
@@ -27,7 +28,9 @@ app/
     ├── rtf/
     └── spreadsheets/     # CSV, XLS, XLSX
 
-index.html                # Standalone demo frontend (drag-and-drop, 3 modes, markdown preview)
+Makefile                  # Common task automation (dev, Docker, scripts)
+
+index.html                # Standalone demo frontend (drag-and-drop, 3 modes, JSON/MD/XML preview)
 
 docker-compose.yml        # API + Gotenberg services (healthchecks, env_file)
 

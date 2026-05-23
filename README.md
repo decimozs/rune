@@ -80,10 +80,11 @@ flowchart TB
 ## Documentation
 
 | Topic | Description |
-|---|---|
-| [Quick Start](docs/quickstart.md) | Prerequisites, local run, docker-compose |
+|---|---|---|
+| [Quick Start](docs/quickstart.md) | Prerequisites, local run, docker-compose, make |
 | [Configuration](docs/configuration.md) | Environment variables table |
-| [API Reference](docs/api.md) | All endpoints with curl examples and responses |
+| [API Reference](docs/api.md) | All endpoints with curl examples and responses (JSON, Markdown, XML) |
 | [Testing Scripts](docs/scripts.md) | Scripts table and usage examples |
 | [Project Structure](docs/structure.md) | Directory layout |
-| [Demo Frontend](index.html) | Standalone UI — drag-and-drop, 3 modes, markdown preview |
+| [Demo Frontend](index.html) | Standalone UI — drag-and-drop, 3 modes, markdown/XML preview |
+| [Makefile](Makefile) | Common task automation (dev, Docker, scripts) |
