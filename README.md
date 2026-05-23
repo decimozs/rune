@@ -13,6 +13,8 @@ Internal OCR service for **Exist Software Labs**. Uses [PaddleOCR](https://githu
 - **python-magic** — MIME type validation
 - **Gotenberg** — document-to-PDF conversion (reused httpx client)
 - **Docker** — multi-stage containerized deployment
+- **CORS** — `allow_origins=["*"]` for internal demo access
+- **Static Files** — `/assets` serves markdown images from OCR output
 
 ## Architecture
 
@@ -84,3 +86,4 @@ flowchart TB
 | [API Reference](docs/api.md) | All endpoints with curl examples and responses |
 | [Testing Scripts](docs/scripts.md) | Scripts table and usage examples |
 | [Project Structure](docs/structure.md) | Directory layout |
+| [Demo Frontend](index.html) | Standalone UI — drag-and-drop, 3 modes, markdown preview |

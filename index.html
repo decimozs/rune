@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Exist OCR – Demo</title>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    :root {
+      --bg: #f8f9fb;
+      --surface: #fff;
+      --border: #e2e6ee;
+      --border-bold: #c8cedb;
+      --text: #1a1e2e;
+      --text-dim: #6b7385;
+      --primary: #1a3a6b;
+      --primary-light: #3b6fcb;
+      --accent: #3b82f6;
+      --success: #059669;
+      --error: #dc2626;
+      --warning: #d97706;
+      --radius: 10px;
+      --radius-sm: 6px;
+      --shadow: 0 1px 3px rgba(0, 0, 0, .06), 0 1px 2px rgba(0, 0, 0, .04);
+      --shadow-lg: 0 4px 16px rgba(0, 0, 0, .08);
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column
+    }
+
+    a {
+      color: var(--primary-light);
+      text-decoration: none
+    }
+
+    a:hover {
+      text-decoration: underline
+    }
+
+    ::selection {
+      background: var(--accent);
+      color: #fff
+    }
+
+    /* header */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap
+    }
+
+    header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -.3px;
+      color: var(--primary)
+    }
+
+    header h1 span {
+      font-weight: 400;
+      color: var(--text-dim);
+      font-size: 16px;
+      margin-left: 8px
+    }
+
+    header .tag {
+      background: #eef2ff;
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 20px;
+      letter-spacing: .3px;
+      text-transform: uppercase
+    }
+
+    header .health {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-left: auto
+    }
+
+    header .health .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0
+    }
+
+    header .health .dot.checking {
+      background: #cbd5e1
+    }
+
+    header .health .dot.online {
+      background: var(--success);
+      box-shadow: 0 0 4px var(--success)
+    }
+
+    header .health .dot.offline {
+      background: var(--error);
+      box-shadow: 0 0 4px var(--error)
+    }
+
+    header .health .lbl {
+      font-size: 12px
+    }
+
+    header .api-input {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--text-dim)
+    }
+
+    header .api-input input {
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 5px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--bg);
+      color: var(--text);
+      width: 170px;
+      outline: 0;
+      transition: border-color .15s
+    }
+
+    header .api-input input:focus {
+      border-color: var(--accent)
+    }
+
+    /* main */
+    main {
+      flex: 1;
+      max-width: 920px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px 20px 40px
+    }
+
+    /* controls */
+    .controls {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-bottom: 20px
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 10px
+    }
+
+    .control-group label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: .4px
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 2px;
+      background: var(--border);
+      border-radius: var(--radius-sm);
+      padding: 2px
+    }
+
+    .btn-group .btn-opt {
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 5px 12px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      background: transparent;
+      color: var(--text-dim);
+      transition: all .15s
+    }
+
+    .btn-group .btn-opt.active {
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, .08)
+    }
+
+    .btn-group .btn-opt:hover:not(.active) {
+      color: var(--text)
+    }
+
+    /* drop zone */
+    .dropzone {
+      position: relative;
+      border: 2px dashed var(--border-bold);
+      border-radius: var(--radius);
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .2s;
+      background: var(--surface);
+      margin-bottom: 16px
+    }
+
+    .dropzone:hover {
+      border-color: var(--accent);
+      background: #fafbff
+    }
+
+    .dropzone.dragover {
+      border-color: var(--accent);
+      background: #eef2ff;
+      transform: scale(1.01)
+    }
+
+    .dropzone .icon {
+      font-size: 36px;
+      margin-bottom: 8px;
+      opacity: .4
+    }
+
+    .dropzone .label {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-dim)
+    }
+
+    .dropzone .sublabel {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 4px
+    }
+
+    .dropzone .sublabel strong {
+      color: var(--text)
+    }
+
+    .dropzone input[type=file] {
+      display: none
+    }
+
+    .dropzone .formats-hint {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 10px;
+      max-width: 540px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.4
+    }
+
+    /* file chips */
+    .file-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+      min-height: 0
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 8px 5px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 12px;
+      animation: chipIn .2s ease
+    }
+
+    @keyframes chipIn {
+      from {
+        opacity: 0;
+        transform: scale(.9)
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1)
+      }
+    }
+
+    .chip .name {
+      font-weight: 500;
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap
+    }
+
+    .chip .size {
+      color: var(--text-dim);
+      font-size: 11px
+    }
+
+    .chip .remove {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: none;
+      background: var(--border);
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .15s;
+      flex-shrink: 0
+    }
+
+    .chip .remove:hover {
+      background: var(--error);
+      color: #fff
+    }
+
+    /* process button */
+    .actions {
+      margin-bottom: 24px
+    }
+
+    .btn-process {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 28px;
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      background: var(--primary);
+      color: #fff;
+      transition: all .15s;
+      box-shadow: var(--shadow)
+    }
+
+    .btn-process:hover:not(:disabled) {
+      background: var(--primary-light);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-lg)
+    }
+
+    .btn-process:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+      transform: none
+    }
+
+    .btn-process .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, .3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+      display: none
+    }
+
+    .btn-process.loading .spinner {
+      display: inline-block
+    }
+
+    .btn-process.loading .btn-text {
+      display: none
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    /* results */
+    .results h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .results h2 .count {
+      font-weight: 400;
+      font-size: 12px;
+      background: var(--border);
+      padding: 1px 8px;
+      border-radius: 10px
+    }
+
+    .result-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 12px;
+      overflow: hidden;
+      background: var(--surface);
+      box-shadow: var(--shadow)
+    }
+
+    .result-card .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      cursor: pointer;
+      user-select: none;
+      transition: background .1s
+    }
+
+    .result-card .header:hover {
+      background: var(--bg)
+    }
+
+    .result-card .header .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0
+    }
+
+    .result-card .header .status-dot.ok {
+      background: var(--success)
+    }
+
+    .result-card .header .status-dot.fail {
+      background: var(--error)
+    }
+
+    .result-card .header .status-dot.pending {
+      background: var(--warning);
+      animation: pulse 1.5s infinite
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .4
+      }
+    }
+
+    .result-card .header .fname {
+      font-weight: 600;
+      font-size: 14px;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap
+    }
+
+    .result-card .header .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+      text-transform: uppercase;
+      letter-spacing: .3px
+    }
+
+    .result-card .header .badge.ok {
+      background: #ecfdf5;
+      color: var(--success)
+    }
+
+    .result-card .header .badge.fail {
+      background: #fef2f2;
+      color: var(--error)
+    }
+
+    .result-card .header .badge.pending {
+      background: #fffbeb;
+      color: var(--warning)
+    }
+
+    .result-card .header .timing {
+      font-size: 12px;
+      color: var(--text-dim);
+      font-family: var(--mono);
+      white-space: nowrap
+    }
+
+    .result-card .header .toggle {
+      font-size: 12px;
+      color: var(--text-dim);
+      transition: transform .2s
+    }
+
+    .result-card .header .toggle.open {
+      transform: rotate(90deg)
+    }
+
+    .result-card .body {
+      display: none;
+      border-top: 1px solid var(--border)
+    }
+
+    .result-card .body.open {
+      display: block
+    }
+
+    .result-card .body pre {
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.5;
+      padding: 14px 16px;
+      overflow-x: auto;
+      background: #fafbfc;
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word
+    }
+
+    /* tabs */
+    .tab-bar {
+      display: flex;
+      gap: 1px;
+      background: var(--border);
+      padding: 2px 2px 0
+    }
+
+    .tab {
+      font-family: var(--font);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 5px 14px;
+      border: none;
+      cursor: pointer;
+      background: transparent;
+      color: var(--text-dim);
+      transition: all .1s;
+      border-radius: 4px 4px 0 0
+    }
+
+    .tab:hover {
+      color: var(--text)
+    }
+
+    .tab.active {
+      background: var(--bg);
+      color: var(--text)
+    }
+
+    .tab-content {
+      display: none
+    }
+
+    .tab-content.active {
+      display: block
+    }
+
+    /* rendered markdown */
+    .md-render {
+      font-family: var(--font);
+      font-size: 13px;
+      line-height: 1.6;
+      padding: 14px 18px;
+      color: var(--text)
+    }
+
+    .md-render h1 {
+      font-size: 20px;
+      font-weight: 700;
+      margin: 16px 0 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--border)
+    }
+
+    .md-render h2 {
+      font-size: 17px;
+      font-weight: 600;
+      margin: 14px 0 6px
+    }
+
+    .md-render h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin: 12px 0 4px
+    }
+
+    .md-render h4 {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 10px 0 4px
+    }
+
+    .md-render p {
+      margin: 0 0 8px
+    }
+
+    .md-render p:last-child {
+      margin-bottom: 0
+    }
+
+    .md-render ul,
+    .md-render ol {
+      padding-left: 22px;
+      margin: 4px 0 8px
+    }
+
+    .md-render li {
+      margin: 2px 0
+    }
+
+    .md-render img.md-img {
+      max-width: 100%;
+      height: auto;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin: 8px 0;
+      display: block
+    }
+
+    .md-render code {
+      font-family: var(--mono);
+      font-size: 12px;
+      background: #f0f1f3;
+      padding: 1px 5px;
+      border-radius: 3px
+    }
+
+    .md-render pre.md-code {
+      font-family: var(--mono);
+      font-size: 12px;
+      background: #f0f1f3;
+      padding: 10px 14px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 8px 0;
+      border: 1px solid var(--border)
+    }
+
+    .md-render pre.md-code code {
+      background: none;
+      padding: 0;
+      border-radius: 0
+    }
+
+    .md-render blockquote {
+      border-left: 3px solid var(--accent);
+      padding: 4px 12px;
+      margin: 8px 0;
+      color: var(--text-dim);
+      background: #f8f9fb;
+      border-radius: 0 4px 4px 0
+    }
+
+    .md-render hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 12px 0
+    }
+
+    .md-render a {
+      color: var(--accent)
+    }
+
+    .md-render a:hover {
+      text-decoration: underline
+    }
+
+    .md-render table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 8px 0;
+      font-size: 12px
+    }
+
+    .md-render th,
+    .md-render td {
+      border: 1px solid var(--border);
+      padding: 6px 8px;
+      text-align: left;
+      vertical-align: top
+    }
+
+    .md-render th {
+      background: #f0f4ff;
+      font-weight: 600
+    }
+
+    .md-render tr:nth-child(even) {
+      background: #fafbfc
+    }
+
+    /* empty state */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-dim)
+    }
+
+    .empty-state .icon {
+      font-size: 40px;
+      opacity: .3;
+      margin-bottom: 10px
+    }
+
+    .empty-state p {
+      font-size: 14px
+    }
+
+    /* mode-specific help text */
+    .help-text {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-bottom: 12px;
+      padding: 8px 12px;
+      background: #f0f4ff;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      gap: 6px
+    }
+
+    .help-text strong {
+      color: var(--primary)
+    }
+
+    /* responsive */
+    @media(max-width:600px) {
+      header {
+        padding: 12px 16px
+      }
+
+      header h1 {
+        font-size: 17px
+      }
+
+      header h1 span {
+        display: none
+      }
+
+      header .api-input {
+        width: 100%;
+        margin-top: 4px
+      }
+
+      header .api-input input {
+        width: 100%
+      }
+
+      main {
+        padding: 16px 12px
+      }
+
+      .controls {
+        flex-direction: column;
+        gap: 12px
+      }
+
+      .dropzone {
+        padding: 28px 16px
+      }
+
+      .dropzone .label {
+        font-size: 14px
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <h1>Exist OCR <span>Demo</span></h1>
+    <span class="tag">v1</span>
+    <div class="health">
+      <span class="dot checking" id="healthDot"></span>
+      <span class="lbl" id="healthLbl">Checking...</span>
+    </div>
+    <div class="api-input">
+      <span>API</span>
+      <input type="url" id="apiUrl" value="http://localhost:8000" spellcheck="false">
+    </div>
+  </header>
+
+  <main>
+    <div class="controls">
+      <div class="control-group">
+        <label>Format</label>
+        <div class="btn-group" id="formatGroup">
+          <button class="btn-opt active" data-value="json">JSON</button>
+          <button class="btn-opt" data-value="markdown">Markdown</button>
+        </div>
+      </div>
+      <div class="control-group">
+        <label>Mode</label>
+        <div class="btn-group" id="modeGroup">
+          <button class="btn-opt active" data-value="direct">Direct</button>
+          <button class="btn-opt" data-value="job">Background Job</button>
+          <button class="btn-opt" data-value="batch">Batch</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="helpText" class="help-text">
+      <span>ⓘ</span>
+      <span>Upload one or more files. Direct mode waits for the result inline.</span>
+    </div>
+
+    <div class="dropzone" id="dropzone">
+      <div class="icon">📄</div>
+      <div class="label">Drag &amp; drop files here</div>
+      <div class="sublabel">or <strong>click</strong> to select</div>
+      <div class="formats-hint">Supports: JPEG, PNG, BMP, TIFF, WebP, PDF, DOCX, PPT, PPTX, RTF, CSV, XLS, XLSX</div>
+      <input type="file" id="fileInput" multiple
+        accept=".jpg,.jpeg,.png,.bmp,.tiff,.tif,.webp,.pdf,.docx,.ppt,.pptx,.rtf,.csv,.xls,.xlsx">
+    </div>
+
+    <div class="file-list" id="fileList"></div>
+
+    <div class="actions">
+      <button class="btn-process" id="processBtn" disabled>
+        <span class="spinner"></span>
+        <span class="btn-text">Process Files</span>
+      </button>
+    </div>
+
+    <div class="results" id="results">
+      <h2>Results <span class="count" id="resultCount">0</span></h2>
+      <div id="resultList"></div>
+      <div class="empty-state" id="emptyState">
+        <div class="icon">📋</div>
+        <p>Upload files and click Process to see results here.</p>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    ; (function () {
+      'use strict'
+
+      const ALLOWED_TYPES = new Set([
+        'image/jpeg', 'image/png', 'image/bmp', 'image/tiff', 'image/webp',
+        'application/pdf',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'text/rtf', 'text/csv',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      ])
+
+      const EXT_TO_MIME = {
+        jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', bmp: 'image/bmp',
+        tiff: 'image/tiff', tif: 'image/tiff', webp: 'image/webp',
+        pdf: 'application/pdf',
+        docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ppt: 'application/vnd.ms-powerpoint',
+        pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        rtf: 'text/rtf',
+        csv: 'text/csv',
+        xls: 'application/vnd.ms-excel',
+        xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      }
+
+      const MAX_BATCH_SIZE = 20
+      const MAX_FILE_SIZE = 50 * 1024 * 1024
+
+      let selectedFiles = []
+      let processing = false
+      let pollingTimers = []
+
+      const $ = id => document.getElementById(id)
+      const apiUrl = () => $('apiUrl').value.replace(/\/+$/, '')
+      const format = () => $('formatGroup').querySelector('.active').dataset.value
+      const mode = () => $('modeGroup').querySelector('.active').dataset.value
+
+      // ---- toggle buttons ----
+      document.querySelectorAll('.btn-group').forEach(group => {
+        group.querySelectorAll('.btn-opt').forEach(btn => {
+          btn.addEventListener('click', () => {
+            group.querySelectorAll('.btn-opt').forEach(b => b.classList.remove('active'))
+            btn.classList.add('active')
+            onModeChange()
+            updateProcessBtn()
+          })
+        })
+      })
+
+      function onModeChange() {
+        const m = mode()
+        const help = $('helpText')
+        if (m === 'direct') {
+          help.innerHTML = '<span>ⓘ</span><span>Upload one or more files. Each file processed synchronously — result shown inline.</span>'
+          $('fileInput').multiple = false
+        } else if (m === 'job') {
+          help.innerHTML = '<span>ⓘ</span><span>Upload a single file. Creates a background job — polled every 2s until complete. You can close the page and revisit with the job id.</span>'
+          $('fileInput').multiple = false
+        } else {
+          help.innerHTML = '<span>ⓘ</span><span>Upload multiple files (max 20). Processed sequentially as a batch — polled every 2s. One failure does not stop others.</span>'
+          $('fileInput').multiple = true
+        }
+        if (m !== 'batch' && selectedFiles.length > 1) {
+          selectedFiles = [selectedFiles[0]]
+          renderFiles()
+        }
+        updateProcessBtn()
+      }
+
+      // ---- drop zone ----
+      const dz = $('dropzone')
+      const fi = $('fileInput')
+
+      dz.addEventListener('click', () => fi.click())
+
+      fi.addEventListener('change', () => {
+        if (fi.files.length) addFiles(fi.files)
+        fi.value = ''
+      })
+
+      dz.addEventListener('dragover', e => {e.preventDefault(); dz.classList.add('dragover')})
+      dz.addEventListener('dragleave', () => dz.classList.remove('dragover'))
+      dz.addEventListener('drop', e => {
+        e.preventDefault()
+        dz.classList.remove('dragover')
+        if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files)
+      })
+
+      function addFiles(fileList) {
+        const newFiles = []
+        for (const f of fileList) {
+          const ext = f.name.split('.').pop().toLowerCase()
+          const mime = EXT_TO_MIME[ext] || f.type || ''
+          if (!ALLOWED_TYPES.has(mime)) {
+            addResultCard(f.name, 'fail', null, 'Unsupported file type')
+            continue
+          }
+          if (f.size > MAX_FILE_SIZE) {
+            addResultCard(f.name, 'fail', null, 'File exceeds 50MB limit')
+            continue
+          }
+          newFiles.push({file: f, mime})
+        }
+        const m = mode()
+        if (m !== 'batch') selectedFiles = newFiles.slice(0, 1)
+        else {
+          const remaining = MAX_BATCH_SIZE - selectedFiles.length
+          const add = newFiles.slice(0, remaining)
+          selectedFiles = selectedFiles.concat(add)
+          if (newFiles.length > remaining) {
+            addResultCard('batch', 'fail', null, 'Batch max 20 files. Excess ignored.')
+          }
+        }
+        renderFiles()
+        updateProcessBtn()
+      }
+
+      function renderFiles() {
+        const container = $('fileList')
+        if (!selectedFiles.length) {container.innerHTML = ''; return }
+        container.innerHTML = selectedFiles.map((f, i) =>
+          `<div class="chip">
+        <span class="name">${esc(f.file.name)}</span>
+        <span class="size">${fmtSize(f.file.size)}</span>
+        <button class="remove" data-index="${i}" title="Remove">✕</button>
+      </div>`
+        ).join('')
+        container.querySelectorAll('.remove').forEach(btn => {
+          btn.addEventListener('click', () => {
+            selectedFiles.splice(parseInt(btn.dataset.index), 1)
+            renderFiles()
+            updateProcessBtn()
+          })
+        })
+      }
+
+      // ---- process ----
+      $('processBtn').addEventListener('click', process)
+
+      function updateProcessBtn() {
+        const btn = $('processBtn')
+        btn.disabled = selectedFiles.length === 0 || processing
+      }
+
+      async function process() {
+        if (processing || !selectedFiles.length) return
+        processing = true
+        const btn = $('processBtn')
+        btn.classList.add('loading')
+        btn.disabled = true
+
+        clearResults()
+        pollingTimers.forEach(clearInterval)
+        pollingTimers = []
+
+        const m = mode()
+        try {
+          if (m === 'direct') await processDirect()
+          else if (m === 'job') await processJob()
+          else await processBatch()
+        } catch (err) {
+          addResultCard('Request failed', 'fail', null, err.message || 'Network error')
+        }
+
+        processing = false
+        btn.classList.remove('loading')
+        updateProcessBtn()
+      }
+
+      async function processDirect() {
+        const f = selectedFiles[0]
+        const fd = new FormData()
+        fd.append('file', f.file, f.file.name)
+
+        const resp = await fetch(`${apiUrl()}/ocr/parse?format=${format()}`, {
+          method: 'POST', body: fd
+        })
+        const json = await resp.json()
+        if (!resp.ok) {
+          const msg = json.detail || json.error?.message || `HTTP ${resp.status}`
+          addResultCard(f.file.name, 'fail', null, msg)
+          return
+        }
+        const ms = json.metadata?.processing_time_ms
+        addResultCard(f.file.name, 'ok', ms, json.data || json, json.metadata)
+      }
+
+      async function processJob() {
+        const f = selectedFiles[0]
+        const fd = new FormData()
+        fd.append('file', f.file, f.file.name)
+
+        const resp = await fetch(`${apiUrl()}/ocr/parse/jobs?format=${format()}`, {
+          method: 'POST', body: fd
+        })
+        const json = await resp.json()
+        if (!resp.ok) {
+          const msg = json.detail || json.error?.message || `HTTP ${resp.status}`
+          addResultCard(f.file.name, 'fail', null, msg)
+          return
+        }
+
+        const jobId = json.data.job_id
+        const card = addResultCard(f.file.name, 'pending', null, 'Job created — polling...')
+
+        pollJob(jobId, card)
+      }
+
+      function pollJob(jobId, card) {
+        const timer = setInterval(async () => {
+          try {
+            const resp = await fetch(`${apiUrl()}/ocr/parse/jobs/${jobId}`)
+            const json = await resp.json()
+            const data = json.data
+            if (data.status === 'completed') {
+              clearInterval(timer)
+              const ms = data.processing_time_ms
+              updateResultCard(card, 'ok', ms, data.data, json.metadata)
+            } else if (data.status === 'failed') {
+              clearInterval(timer)
+              const err = data.error?.message || data.error || 'Job failed'
+              updateResultCard(card, 'fail', null, err)
+            } else {
+              updateResultCard(card, 'pending', null, `Status: ${data.status}`)
+            }
+          } catch (e) {
+            clearInterval(timer)
+            updateResultCard(card, 'fail', null, e.message)
+          }
+        }, 2000)
+        pollingTimers.push(timer)
+      }
+
+      async function processBatch() {
+        const fd = new FormData()
+        for (const f of selectedFiles) {
+          fd.append('file', f.file, f.file.name)
+        }
+
+        const resp = await fetch(`${apiUrl()}/ocr/parse/batch?format=${format()}`, {
+          method: 'POST', body: fd
+        })
+        const json = await resp.json()
+        if (!resp.ok) {
+          const msg = json.detail || json.error?.message || `HTTP ${resp.status}`
+          addResultCard('batch', 'fail', null, msg)
+          return
+        }
+
+        const batchId = json.data.batch_id
+        const card = addResultCard(`Batch #${batchId.slice(0, 8)}`, 'pending', null, 'Processing...')
+
+        pollBatch(batchId, card)
+      }
+
+      function pollBatch(batchId, card) {
+        const timer = setInterval(async () => {
+          try {
+            const resp = await fetch(`${apiUrl()}/ocr/parse/batch/${batchId}`)
+            const json = await resp.json()
+            const data = json.data
+
+            if (data.status === 'completed' || data.status === 'failed') {
+              clearInterval(timer)
+              card.remove()
+              for (const item of data.items || []) {
+                if (item.success) {
+                  addResultCard(item.file_name, 'ok', item.processing_time_ms, item.data, json.metadata)
+                } else {
+                  const err = item.error?.message || item.error || 'Failed'
+                  addResultCard(item.file_name, 'fail', null, err)
+                }
+              }
+              const empty = $('emptyState')
+              if (empty) empty.style.display = 'none'
+              return
+            }
+
+            const done = (data.completed || 0) + (data.failed || 0)
+            const total = data.total_files || selectedFiles.length
+            updateResultCard(card, 'pending', null, `${done}/${total} files done`)
+          } catch (e) {
+            clearInterval(timer)
+            updateResultCard(card, 'fail', null, e.message)
+          }
+        }, 2000)
+        pollingTimers.push(timer)
+      }
+
+      // ---- markdown renderer ----
+      function renderMarkdown(md) {
+        // protect existing HTML tags (from PaddleOCR raw HTML output)
+        var savedTags = []
+        md = md.replace(/<img[^>]*>/g, function (m) {savedTags.push(m); return '%%IMG' + (savedTags.length - 1) + '%%'})
+        md = md.replace(/<table[^>]*>[\s\S]*?<\/table>/g, function (m) {savedTags.push(m); return '%%TBL' + (savedTags.length - 1) + '%%'})
+        md = md.replace(/<(div|html|body|tr|td|th)[^>]*>/g, '')
+        md = md.replace(/<\/(div|html|body|tr|td|th)>/g, '')
+        let html = esc(md)
+        // restore saved tags
+        html = html.replace(/%%IMG(\d+)%%/g, function (_, n) {return savedTags[parseInt(n)]})
+        html = html.replace(/%%TBL(\d+)%%/g, function (_, n) {return savedTags[parseInt(n)]})
+        // code blocks
+        // inline code
+        html = html.replace(/`([^`]+)`/g, '<code>$1</code>')
+        // images
+        html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="md-img">')
+        // links
+        html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+        // bold+italic
+        html = html.replace(/\*\*\*([^*]+)\*\*\*/g, '<strong><em>$1</em></strong>')
+        html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>')
+        // headings
+        html = html.replace(/^#{4}\s+(.+)$/gm, '<h4>$1</h4>')
+        html = html.replace(/^#{3}\s+(.+)$/gm, '<h3>$1</h3>')
+        html = html.replace(/^#{2}\s+(.+)$/gm, '<h2>$1</h2>')
+        html = html.replace(/^#{1}\s+(.+)$/gm, '<h1>$1</h1>')
+        // unordered lists
+        html = html.replace(/^[\*\-]\s+(.+)$/gm, '<li>$1</li>')
+        html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+        // ordered lists
+        html = html.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>')
+        html = html.replace(/(<li>.*<\/li>\n?)+/g, function (m) {return '<ol>' + m + '</ol>'})
+        // horizontal rule
+        html = html.replace(/^---+$/gm, '<hr>')
+        // blockquote
+        html = html.replace(/^>\s+(.+)$/gm, '<blockquote>$1</blockquote>')
+        // paragraphs (split by blank lines, skip already-wrapped blocks)
+        const blocks = html.split(/\n\n+/)
+        html = blocks.map(function (b) {
+          const t = b.trim()
+          if (!t) return ''
+          if (/^<(h[1-4]|ul|ol|pre|blockquote|hr|table|p)/i.test(t)) return t
+          return '<p>' + t.replace(/\n/g, '<br>') + '</p>'
+        }).join('\n')
+        // resolve /assets/ paths to full API URL
+        var base = apiUrl()
+        html = html.replace(/(<img[^>]*src=")\/assets\//g, '$1' + base + '/assets/')
+        return html
+      }
+
+      // ---- result cards ----
+      function clearResults() {
+        $('resultList').innerHTML = ''
+        const empty = $('emptyState')
+        if (empty) empty.style.display = 'block'
+        $('resultCount').textContent = '0'
+      }
+
+      function isMarkdown(meta, content) {
+        if (meta && meta.format === 'markdown') return true
+        if (content && typeof content === 'string' && content.length > 0) return true
+        return false
+      }
+
+      function makeBodyHTML(content, meta, status) {
+        const isObj = content && typeof content === 'object'
+        const text = isObj ? JSON.stringify(content, null, 2) : (content || '')
+        if (!text) return '<div class="body"><pre></pre></div>'
+
+        const isMd = isMarkdown(meta, content) && !isObj && status !== 'fail'
+        if (!isMd) return '<div class="body open"><pre>' + esc(text) + '</pre></div>'
+
+        const rendered = renderMarkdown(text)
+        return '<div class="body open">' +
+          '<div class="tab-bar">' +
+          '<button class="tab active" data-tab="raw">Raw</button>' +
+          '<button class="tab" data-tab="preview">Preview</button>' +
+          '</div>' +
+          '<div class="tab-content tab-raw active"><pre>' + esc(text) + '</pre></div>' +
+          '<div class="tab-content tab-preview"><div class="md-render">' + rendered + '</div></div>' +
+          '</div>'
+      }
+
+      function addResultCard(name, status, timing, content, meta) {
+        const list = $('resultList')
+        const empty = $('emptyState')
+        if (empty) empty.style.display = 'none'
+
+        const timingStr = timing != null ? (timing < 1000 ? timing.toFixed(0) + 'ms' : (timing / 1000).toFixed(2) + 's') : ''
+        const bodyHTML = makeBodyHTML(content, meta, status)
+
+        const div = document.createElement('div')
+        div.className = 'result-card'
+        div.innerHTML = `
+      <div class="header">
+        <span class="status-dot ${status}"></span>
+        <span class="fname">${esc(name)}</span>
+        ${timingStr ? `<span class="timing">${timingStr}</span>` : ''}
+        <span class="badge ${status}">${status === 'pending' ? '⏳' : status === 'ok' ? '✓' : '✗'} ${status}</span>
+        <span class="toggle">▶</span>
+      </div>
+      ${bodyHTML}`
+
+        div.querySelector('.header').addEventListener('click', function () {
+          const body = this.parentElement.querySelector('.body')
+          const toggle = this.querySelector('.toggle')
+          body.classList.toggle('open')
+          toggle.classList.toggle('open')
+        })
+
+        div.querySelectorAll('.tab').forEach(function (tab) {
+          tab.addEventListener('click', function (e) {
+            e.stopPropagation()
+            const bar = this.parentElement
+            const body = bar.parentElement
+            bar.querySelectorAll('.tab').forEach(function (t) {t.classList.remove('active')})
+            this.classList.add('active')
+            body.querySelectorAll('.tab-content').forEach(function (c) {c.classList.remove('active')})
+            var target = body.querySelector('.tab-' + this.dataset.tab)
+            if (target) target.classList.add('active')
+          })
+        })
+
+        list.appendChild(div)
+        updateCount()
+
+        if (status === 'ok' && content && typeof content === 'object') {
+          const pre = div.querySelector('pre')
+          if (pre && content && JSON.stringify(content).length > 2000) pre.style.maxHeight = '300px'
+        }
+
+        return div
+      }
+
+      function updateResultCard(card, status, timing, content, meta) {
+        const header = card.querySelector('.header')
+        const dot = header.querySelector('.status-dot')
+        const badge = header.querySelector('.badge')
+        const timingEl = header.querySelector('.timing')
+        const body = card.querySelector('.body')
+        const newBody = makeBodyHTML(content, meta, status)
+        body.outerHTML = newBody
+
+        dot.className = 'status-dot ' + status
+        badge.className = 'badge ' + status
+        badge.textContent = status === 'pending' ? '⏳ processing' : status === 'ok' ? '✓ ok' : '✗ failed'
+
+        if (timing != null) {
+          const s = timing < 1000 ? timing.toFixed(0) + 'ms' : (timing / 1000).toFixed(2) + 's'
+          if (timingEl) timingEl.textContent = s
+          else {
+            const el = document.createElement('span')
+            el.className = 'timing'
+            el.textContent = s
+            header.insertBefore(el, badge)
+          }
+        }
+
+        // Re-bind tab events
+        card.querySelectorAll('.tab').forEach(function (tab) {
+          tab.addEventListener('click', function (e) {
+            e.stopPropagation()
+            const bar = this.parentElement
+            const b = bar.parentElement
+            bar.querySelectorAll('.tab').forEach(function (t) {t.classList.remove('active')})
+            this.classList.add('active')
+            b.querySelectorAll('.tab-content').forEach(function (c) {c.classList.remove('active')})
+            var target = b.querySelector('.tab-' + this.dataset.tab)
+            if (target) target.classList.add('active')
+          })
+        })
+
+        body.classList.add('open')
+        card.querySelector('.toggle')?.classList.add('open')
+        updateCount()
+      }
+
+      function updateCount() {
+        const count = $('resultList').querySelectorAll('.result-card').length
+        $('resultCount').textContent = count
+      }
+
+      // ---- utils ----
+      function esc(s) {
+        if (!s) return ''
+        const d = document.createElement('div')
+        d.textContent = String(s)
+        return d.innerHTML
+      }
+
+      function fmtSize(bytes) {
+        if (bytes < 1024) return bytes + 'B'
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + 'KB'
+        return (bytes / 1048576).toFixed(1) + 'MB'
+      }
+
+      // ---- health check polling ----
+      function pollHealth() {
+        const dot = $('healthDot')
+        const lbl = $('healthLbl')
+        const ctrl = new AbortController()
+        const timeout = setTimeout(() => ctrl.abort(), 3000)
+        fetch(`${apiUrl()}/health`, {signal: ctrl.signal})
+          .then(r => {
+            clearTimeout(timeout)
+            if (r.ok) {dot.className = 'dot online'; lbl.textContent = 'Online'}
+            else {dot.className = 'dot offline'; lbl.textContent = 'Offline'}
+          })
+          .catch(() => {
+            clearTimeout(timeout)
+            dot.className = 'dot offline'
+            lbl.textContent = 'Offline'
+          })
+      }
+      pollHealth()
+      setInterval(pollHealth, 10000)
+
+      $('apiUrl').addEventListener('change', () => {
+        $('healthDot').className = 'dot checking'
+        $('healthLbl').textContent = 'Checking...'
+        pollHealth()
+      })
+
+      // ---- init ----
+      onModeChange()
+    })()
+  </script>
+</body>
+
+</html>

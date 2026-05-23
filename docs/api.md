@@ -102,6 +102,10 @@ curl -X POST "http://localhost:8000/ocr/parse?format=markdown" \
   -F "file=@path/to/document.docx;type=application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 ```
 
+**Markdown mode:** Returns extracted markdown with images saved to `app/outputs/imgs/` and paths rewritten to `/assets/imgs/...`. Access images at `http://localhost:8000/assets/imgs/...`.
+
+**CORS:** Endpoints allow `*` origin for internal demo access (e.g., `file://` origins from the standalone frontend).
+
 **Success Response (200):**
 
 ```json

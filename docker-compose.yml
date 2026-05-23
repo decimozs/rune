@@ -10,10 +10,13 @@ services:
       timeout: 5s
       retries: 3
 
-  ocr-api:
+  ocr:
     build: .
     ports:
       - "8000:80"
+    env_file: .env
+    volumes:
+      - paddle_models:/home/appuser/.paddleocr 
     depends_on:
       gotenberg:
         condition: service_healthy
@@ -23,3 +26,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+
+volumes:
+  paddle_models: 

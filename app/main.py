@@ -2,6 +2,8 @@ import time
 import logging
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 
 from config import settings
@@ -35,8 +37,16 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.include_router(health_router)
 app.include_router(ocr_router)
+settings.output_dir_path.mkdir(parents=True, exist_ok=True)
+app.mount("/assets", StaticFiles(directory=str(settings.output_dir_path)), name="assets")
 
 
 @app.middleware("http")

@@ -27,7 +27,9 @@ app/
     ├── rtf/
     └── spreadsheets/     # CSV, XLS, XLSX
 
-docker-compose.yml        # API + Gotenberg services
+index.html                # Standalone demo frontend (drag-and-drop, 3 modes, markdown preview)
+
+docker-compose.yml        # API + Gotenberg services (healthchecks, env_file)
 
 scripts/                  # Automation & testing scripts
 ├── benchmark.sh          # Enhanced stats, parallel mode (--parallel N), JSON output

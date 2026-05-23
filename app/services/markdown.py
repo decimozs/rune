@@ -1,3 +1,4 @@
+import re
 import logging
 from config import settings
 
@@ -57,6 +58,8 @@ class MarkdownConverter:
                         file_path.parent.mkdir(parents=True, exist_ok=True)
                         image.save(file_path)
 
+        raw_text = re.sub(r'(!\[.*?\]\()imgs/', r'\1/assets/imgs/', raw_text)
+        raw_text = re.sub(r'(<img[^>]*src=")imgs/', r'\1/assets/imgs/', raw_text)
         return raw_text
 
     def _handle_image(self, result) -> str:
@@ -86,4 +89,6 @@ class MarkdownConverter:
                         file_path.parent.mkdir(parents=True, exist_ok=True)
                         image.save(file_path)
 
+        raw_text = re.sub(r'(!\[.*?\]\()imgs/', r'\1/assets/imgs/', raw_text)
+        raw_text = re.sub(r'(<img[^>]*src=")imgs/', r'\1/assets/imgs/', raw_text)
         return raw_text
