@@ -16,6 +16,37 @@ Internal OCR service for **Exist Software Labs**. Uses [PaddleOCR](https://githu
 - **CORS** — `allow_origins=["*"]` for internal demo access
 - **Static Files** — `/assets` serves markdown images from OCR output
 
+## Prerequisites
+
+- **Python** 3.11+
+- **uv** — `curl -LsSf https://astral.sh/uv/install.sh | sh`
+- **System libraries** — see [Prerequisites doc](docs/prerequisites.md) for per-OS breakdown
+- **Gotenberg** (optional, for office docs) — `docker run --rm -p 3000:3000 gotenberg/gotenberg:8`
+
+## Installation
+
+```bash
+# Clone
+git clone <repo-url>
+cd exist-ocr
+
+# Install system deps (Ubuntu/Debian)
+sudo apt-get update && sudo apt-get install -y \
+  libmagic1 libgl1 libglib2.0-0 libsm6 libxext6 \
+  libxrender1 libgomp1 libstdc++6 libc6 curl poppler-utils
+
+# Install Python deps
+uv sync
+
+# Start Gotenberg (for office doc conversion)
+docker run -d --rm -p 3000:3000 --name gotenberg gotenberg/gotenberg:8
+
+# Start dev server
+uv run fastapi dev app/main.py --port 8000
+```
+
+Server at `http://localhost:8000`. API docs at `http://localhost:8000/docs`.
+
 ## Architecture
 
 ```mermaid
@@ -80,8 +111,9 @@ flowchart TB
 ## Documentation
 
 | Topic | Description |
-|---|---|
+|---|---|---|
 | [Quick Start](docs/quickstart.md) | Prerequisites, local run, docker-compose, make |
+| [Prerequisites](docs/prerequisites.md) | System dependencies (apt, brew, uv, Gotenberg) |
 | [Configuration](docs/configuration.md) | Environment variables table |
 | [API Reference](docs/api.md) | All endpoints with curl examples and responses (JSON, Markdown, XML) |
 | [Testing Scripts](docs/scripts.md) | Scripts table and usage examples |

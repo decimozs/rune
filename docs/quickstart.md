@@ -5,12 +5,21 @@
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/)
 - `make` (optional — for Makefile automation)
+- System dependencies — see [Prerequisites doc](prerequisites.md) for per-OS install guide
 
 ## Run Locally
 
 ```bash
-# Install dependencies
+# Install system dependencies (Ubuntu/Debian)
+sudo apt-get update && sudo apt-get install -y \
+  libmagic1 libgl1 libglib2.0-0 libsm6 libxext6 \
+  libxrender1 libgomp1 libstdc++6 libc6 curl poppler-utils
+
+# Install Python dependencies
 uv sync
+
+# Start Gotenberg (for office document conversion)
+docker run -d --rm -p 3000:3000 --name gotenberg gotenberg/gotenberg:8
 
 # Production
 uv run fastapi run app/main.py --port 8000
