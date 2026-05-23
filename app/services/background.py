@@ -5,9 +5,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from config import settings
-from services.converter import converter
-from services.ocr import ocr_service
+from services.processor import process_file
 
 logger = logging.getLogger(__name__)
 
@@ -76,60 +74,23 @@ class BackgroundProcessor:
         return self._jobs.get(job_id)
 
     async def _run_job(self, job_id: str):
-        import magic
-        from pathlib import Path
-
         job = self._jobs[job_id]
         job.status = "processing"
         start = time.time()
 
-        try:
-            fn = job.file_name
-            ct = job.file_type
-            content = job._content
+        fn, ct, content = job.file_name, job.file_type, job._content
+        data, error, elapsed = await process_file(content, fn, ct, job.output_format)
 
-            safe = Path(settings.upload_dir) / f"{uuid.uuid4().hex}_{fn}"
-            safe.write_bytes(content)
-
-            try:
-                detected = magic.from_file(str(safe), mime=True)
-                if detected not in settings.allowed_types_list:
-                    raise ValueError(f"Unsupported type: {detected}")
-
-                if converter.needs_conversion(detected):
-                    safe = await converter.to_pdf(safe, detected)
-                    detected = "application/pdf"
-
-                if job.output_format == "markdown":
-                    result_data = await asyncio.to_thread(
-                        ocr_service.to_markdown, str(safe), fn, detected
-                    )
-                else:
-                    result_data = await asyncio.to_thread(
-                        ocr_service.process, str(safe), fn, detected
-                    )
-
-            finally:
-                safe.unlink(missing_ok=True)
-
-            elapsed = round((time.time() - start) * 1000, 2)
-            job.processing_time_ms = elapsed
-            job.data = result_data
+        if error:
+            job.error = {"code": "PROCESSING_ERROR", "message": error}
+            job.status = "failed"
+        else:
+            job.data = data
             job.status = "completed"
 
-        except Exception as e:
-            elapsed = round((time.time() - start) * 1000, 2)
-            job.processing_time_ms = elapsed
-            job.error = {"code": type(e).__name__, "message": str(e)}
-            job.status = "failed"
-
+        job.processing_time_ms = elapsed
         job.completed_at = datetime.now(timezone.utc)
-        logger.info(
-            "Background job %s %s in %sms",
-            job_id,
-            job.status,
-            job.processing_time_ms,
-        )
+        logger.info("Background job %s %s in %sms", job_id, job.status, elapsed)
 
 
 background_processor = BackgroundProcessor()

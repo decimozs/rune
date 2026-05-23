@@ -13,6 +13,10 @@ class OCRService:
         self.formatter = OCRFormatter()
         self.markdown_converter = MarkdownConverter(self.structure_engine)
 
+    @property
+    def is_ready(self) -> bool:
+        return self.engine.is_ready and self.structure_engine.is_ready
+
     async def init(self):
         await self.engine.init()
         await self.structure_engine.init()

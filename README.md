@@ -11,8 +11,8 @@ Internal OCR service for **Exist Software Labs**. Uses [PaddleOCR](https://githu
 - **pydantic-settings** — env config
 - **aiofiles** — async file I/O
 - **python-magic** — MIME type validation
-- **Gotenberg** — document-to-PDF conversion
-- **Docker** — containerized deployment
+- **Gotenberg** — document-to-PDF conversion (reused httpx client)
+- **Docker** — multi-stage containerized deployment
 
 ## Architecture
 
@@ -21,11 +21,13 @@ flowchart TB
   Client(["Client / curl / Scripts"])
 
   subgraph FastAPI["FastAPI Application"]
-    Routes["routes/ocr.py\nPOST /ocr/parse\nPOST /ocr/parse/batch\nGET /ocr/parse/batch/{id}\nPOST /ocr/parse/jobs\nGET /ocr/parse/jobs/{id}"]
+    MW["Middleware\ntiming · X-Processing-Time-Ms"]
+    Routes["routes/\nocr.py + health.py\nPOST /ocr/parse\nPOST /ocr/parse/batch\nGET /ocr/parse/batch/{id}\nPOST /ocr/parse/jobs\nGET /ocr/parse/jobs/{id}\nGET /health\nGET /health/ready"]
+    PROC["processor.py\nshared pipeline\nwrite → magic → convert → OCR → cleanup"]
     BP["BatchProcessor\nin-memory queue\n1hr TTL"]
     BJP["BackgroundProcessor\nsingle-job queue\n1hr TTL"]
     OCRS["OCRService\norchestrator"]
-    Conv["DocumentConverter\nGotenberg client"]
+    Conv["DocumentConverter\nreused httpx client"]
   end
 
   subgraph Paddle["PaddleOCR"]
@@ -36,34 +38,36 @@ flowchart TB
   Gotenberg[("Gotenberg\n(docker)")]
   FS[("File System\n/uploads")]
 
-  Client -->|multipart/file| Routes
+  Client -->|multipart/file| MW
+  MW --> Routes
 
-  Routes -->|sync| OCRS
+  Routes -->|sync| PROC
   Routes -->|async batch| BP
   Routes -->|async single| BJP
 
-  BP -->|background| OCRS
-  BJP -->|background| OCRS
+  BP -->|background| PROC
+  BJP -->|background| PROC
 
-  OCRS -->|to_thread| ENGINE
-  OCRS -->|to_thread| STRUCT
-  OCRS -->|needs conversion| Conv
+  PROC -->|to_thread| ENGINE
+  PROC -->|to_thread| STRUCT
+  PROC -->|needs conversion| Conv
   Conv -->|HTTP POST| Gotenberg
   Gotenberg -->|PDF| Conv
 
-  ENGINE -->|OCR result| OCRS
-  STRUCT -->|markdown| OCRS
+  ENGINE -->|OCR result| PROC
+  STRUCT -->|markdown| PROC
 
-  Routes -->|write| FS
-  OCRS -->|read| FS
+  PROC -->|read| FS
 
   style Client fill:#333,stroke:#000,stroke-width:1px,color:#fff
   style FastAPI fill:#fafafa,stroke:#999,stroke-width:1px,color:#666,stroke-dasharray:6 4
   style Paddle fill:#fafafa,stroke:#999,stroke-width:1px,color:#666,stroke-dasharray:6 4
   style Routes fill:#eee,stroke:#555,stroke-width:1px,color:#000
+  style MW fill:#eee,stroke:#555,stroke-width:1px,color:#000
+  style PROC fill:#ddd,stroke:#000,stroke-width:1.5px,color:#000
   style BP fill:#eee,stroke:#555,stroke-width:1px,color:#000
   style BJP fill:#eee,stroke:#555,stroke-width:1px,color:#000
-  style OCRS fill:#ccc,stroke:#000,stroke-width:2px,color:#000
+  style OCRS fill:#eee,stroke:#555,stroke-width:1px,color:#000
   style Conv fill:#eee,stroke:#555,stroke-width:1px,color:#000
   style ENGINE fill:#eee,stroke:#555,stroke-width:1px,color:#000
   style STRUCT fill:#eee,stroke:#555,stroke-width:1px,color:#000

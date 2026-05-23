@@ -1,6 +1,59 @@
 # API Reference
 
-All endpoints are prefixed with `/ocr`.
+OCR endpoints are prefixed with `/ocr`. Health endpoints (`/health`, `/health/ready`) are root-level.
+
+---
+
+## `GET /health`
+
+Liveness probe — always returns `200` if the application is running. Use for Docker `HEALTHCHECK`.
+
+**Response (200):**
+```json
+{
+  "status": "ok"
+}
+```
+
+**cURL:**
+```bash
+curl http://localhost:8000/health
+```
+
+---
+
+## `GET /health/ready`
+
+Readiness probe — returns `200` if all dependencies are initialized (OCR engine, structure engine). Returns `503` if any dependency is not ready. Use for container orchestration readiness checks (e.g., k8s `readinessProbe`).
+
+**Response (200):**
+```json
+{
+  "status": "ok",
+  "checks": {
+    "ocr_engine": "ok",
+    "structure_engine": "ok"
+  }
+}
+```
+
+**Response (503 — degraded):**
+```json
+{
+  "detail": {
+    "status": "degraded",
+    "checks": {
+      "ocr_engine": "fail",
+      "structure_engine": "ok"
+    }
+  }
+}
+```
+
+**cURL:**
+```bash
+curl http://localhost:8000/health/ready
+```
 
 ---
 
@@ -114,7 +167,6 @@ Upload multiple files for asynchronous batch processing. Returns immediately wit
 
 **Query Parameters:**
 - `format` — `json` (default) or `markdown`
-- `concurrency` — number of parallel workers, max 4 (default 2)
 
 **cURL:**
 ```bash

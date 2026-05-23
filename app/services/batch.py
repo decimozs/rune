@@ -5,15 +5,12 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from config import settings
-from services.converter import converter
-from services.ocr import ocr_service
+from services.processor import process_file
 
 logger = logging.getLogger(__name__)
 
 MAX_BATCH_SIZE = 20
 RESULTS_TTL = 3600
-DEFAULT_CONCURRENCY = 2
 
 
 class BatchItemResult:
@@ -35,12 +32,11 @@ class BatchItemResult:
 
 
 class BatchJob:
-    def __init__(self, batch_id: str, files: list, output_format: str, concurrency: int):
+    def __init__(self, batch_id: str, files: list, output_format: str):
         self.id = batch_id
         self.status = "pending"
         self.output_format = output_format
         self.total_files = len(files)
-        self.concurrency = concurrency
         self.results: list[Optional[BatchItemResult]] = [None] * len(files)
         self.created_at = datetime.now(timezone.utc)
         self.completed_at: Optional[datetime] = None
@@ -75,9 +71,9 @@ class BatchProcessor:
                 del self._jobs[bid]
                 logger.info("Expired batch %s", bid)
 
-    def create_job(self, files: list, output_format: str, concurrency: int) -> str:
+    def create_job(self, files: list, output_format: str) -> str:
         batch_id = uuid.uuid4().hex[:12]
-        job = BatchJob(batch_id, files, output_format, min(concurrency, 4))
+        job = BatchJob(batch_id, files, output_format)
         self._jobs[batch_id] = job
         asyncio.create_task(self._run_job(batch_id))
         return batch_id
@@ -86,61 +82,23 @@ class BatchProcessor:
         return self._jobs.get(batch_id)
 
     async def _run_job(self, batch_id: str):
-        import magic
-        from pathlib import Path
-
         job = self._jobs[batch_id]
         job.status = "processing"
         start = time.time()
 
         async def process_one(index: int):
             fn, ct, content = job._files[index]
-            f_start = time.time()
-
-            async def work():
-                safe = Path(settings.upload_dir) / f"{uuid.uuid4().hex}_{fn}"
-                safe.write_bytes(content)
-
-                detected = magic.from_file(str(safe), mime=True)
-                if detected not in settings.allowed_types_list:
-                    safe.unlink(missing_ok=True)
-                    raise ValueError(f"Unsupported type: {detected}")
-
-                if converter.needs_conversion(detected):
-                    safe = await converter.to_pdf(safe, detected)
-                    detected = "application/pdf"
-
-                if job.output_format == "markdown":
-                    result_data = await asyncio.to_thread(
-                        ocr_service.to_markdown, str(safe), fn, detected
-                    )
-                else:
-                    result_data = await asyncio.to_thread(
-                        ocr_service.process, str(safe), fn, detected
-                    )
-
-                safe.unlink(missing_ok=True)
-                return result_data
-
-            try:
-                data = await work()
-                elapsed = round((time.time() - f_start) * 1000, 2)
-                job.results[index] = BatchItemResult(
-                    file_name=fn,
-                    file_type=ct,
-                    processing_time_ms=elapsed,
-                    success=True,
-                    data=data,
-                )
-            except Exception as e:
-                elapsed = round((time.time() - f_start) * 1000, 2)
-                job.results[index] = BatchItemResult(
-                    file_name=fn,
-                    file_type=ct,
-                    processing_time_ms=elapsed,
-                    success=False,
-                    error={"code": type(e).__name__, "message": str(e)},
-                )
+            data, error, elapsed = await process_file(
+                content, fn, ct, job.output_format
+            )
+            job.results[index] = BatchItemResult(
+                file_name=fn,
+                file_type=ct,
+                processing_time_ms=elapsed,
+                success=error is None,
+                data=data if error is None else None,
+                error={"code": "PROCESSING_ERROR", "message": error} if error else None,
+            )
 
         for i in range(job.total_files):
             await process_one(i)

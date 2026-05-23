@@ -9,6 +9,10 @@ class OCREngine:
     def __init__(self):
         self.ocr_model = None
 
+    @property
+    def is_ready(self) -> bool:
+        return self.ocr_model is not None
+
     async def init(self):
         self.ocr_model = PaddleOCR(
             use_textline_orientation=settings.use_textline_orientation,
@@ -30,6 +34,10 @@ class OCREngine:
 class StructureEngine:
     def __init__(self):
         self._engine: PPStructureV3 | None = None
+
+    @property
+    def is_ready(self) -> bool:
+        return self._engine is not None
 
     async def init(self):
         self._engine = PPStructureV3(

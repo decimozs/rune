@@ -1,18 +1,11 @@
-import uuid
-import time
-import asyncio
-import aiofiles
-import magic
-from pathlib import Path
 from datetime import datetime, timezone
 from typing import cast
 from enum import Enum
 from fastapi import APIRouter, File, Query, UploadFile, HTTPException
 from config import settings
 from schemas.response import APIResponse, ResponseMetadata
-from services.ocr import ocr_service
-from services.converter import converter
-from services.batch import batch_processor, MAX_BATCH_SIZE, DEFAULT_CONCURRENCY
+from services.processor import process_file
+from services.batch import batch_processor, MAX_BATCH_SIZE
 from services.background import background_processor
 from schemas.ocr import BatchItemResult, BatchStatus, SingleJobStatus
 
@@ -34,44 +27,6 @@ def validate_upload(file: UploadFile) -> None:
             f"Unsupported file type: {file.content_type}. "
             f"Allowed: {', '.join(settings.allowed_types_list)}",
         )
-
-
-TEXT_BASED_TYPES = {
-    "text/csv",
-    "text/plain",
-    "text/rtf",
-    "text/html",
-    "message/rfc822",
-}
-
-
-def validate_magic_bytes(file_path: Path, declared_content_type: str) -> None:
-    if declared_content_type in TEXT_BASED_TYPES:
-        return
-
-    detected = magic.from_file(str(file_path), mime=True)
-    if detected != declared_content_type:
-        file_path.unlink(missing_ok=True)
-        raise HTTPException(
-            415,
-            f"File content does not match declared type. "
-            f"Declared: {declared_content_type}, Detected: {detected}",
-        )
-
-
-async def save_upload_securely(file: UploadFile) -> Path:
-    safe_name = Path(cast(str, file.filename)).name
-    unique_name = f"{uuid.uuid4().hex}_{safe_name}"
-    tmp_path = settings.upload_dir_path / unique_name
-    total = 0
-    async with aiofiles.open(tmp_path, "wb") as f:
-        while chunk := await file.read(8192):
-            total += len(chunk)
-            if total > settings.max_file_size:
-                tmp_path.unlink(missing_ok=True)
-                raise HTTPException(413, "File too large")
-            await f.write(chunk)
-    return tmp_path
 
 
 def build_response(
@@ -101,40 +56,22 @@ async def parse_file(
     output_format: OutputFormat = Query(default=OutputFormat.json, alias="format"),
 ):
     validate_upload(file)
-    tmp_path = await save_upload_securely(file)
 
-    validate_magic_bytes(tmp_path, cast(str, file.content_type))
+    content = await file.read()
+    if len(content) > settings.max_file_size:
+        raise HTTPException(413, "File too large")
 
     filename = cast(str, file.filename)
     content_type = cast(str, file.content_type)
 
-    if converter.needs_conversion(content_type):
-        tmp_path = await converter.to_pdf(tmp_path, content_type)
-        content_type = "application/pdf"
+    data, error, elapsed = await process_file(
+        content, filename, content_type, output_format.value
+    )
 
-    start = time.time()
+    if error:
+        raise HTTPException(500, detail=error)
 
-    try:
-        if output_format == OutputFormat.markdown:
-            content = await asyncio.to_thread(
-                ocr_service.to_markdown,
-                str(tmp_path),
-                filename,
-                content_type,
-            )
-        else:
-            content = await asyncio.to_thread(
-                ocr_service.process,
-                str(tmp_path),
-                filename,
-                content_type,
-            )
-
-        elapsed = round((time.time() - start) * 1000, 2)
-        return build_response(content, output_format, filename, content_type, elapsed)
-
-    finally:
-        tmp_path.unlink(missing_ok=True)
+    return build_response(data, output_format, filename, content_type, elapsed)
 
 
 @router.post("/parse/jobs", status_code=202)
@@ -204,7 +141,6 @@ async def get_job_status(job_id: str):
 async def parse_batch(
     file: list[UploadFile] = File(...),
     output_format: OutputFormat = Query(OutputFormat.json, alias="format"),
-    concurrency: int = Query(DEFAULT_CONCURRENCY, ge=1, le=4),
 ):
     if len(file) > MAX_BATCH_SIZE:
         raise HTTPException(413, f"Max {MAX_BATCH_SIZE} files per batch")
@@ -215,7 +151,7 @@ async def parse_batch(
         (cast(str, f.filename), cast(str, f.content_type), await f.read())
         for f in file
     ]
-    batch_id = batch_processor.create_job(files_data, output_format.value, concurrency)
+    batch_id = batch_processor.create_job(files_data, output_format.value)
     job = batch_processor.get_job(batch_id)
 
     return APIResponse(
