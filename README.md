@@ -111,7 +111,7 @@ flowchart TB
 ## Documentation
 
 | Topic | Description |
-|---|---|---|
+|---|---|
 | [Quick Start](docs/quickstart.md) | Prerequisites, local run, docker-compose, make |
 | [Prerequisites](docs/prerequisites.md) | System dependencies (apt, brew, uv, Gotenberg) |
 | [Configuration](docs/configuration.md) | Environment variables table |
