@@ -1,6 +1,7 @@
 import uuid
 import time
 import asyncio
+import contextlib
 import logging
 from datetime import datetime, timezone
 from typing import Any, Optional
@@ -55,6 +56,9 @@ class BatchProcessor:
     async def stop(self):
         if self._cleanup_task:
             self._cleanup_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._cleanup_task
+            self._cleanup_task = None
 
     async def _cleanup_loop(self):
         while True:

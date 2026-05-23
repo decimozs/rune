@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     allowed_content_types: str = (
         "image/jpeg,image/png,image/bmp,image/tiff,image/webp,"
         "application/pdf,"
+        "application/msword,"
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document,"
         "application/vnd.ms-powerpoint,"
         "application/vnd.openxmlformats-officedocument.presentationml.presentation,"

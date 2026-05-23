@@ -27,6 +27,9 @@ class OCRPage(BaseModel):
     page: int
     words: list[WordBlock]
     extracted_text: str
+    page_image_url: Optional[str] = None
+    ocr_width: Optional[int] = None
+    ocr_height: Optional[int] = None
 
 
 class OCRResult(BaseModel):

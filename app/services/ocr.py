@@ -1,4 +1,5 @@
 import logging
+import uuid
 from services.engine import OCREngine, StructureEngine
 from services.formatter import OCRFormatter
 from services.markdown import MarkdownConverter
@@ -22,9 +23,14 @@ class OCRService:
         await self.engine.init()
         await self.structure_engine.init()
 
+    async def shutdown(self):
+        await self.structure_engine.shutdown()
+        await self.engine.shutdown()
+
     def process(self, file_path: str, filename: str, content_type: str) -> dict:
+        stem = uuid.uuid4().hex
         result = self.engine.predict(file_path)
-        return self.formatter.structure(result)
+        return self.formatter.structure(result, stem=stem)
 
     def to_markdown(
         self,

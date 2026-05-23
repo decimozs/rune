@@ -19,6 +19,7 @@ class OCREngine:
             lang=settings.lang,
             enable_mkldnn=settings.enable_mkldnn,
             ocr_version=settings.version,
+            use_doc_unwarping=False,
         )
 
     async def shutdown(self):

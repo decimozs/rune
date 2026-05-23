@@ -794,7 +794,86 @@
         font-size: 14px
       }
     }
+    /* viz - single image */
+    .viz-wrap {
+      position: relative;
+      display: inline-block;
+      max-width: 100%
+    }
+
+    .viz-wrap .viz-img {
+      max-width: 100%;
+      display: block
+    }
+
+    .viz-wrap .viz-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none
+    }
+
+    /* viz - multi-page PDF */
+    .viz-multi {
+      padding: 4px 0
+    }
+
+    .viz-page {
+      margin-bottom: 16px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden
+    }
+
+    .viz-page:last-child {
+      margin-bottom: 0
+    }
+
+    .viz-page-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      padding: 6px 12px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+      letter-spacing: .4px
+    }
+
+    .viz-page-inner {
+      position: relative;
+      display: inline-block;
+      max-width: 100%
+    }
+
+    .viz-page canvas {
+      max-width: 100%;
+      display: block
+    }
+
+    .viz-page .viz-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none
+    }
+
+    .viz-loading {
+      padding: 20px;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 12px
+    }
+
+    .viz-empty {
+      padding: 20px;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 13px
+    }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 
 <body>
@@ -841,9 +920,9 @@
       <div class="icon">📄</div>
       <div class="label">Drag &amp; drop files here</div>
       <div class="sublabel">or <strong>click</strong> to select</div>
-      <div class="formats-hint">Supports: JPEG, PNG, BMP, TIFF, WebP, PDF, DOCX, PPT, PPTX, RTF, CSV, XLS, XLSX</div>
+      <div class="formats-hint">Supports: JPEG, PNG, BMP, TIFF, WebP, PDF, DOC, DOCX, PPT, PPTX, RTF, CSV, XLS, XLSX</div>
       <input type="file" id="fileInput" multiple
-        accept=".jpg,.jpeg,.png,.bmp,.tiff,.tif,.webp,.pdf,.docx,.ppt,.pptx,.rtf,.csv,.xls,.xlsx">
+        accept=".jpg,.jpeg,.png,.bmp,.tiff,.tif,.webp,.pdf,.doc,.docx,.ppt,.pptx,.rtf,.csv,.xls,.xlsx">
     </div>
 
     <div class="file-list" id="fileList"></div>
@@ -872,6 +951,7 @@
       const ALLOWED_TYPES = new Set([
         'image/jpeg', 'image/png', 'image/bmp', 'image/tiff', 'image/webp',
         'application/pdf',
+        'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'application/vnd.ms-powerpoint',
         'application/vnd.openxmlformats-officedocument.presentationml.presentation',
@@ -884,6 +964,7 @@
         jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', bmp: 'image/bmp',
         tiff: 'image/tiff', tif: 'image/tiff', webp: 'image/webp',
         pdf: 'application/pdf',
+        doc: 'application/msword',
         docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         ppt: 'application/vnd.ms-powerpoint',
         pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
@@ -899,6 +980,7 @@
       let selectedFiles = []
       let processing = false
       let pollingTimers = []
+      const vizDataMap = new Map()
 
       const $ = id => document.getElementById(id)
       const apiUrl = () => $('apiUrl').value.replace(/\/+$/, '')
@@ -931,6 +1013,9 @@
           $('fileInput').multiple = true
         }
         if (m !== 'batch' && selectedFiles.length > 1) {
+          for (var si = 1; si < selectedFiles.length; si++) {
+            if (selectedFiles[si].blobUrl) URL.revokeObjectURL(selectedFiles[si].blobUrl)
+          }
           selectedFiles = [selectedFiles[0]]
           renderFiles()
         }
@@ -969,7 +1054,7 @@
             addResultCard(f.name, 'fail', null, 'File exceeds 50MB limit')
             continue
           }
-          newFiles.push({file: f, mime})
+          newFiles.push({file: f, mime, blobUrl: URL.createObjectURL(f)})
         }
         const m = mode()
         if (m !== 'batch') selectedFiles = newFiles.slice(0, 1)
@@ -997,7 +1082,10 @@
         ).join('')
         container.querySelectorAll('.remove').forEach(btn => {
           btn.addEventListener('click', () => {
-            selectedFiles.splice(parseInt(btn.dataset.index), 1)
+            const idx = parseInt(btn.dataset.index)
+            const entry = selectedFiles[idx]
+            if (entry && entry.blobUrl) URL.revokeObjectURL(entry.blobUrl)
+            selectedFiles.splice(idx, 1)
             renderFiles()
             updateProcessBtn()
           })
@@ -1085,7 +1173,8 @@
             if (data.status === 'completed') {
               clearInterval(timer)
               const ms = data.processing_time_ms
-              updateResultCard(card, 'ok', ms, data.data, json.metadata)
+              var jobMeta = Object.assign({}, json.metadata, {file_name: data.file_name, processing_time_ms: ms})
+              updateResultCard(card, 'ok', ms, data.data, jobMeta)
             } else if (data.status === 'failed') {
               clearInterval(timer)
               const err = data.error?.message || data.error || 'Job failed'
@@ -1135,7 +1224,8 @@
               card.remove()
               for (const item of data.items || []) {
                 if (item.success) {
-                  addResultCard(item.file_name, 'ok', item.processing_time_ms, item.data, json.metadata)
+                  var itemMeta = Object.assign({}, json.metadata, {file_name: item.file_name, processing_time_ms: item.processing_time_ms})
+                  addResultCard(item.file_name, 'ok', item.processing_time_ms, item.data, itemMeta)
                 } else {
                   const err = item.error?.message || item.error || 'Failed'
                   addResultCard(item.file_name, 'fail', null, err)
@@ -1209,12 +1299,264 @@
         return html
       }
 
+      // ---- bbox visualizer ----
+      function confidenceColor(conf) {
+        if (conf > 0.9) return '#059669'
+        if (conf > 0.7) return '#65a30d'
+        if (conf > 0.5) return '#d97706'
+        return '#dc2626'
+      }
+
+      function drawBBoxes(ctx, words) {
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+        for (var pi = 0; pi < words.length; pi++) {
+          var w = words[pi]
+          var pts = w.bbox && w.bbox.points
+          if (!pts || pts.length < 4) continue
+          var color = confidenceColor(w.confidence)
+          ctx.beginPath()
+          ctx.moveTo(pts[0][0], pts[0][1])
+          for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1])
+          ctx.closePath()
+          ctx.strokeStyle = color
+          ctx.lineWidth = 2
+          ctx.stroke()
+          ctx.fillStyle = color + '22'
+          ctx.fill()
+        }
+      }
+
+      function resolveUrl(path) {
+        if (!path || path.startsWith('blob:') || path.startsWith('http://') || path.startsWith('https://')) return path
+        if (path.startsWith('/')) return apiUrl() + path
+        return path
+      }
+
+      function renderPageWithBBoxes(container, imageUrl, words, ocrW, ocrH) {
+        var wrap = document.createElement('div')
+        wrap.style.cssText = 'position:relative;display:block;width:100%;margin:0;padding:0;line-height:0;'
+        container.appendChild(wrap)
+
+        var img = document.createElement('img')
+        img.style.cssText = 'display:block;width:100%;height:auto;margin:0;padding:0;border:0;vertical-align:top;'
+        wrap.appendChild(img)
+
+        var overlay = document.createElement('canvas')
+        overlay.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;'
+        wrap.appendChild(overlay)
+
+        img.onload = function () {
+          var coordW = ocrW || img.naturalWidth
+          var coordH = ocrH || img.naturalHeight
+
+          requestAnimationFrame(function () {
+            var imgRect = img.getBoundingClientRect()
+            var wrapRect = wrap.getBoundingClientRect()
+            overlay.width = coordW
+            overlay.height = coordH
+            overlay.style.width = imgRect.width + 'px'
+            overlay.style.height = imgRect.height + 'px'
+            overlay.style.left = (imgRect.left - wrapRect.left) + 'px'
+            overlay.style.top = (imgRect.top - wrapRect.top) + 'px'
+            drawBBoxes(overlay.getContext('2d'), words)
+          })
+
+          window.addEventListener('resize', function () {
+            requestAnimationFrame(function () {
+              var imgRect = img.getBoundingClientRect()
+              var wrapRect = wrap.getBoundingClientRect()
+              overlay.style.width = imgRect.width + 'px'
+              overlay.style.height = imgRect.height + 'px'
+              overlay.style.left = (imgRect.left - wrapRect.left) + 'px'
+              overlay.style.top = (imgRect.top - wrapRect.top) + 'px'
+              drawBBoxes(overlay.getContext('2d'), words)
+            })
+          })
+        }
+        img.onerror = function () {
+          container.innerHTML = '<div class="viz-empty">Image failed to load.</div>'
+        }
+        img.src = resolveUrl(imageUrl)
+      }
+
+      function renderSinglePageViz(container, blobUrl, dataPages) {
+        var allWords = []
+        for (var pi = 0; pi < dataPages.length; pi++) {
+          var pg = dataPages[pi]
+          if (pg.words) { for (var wi = 0; wi < pg.words.length; wi++) allWords.push(pg.words[wi]) }
+        }
+        if (!allWords.length) {
+          container.innerHTML = '<div class="viz-empty">No bounding boxes found.</div>'
+          return
+        }
+
+        var ocrW = dataPages[0] && dataPages[0].ocr_width
+        var ocrH = dataPages[0] && dataPages[0].ocr_height
+        container.innerHTML = ''
+        renderPageWithBBoxes(container, blobUrl, allWords, ocrW, ocrH)
+      }
+
+      function renderPDFPage(pageEl, pageIndex, pdf, scale, ocrPage) {
+        pdf.getPage(pageIndex + 1).then(function (page) {
+          var viewport = page.getViewport({ scale: scale })
+          var inner = document.createElement('div')
+          inner.className = 'viz-page-inner'
+          inner.style.position = 'relative'
+          inner.style.display = 'block'
+          inner.style.width = '100%'
+
+          var c = document.createElement('canvas')
+          c.width = viewport.width
+          c.height = viewport.height
+          c.style.display = 'block'
+          c.style.width = '100%'
+          c.style.height = 'auto'
+          inner.appendChild(c)
+
+          var overlay = document.createElement('canvas')
+          overlay.className = 'viz-overlay'
+          overlay.style.position = 'absolute'
+          overlay.style.top = '0'
+          overlay.style.left = '0'
+          overlay.style.pointerEvents = 'none'
+          inner.appendChild(overlay)
+
+          return page.render({ canvasContext: c.getContext('2d'), viewport: viewport }).promise.then(function () {
+            requestAnimationFrame(function () {
+              var dw = c.offsetWidth
+              var dh = c.offsetHeight
+
+              overlay.width = dw
+              overlay.height = dh
+              overlay.style.width = dw + 'px'
+              overlay.style.height = dh + 'px'
+
+              var words = (ocrPage && ocrPage.words) || []
+              if (words.length) {
+                var ctx = overlay.getContext('2d')
+                ctx.clearRect(0, 0, dw, dh)
+
+                var scaleX = dw / viewport.width
+                var scaleY = dh / viewport.height
+
+                for (var pi = 0; pi < words.length; pi++) {
+                  var w = words[pi]
+                  var pts = w.bbox && w.bbox.points
+                  if (!pts || pts.length < 4) continue
+
+                  var color = confidenceColor(w.confidence)
+                  ctx.beginPath()
+                  ctx.moveTo(pts[0][0] * scale * scaleX, pts[0][1] * scale * scaleY)
+                  for (var i = 1; i < pts.length; i++) {
+                    ctx.lineTo(pts[i][0] * scale * scaleX, pts[i][1] * scale * scaleY)
+                  }
+                  ctx.closePath()
+                  ctx.strokeStyle = color
+                  ctx.lineWidth = 1.5
+                  ctx.stroke()
+                  ctx.fillStyle = color + '15'
+                  ctx.fill()
+                }
+              }
+            })
+            pageEl.innerHTML = ''
+            pageEl.appendChild(inner)
+          })
+        }).catch(function (err) {
+          pageEl.innerHTML = '<div class="viz-empty">Page ' + (pageIndex + 1) + ' error: ' + esc(err.message) + '</div>'
+        })
+      }
+
+      function renderVisualization(container, fileName) {
+        var entry = null
+        for (var i = 0; i < selectedFiles.length; i++) {
+          if (selectedFiles[i].file.name === fileName) { entry = selectedFiles[i]; break }
+        }
+        if (!entry || !entry.blobUrl) {
+          container.innerHTML = '<div class="viz-empty">File unavailable for visualization.</div>'
+          return
+        }
+
+        var data = vizDataMap.get(fileName)
+        if (!data || !data.pages) {
+          container.innerHTML = '<div class="viz-empty">No OCR data for visualization.</div>'
+          return
+        }
+
+        container.innerHTML = ''
+
+        var hasServedImages = data.pages && data.pages.length > 0 && data.pages[0].page_image_url
+        if (hasServedImages) {
+          var multi = document.createElement('div')
+          multi.className = 'viz-multi'
+          container.appendChild(multi)
+
+          var observer = new IntersectionObserver(function (entries) {
+            for (var ei = 0; ei < entries.length; ei++) {
+              if (entries[ei].isIntersecting) {
+                var el = entries[ei].target
+                var idx = parseInt(el.dataset.pageIndex)
+                observer.unobserve(el)
+                el.innerHTML = '<div class="viz-page-label">Page ' + (idx + 1) + '</div>'
+                var words = (data.pages[idx] && data.pages[idx].words) || []
+                var pg = data.pages[idx] || {}
+                renderPageWithBBoxes(el, pg.page_image_url, words, pg.ocr_width, pg.ocr_height)
+              }
+            }
+          }, { rootMargin: '200px' })
+
+          for (var pi = 0; pi < data.pages.length; pi++) {
+            var pageEl = document.createElement('div')
+            pageEl.className = 'viz-page'
+            pageEl.innerHTML = '<div class="viz-page-label">Page ' + (pi + 1) + '</div><div class="viz-loading">Loading page ' + (pi + 1) + '...</div>'
+            pageEl.dataset.pageIndex = String(pi)
+            multi.appendChild(pageEl)
+            observer.observe(pageEl)
+          }
+        } else if (entry.mime === 'application/pdf' && typeof pdfjsLib !== 'undefined') {
+          pdfjsLib.getDocument(entry.blobUrl).promise.then(function (pdf) {
+            var multi = document.createElement('div')
+            multi.className = 'viz-multi'
+            container.appendChild(multi)
+
+            var scale = 200 / 72
+            var numPages = pdf.numPages
+            var observer = new IntersectionObserver(function (entries) {
+              for (var ei = 0; ei < entries.length; ei++) {
+                if (entries[ei].isIntersecting) {
+                  var el = entries[ei].target
+                  var idx = parseInt(el.dataset.pageIndex)
+                  observer.unobserve(el)
+                  renderPDFPage(el, idx, pdf, scale, data.pages[idx] || null)
+                }
+              }
+            }, { rootMargin: '200px' })
+
+            for (var pi = 0; pi < numPages; pi++) {
+              var pageEl = document.createElement('div')
+              pageEl.className = 'viz-page'
+              pageEl.innerHTML = '<div class="viz-page-label">Page ' + (pi + 1) + '</div><div class="viz-loading">Loading page ' + (pi + 1) + '...</div>'
+              pageEl.dataset.pageIndex = String(pi)
+              multi.appendChild(pageEl)
+              observer.observe(pageEl)
+            }
+          }).catch(function (err) {
+            container.innerHTML = '<div class="viz-empty">PDF load error: ' + esc(err.message) + '</div>'
+          })
+        } else if (entry.mime.startsWith('image/')) {
+          renderSinglePageViz(container, entry.blobUrl, data.pages)
+        } else {
+          container.innerHTML = '<div class="viz-empty">No page images available for ' + esc(entry.mime) + ' files.</div>'
+        }
+      }
+
       // ---- result cards ----
       function clearResults() {
         $('resultList').innerHTML = ''
         const empty = $('emptyState')
         if (empty) empty.style.display = 'block'
         $('resultCount').textContent = '0'
+        vizDataMap.clear()
       }
 
       function isMarkdown(meta, content) {
@@ -1229,16 +1571,31 @@
         if (!text) return '<div class="body"><pre></pre></div>'
 
         const isMd = isMarkdown(meta, content) && !isObj && status !== 'fail'
-        if (!isMd) return '<div class="body open"><pre>' + esc(text) + '</pre></div>'
+        const fileName = meta && meta.file_name
+        const canViz = isObj && meta && meta.format === 'json' && status === 'ok' &&
+                       fileName && selectedFiles.some(function (f) { return f.file.name === fileName })
 
-        const rendered = renderMarkdown(text)
+        if (!isMd && !canViz) return '<div class="body open"><pre>' + esc(text) + '</pre></div>'
+
+        if (isMd) {
+          const rendered = renderMarkdown(text)
+          return '<div class="body open">' +
+            '<div class="tab-bar">' +
+            '<button class="tab active" data-tab="raw">Raw</button>' +
+            '<button class="tab" data-tab="preview">Preview</button>' +
+            '</div>' +
+            '<div class="tab-content tab-raw active"><pre>' + esc(text) + '</pre></div>' +
+            '<div class="tab-content tab-preview"><div class="md-render">' + rendered + '</div></div>' +
+            '</div>'
+        }
+
         return '<div class="body open">' +
           '<div class="tab-bar">' +
           '<button class="tab active" data-tab="raw">Raw</button>' +
-          '<button class="tab" data-tab="preview">Preview</button>' +
+          '<button class="tab" data-tab="viz">Visualize</button>' +
           '</div>' +
           '<div class="tab-content tab-raw active"><pre>' + esc(text) + '</pre></div>' +
-          '<div class="tab-content tab-preview"><div class="md-render">' + rendered + '</div></div>' +
+          '<div class="tab-content tab-viz" data-filename="' + esc(fileName) + '"><div class="viz-empty">Click Visualize tab to render.</div></div>' +
           '</div>'
       }
 
@@ -1246,6 +1603,10 @@
         const list = $('resultList')
         const empty = $('emptyState')
         if (empty) empty.style.display = 'none'
+
+        if (status === 'ok' && meta && meta.format === 'json' && content && typeof content === 'object') {
+          vizDataMap.set(name, content)
+        }
 
         const timingStr = timing != null ? (timing < 1000 ? timing.toFixed(0) + 'ms' : (timing / 1000).toFixed(2) + 's') : ''
         const bodyHTML = makeBodyHTML(content, meta, status)
@@ -1279,6 +1640,14 @@
             body.querySelectorAll('.tab-content').forEach(function (c) {c.classList.remove('active')})
             var target = body.querySelector('.tab-' + this.dataset.tab)
             if (target) target.classList.add('active')
+            if (this.dataset.tab === 'viz') {
+              var vc = body.querySelector('.tab-viz')
+              if (vc && !vc.dataset.rendered) {
+                vc.dataset.rendered = '1'
+                var fn = vc.dataset.filename
+                if (fn) renderVisualization(vc, fn)
+              }
+            }
           })
         })
 
@@ -1294,13 +1663,18 @@
       }
 
       function updateResultCard(card, status, timing, content, meta) {
+        if (status === 'ok' && meta && meta.format === 'json' && content && typeof content === 'object') {
+          var fn = meta.file_name
+          if (fn) vizDataMap.set(fn, content)
+        }
         const header = card.querySelector('.header')
         const dot = header.querySelector('.status-dot')
         const badge = header.querySelector('.badge')
         const timingEl = header.querySelector('.timing')
         const body = card.querySelector('.body')
-        const newBody = makeBodyHTML(content, meta, status)
-        body.outerHTML = newBody
+        const newBodyHTML = makeBodyHTML(content, meta, status)
+        body.outerHTML = newBodyHTML
+        const newBody = card.querySelector('.body')
 
         dot.className = 'status-dot ' + status
         badge.className = 'badge ' + status
@@ -1328,10 +1702,18 @@
             b.querySelectorAll('.tab-content').forEach(function (c) {c.classList.remove('active')})
             var target = b.querySelector('.tab-' + this.dataset.tab)
             if (target) target.classList.add('active')
+            if (this.dataset.tab === 'viz') {
+              var vc = b.querySelector('.tab-viz')
+              if (vc && !vc.dataset.rendered) {
+                vc.dataset.rendered = '1'
+                var fn = vc.dataset.filename
+                if (fn) renderVisualization(vc, fn)
+              }
+            }
           })
         })
 
-        body.classList.add('open')
+        if (newBody) newBody.classList.add('open')
         card.querySelector('.toggle')?.classList.add('open')
         updateCount()
       }
@@ -1383,6 +1765,9 @@
       })
 
       // ---- init ----
+      if (typeof pdfjsLib !== 'undefined') {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+      }
       onModeChange()
     })()
   </script>

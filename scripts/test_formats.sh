@@ -14,6 +14,7 @@ TESTS=(
   "png:app/datasets/images/sample1.png:image/png"
   "png2:app/datasets/images/sample2.png:image/png"
   "png3:app/datasets/images/sample3.png:image/png"
+  "doc:app/datasets/docx/sample1.doc:application/msword"
   "docx:app/datasets/docx/sample1.docx:application/vnd.openxmlformats-officedocument.wordprocessingml.document"
   "ppt:app/datasets/ppt/sample1.ppt:application/vnd.ms-powerpoint"
   "rtf:app/datasets/rtf/sample1.rtf:text/rtf"

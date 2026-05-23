@@ -6,6 +6,7 @@ from config import settings
 logger = logging.getLogger(__name__)
 
 CONVERTIBLE_TYPES = {
+    "application/msword",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "application/vnd.ms-powerpoint",
     "application/vnd.openxmlformats-officedocument.presentationml.presentation",

@@ -8,9 +8,10 @@ Settings loaded from `.env` file (see `.env.example`) or environment variables w
 | `OCR_VERSION` | `PP-OCRv4` | PaddleOCR model version |
 | `OCR_ENABLE_MKLDNN` | `false` | Intel MKL-DNN CPU acceleration |
 | `OCR_USE_TEXTLINE_ORIENTATION` | `true` | Detect textline orientation |
+| (hardcoded) | `use_doc_unwarping=False` | Disable PaddleOCR DocPreprocessor unwarping to keep bbox coords in original image space |
 | `OCR_MAX_FILE_SIZE` | `52428800` | Max upload size (bytes, ~50MB) |
 | `OCR_UPLOAD_DIR` | `/tmp` | Temp directory for uploads |
 | `OCR_ALLOWED_CONTENT_TYPES` | `image/jpeg,image/png,...` | Allowed MIME types |
 | `OCR_OUTPUT_DIR` | `app/outputs` | Markdown output directory |
 | `OCR_LOG_LEVEL` | `INFO` | Log level |
-| `OCR_GOTENBERG_URL` | `http://localhost:3000` | Gotenberg document conversion API |
+| `OCR_GOTENBERG_URL` | `http://localhost:3000` | Gotenberg document conversion API. Overridden to `http://gotenberg:3000` inside Docker Compose via `docker-compose.yml` environment. |

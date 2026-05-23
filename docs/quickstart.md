@@ -42,7 +42,7 @@ Run `make help` to list all targets.
 
 ## Demo UI
 
-Open [`index.html`](../index.html) in a browser (no server needed — opens as `file://`). Drag-and-drop files, choose mode (sync/background/batch), toggle Raw/Preview tabs. CORS enabled for file:// access.
+Open [`index.html`](../index.html) in a browser (no server needed — opens as `file://`). Drag-and-drop files, choose mode (sync/background/batch), toggle Raw/Preview/Visualize tabs. Visualize tab renders confidence-colored bboxes overlaid on the original image via canvas. CORS enabled for file:// access.
 
 ## Run with Docker Compose
 
@@ -55,5 +55,7 @@ docker compose down
 ```
 
 API at `http://localhost:8000`, Gotenberg at `http://localhost:3000`. Both services include Docker healthchecks — `ocr-api` waits for `gotenberg: service_healthy` before starting.
+
+Note: Docker Compose overrides `OCR_GOTENBERG_URL` to `http://gotenberg:3000` (internal Docker DNS). When running the OCR API locally (not in Docker), the `.env` default `http://localhost:3000` is used instead.
 
 OCR assets (extracted markdown images) served at `http://localhost:8000/assets/`.

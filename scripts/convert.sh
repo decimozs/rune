@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VALID_FORMATS="docx ppt rtf csv xls xlsx spreadsheet all"
+VALID_FORMATS="doc docx ppt rtf csv xls xlsx spreadsheet all"
 FORMAT="${1:-}"
 GOTENBERG_URL="${2:-http://localhost:3000}"
 
@@ -10,7 +10,7 @@ usage() {
 Usage: $0 <format> [gotenberg_url]
 
 Formats:
-  docx, ppt, rtf          — Office documents
+  doc, docx, ppt, rtf     — Office documents
   csv, xls, xlsx          — Spreadsheets (per-type)
   spreadsheet             — All spreadsheet types at once
   all                     — Every format above
@@ -77,6 +77,7 @@ process_format() {
   local input_dir find_args=()
 
   case "$format" in
+    doc)  input_dir="app/datasets/docx";         find_args=(-name "*.doc") ;;
     docx) input_dir="app/datasets/docx";         find_args=(-name "*.docx") ;;
     ppt)  input_dir="app/datasets/ppt";          find_args=("(" -name "*.ppt" -o -name "*.pptx" ")") ;;
     rtf)  input_dir="app/datasets/rtf";          find_args=(-name "*.rtf") ;;
@@ -112,7 +113,7 @@ process_format() {
 check_gotenberg
 
 if [ "$FORMAT" = "all" ]; then
-  for f in docx ppt rtf csv xls xlsx; do
+  for f in doc docx ppt rtf csv xls xlsx; do
     process_format "$f"
   done
 elif [ "$FORMAT" = "spreadsheet" ]; then

@@ -7,6 +7,9 @@ app/
 ├── routes/
 │   ├── ocr.py            # OCR endpoints: sync parse, async jobs, async batch
 │   └── health.py         # Health check endpoints: /health, /health/ready
+├── outputs/
+│   ├── imgs/              # Extracted markdown images (served at /assets/imgs/)
+│   └── pages/             # Per-page OCR images grouped by stem (served at /assets/pages/)
 ├── services/
 │   ├── ocr.py            # Orchestrator (composes engine, formatter, markdown)
 │   ├── engine.py         # PaddleOCR + PPStructureV3 model init & prediction
@@ -30,7 +33,7 @@ app/
 
 Makefile                  # Common task automation (dev, Docker, scripts)
 
-index.html                # Standalone demo frontend (drag-and-drop, 3 modes, JSON/MD/XML preview)
+index.html                # Standalone demo frontend (drag-and-drop, 3 modes, JSON/MD/XML/Visualize with bbox overlays, pdf.js fallback, IntersectionObserver lazy-loading)
 
 docker-compose.yml        # API + Gotenberg services (healthchecks, env_file)
 

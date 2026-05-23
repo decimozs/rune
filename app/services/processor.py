@@ -15,7 +15,6 @@ TEXT_BASED_TYPES = {
     "text/csv", "text/plain", "text/rtf", "text/html", "message/rfc822",
 }
 
-
 async def process_file(
     content: bytes,
     filename: str,
@@ -24,7 +23,9 @@ async def process_file(
 ) -> tuple[object, str | None, float]:
     start = time.time()
 
-    safe = Path(settings.upload_dir) / f"{uuid.uuid4().hex}_{filename}"
+    stem = uuid.uuid4().hex
+    safe_filename = Path(filename).name
+    safe = settings.upload_dir_path / f"{stem}_{safe_filename}"
 
     try:
         safe.write_bytes(content)

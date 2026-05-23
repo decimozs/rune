@@ -15,7 +15,7 @@ while [[ $# -gt 0 ]]; do
     --json) JSON_ONLY=true; shift ;;
     --sort) SORT_BY="$2"; shift 2 ;;
     --help|-h)
-      echo "Usage: $0 [runs=3] [url=http://localhost:8000] [format=all] [--parallel N] [--json] [--sort=avg|name|size]"
+      echo "Usage: $0 [runs=3] [url=http://localhost:8000] [format=all|images|docx|doc|ppt|rtf|csv|xls|xlsx] [--parallel N] [--json] [--sort=avg|name|size]"
       exit 0 ;;
     -*) echo "error: unknown flag $1" >&2; exit 1 ;;
     *) _ARGS+=("$1"); shift ;;
@@ -41,6 +41,7 @@ trap 'rm -rf "$_BTMP"' EXIT
 
 get_mime() {
   case "$1" in
+    *.doc)  echo "application/msword" ;;
     *.docx) echo "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ;;
     *.ppt)  echo "application/vnd.ms-powerpoint" ;;
     *.pptx) echo "application/vnd.openxmlformats-officedocument.presentationml.presentation" ;;
@@ -54,7 +55,7 @@ get_mime() {
 get_category() {
   case "$1" in
     *.png|*.jpg|*.jpeg|*.bmp|*.tiff|*.webp) echo "image" ;;
-    *.docx|*.ppt|*.pptx|*.rtf) echo "office" ;;
+    *.doc|*.docx|*.ppt|*.pptx|*.rtf) echo "office" ;;
     *.csv|*.xls|*.xlsx) echo "spreadsheet" ;;
     *) echo "other" ;;
   esac
@@ -82,7 +83,7 @@ collect_files() {
       find "$DATASET_DIR" -type f \
         \( -iname "*.png" -o -iname "*.jpg" -o -iname "*.jpeg" \
            -o -iname "*.bmp" -o -iname "*.tiff" -o -iname "*.webp" \
-           -o -name "*.docx" -o -name "*.ppt" -o -name "*.pptx" \
+           -o -name "*.doc" -o -name "*.docx" -o -name "*.ppt" -o -name "*.pptx" \
            -o -name "*.rtf" -o -name "*.csv" -o -name "*.xls" -o -name "*.xlsx" \) -print0 ;;
   esac
 }

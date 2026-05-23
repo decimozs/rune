@@ -148,10 +148,13 @@ async def parse_batch(
     if len(file) == 0:
         raise HTTPException(400, "At least one file required")
 
-    files_data = [
-        (cast(str, f.filename), cast(str, f.content_type), await f.read())
-        for f in file
-    ]
+    files_data = []
+    for f in file:
+        validate_upload(f)
+        content = await f.read()
+        if len(content) > settings.max_file_size:
+            raise HTTPException(413, f"File too large: {f.filename}")
+        files_data.append((cast(str, f.filename), cast(str, f.content_type), content))
     batch_id = batch_processor.create_job(files_data, output_format.value)
     job = batch_processor.get_job(batch_id)
 

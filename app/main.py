@@ -1,6 +1,6 @@
 import time
 import logging
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    settings.output_dir_path.mkdir(parents=True, exist_ok=True)
     await ocr_service.init()
     await converter.start()
     await batch_processor.start()
@@ -33,6 +34,7 @@ async def lifespan(_app: FastAPI):
     await background_processor.stop()
     await batch_processor.stop()
     await converter.stop()
+    await ocr_service.shutdown()
     logger.info("Shutdown complete")
 
 
@@ -43,10 +45,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.mount(
+    "/assets", StaticFiles(directory=str(settings.output_dir_path)), name="assets"
+)
 app.include_router(health_router)
 app.include_router(ocr_router)
-settings.output_dir_path.mkdir(parents=True, exist_ok=True)
-app.mount("/assets", StaticFiles(directory=str(settings.output_dir_path)), name="assets")
 
 
 @app.middleware("http")
@@ -56,6 +59,20 @@ async def timing_middleware(request: Request, call_next):
     elapsed = time.perf_counter() - start
     response.headers["X-Processing-Time-Ms"] = str(round(elapsed * 1000, 2))
     return response
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "success": False,
+            "error": {
+                "code": "http_error",
+                "message": str(exc.detail),
+            },
+        },
+    )
 
 
 @app.exception_handler(OCRValidationError)

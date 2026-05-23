@@ -61,7 +61,7 @@ curl http://localhost:8000/health/ready
 
 Synchronous endpoint — blocks until OCR completes. For non-blocking alternatives, see [`POST /ocr/parse/jobs`](#post-ocrparsejobs) (single file) or [`POST /ocr/parse/batch`](#post-ocrparsebatch) (multiple files).
 
-Upload an image, PDF, or office document for OCR extraction. Office documents (DOCX, PPT, RTF, CSV, XLS, XLSX) are automatically converted to PDF via Gotenberg before processing.
+Upload an image, PDF, or office document for OCR extraction. Office documents (DOC, DOCX, PPT, RTF, CSV, XLS, XLSX) are automatically converted to PDF via Gotenberg before processing.
 
 **Query Parameters:**
 - `format` — `json` (default), `markdown`, or `xml`
@@ -78,6 +78,7 @@ Upload an image, PDF, or office document for OCR extraction. Office documents (D
 | Image | `image/tiff` | TIFF |
 | Image | `image/webp` | WebP |
 | Document | `application/pdf` | PDF |
+| Document | `application/msword` | DOC |
 | Document | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | DOCX |
 | Presentation | `application/vnd.ms-powerpoint` | PPT |
 | Presentation | `application/vnd.openxmlformats-officedocument.presentationml.presentation` | PPTX |
@@ -141,7 +142,10 @@ curl -X POST "http://localhost:8000/ocr/parse?format=xml" \
             }
           }
         ],
-        "extracted_text": "Hello World"
+        "extracted_text": "Hello World",
+        "page_image_url": "/assets/pages/a1b2c3d4e5f6/page_1.png",
+        "ocr_width": 1200,
+        "ocr_height": 1600
       }
     ]
   }
