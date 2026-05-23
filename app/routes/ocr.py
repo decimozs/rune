@@ -13,6 +13,7 @@ from schemas.ocr import BatchItemResult, BatchStatus, SingleJobStatus
 class OutputFormat(str, Enum):
     json = "json"
     markdown = "markdown"
+    xml = "xml"
 
 
 router = APIRouter(prefix="/ocr", tags=["ocr"])

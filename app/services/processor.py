@@ -45,6 +45,10 @@ async def process_file(
             result = await asyncio.to_thread(
                 ocr_service.to_markdown, str(safe), filename, detected
             )
+        elif output_format == "xml":
+            result = await asyncio.to_thread(
+                ocr_service.to_xml, str(safe), filename, detected
+            )
         else:
             result = await asyncio.to_thread(
                 ocr_service.process, str(safe), filename, detected

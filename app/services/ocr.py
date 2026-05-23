@@ -2,6 +2,7 @@ import logging
 from services.engine import OCREngine, StructureEngine
 from services.formatter import OCRFormatter
 from services.markdown import MarkdownConverter
+from services.xml_formatter import to_xml as format_xml
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,16 @@ class OCRService:
             filename,
             content_type,
         )
+
+    def to_xml(
+        self,
+        file_path: str,
+        filename: str,
+        content_type: str,
+    ) -> str:
+        result = self.engine.predict(file_path)
+        raw = self.formatter.structure(result)
+        return format_xml(raw)
 
 
 ocr_service = OCRService()
