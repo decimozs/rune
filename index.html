@@ -114,6 +114,43 @@
       background: #cbd5e1
     }
 
+    header .api-input,
+    header .api-key-input {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-dim)
+    }
+
+    header .api-input span,
+    header .api-key-input span {
+      flex-shrink: 0
+    }
+
+    header .api-input input,
+    header .api-key-input input {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 4px 8px;
+      font-size: 12px;
+      font-family: var(--mono);
+      width: 170px;
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color .15s
+    }
+
+    header .api-input input:focus,
+    header .api-key-input input:focus {
+      border-color: var(--accent)
+    }
+
+    header .api-key-input input {
+      width: 140px
+    }
+
     header .health .dot.online {
       background: var(--success);
       box-shadow: 0 0 4px var(--success)
@@ -1091,7 +1128,7 @@
 <body>
 
   <header>
-    <h1>Exist OCR <span>Demo</span></h1>
+    <h1>Exist OCR</h1>
     <span class="tag">v1</span>
     <div class="health">
       <span class="dot checking" id="healthDot"></span>
@@ -1100,6 +1137,10 @@
     <div class="api-input">
       <span>API</span>
       <input type="url" id="apiUrl" value="http://localhost:8000" spellcheck="false">
+    </div>
+    <div class="api-key-input">
+      <span>Key</span>
+      <input type="password" id="apiKeyInput" placeholder="sk-..." spellcheck="false">
     </div>
   </header>
 
@@ -1243,9 +1284,27 @@
 
       const $ = id => document.getElementById(id)
       const apiUrl = () => $('apiUrl').value.replace(/\/+$/, '')
+      const apiKey = () => $('apiKeyInput').value.trim() || sessionStorage.getItem('ocrApiKey') || ''
       const format = () => $('formatGroup').querySelector('.active').dataset.value
       const mode = () => $('modeGroup').querySelector('.active').dataset.value
       const sourceType = () => document.querySelector('.source-tab.active')?.dataset?.source || 'file'
+
+      function getApiHeaders(extra) {
+        const h = Object.assign({}, extra || {})
+        const k = apiKey()
+        if (k) h['X-API-Key'] = k
+        return h
+      }
+
+      // persist API key to sessionStorage on input
+      document.addEventListener('DOMContentLoaded', () => {
+        const inp = $('apiKeyInput')
+        const saved = sessionStorage.getItem('ocrApiKey')
+        if (saved) inp.value = saved
+        inp.addEventListener('input', () => {
+          sessionStorage.setItem('ocrApiKey', inp.value.trim())
+        })
+      })
 
       function jsonOptionsString() {
         if (format() !== 'json') return ''
@@ -1547,7 +1606,7 @@
         if (src === 'url') {
           const resp = await fetch(`${apiUrl()}${currentEndpoint('')}?format=${format()}${jsonOptionsString()}`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            headers: getApiHeaders({'Content-Type': 'application/x-www-form-urlencoded'}),
             body: 'url=' + encodeURIComponent(urlEntries[0])
           })
           const json = await resp.json()
@@ -1566,7 +1625,7 @@
         for (const e of selectedFiles) fd.append(fn, e.file, e.file.name)
         const ep = currentEndpoint('')
         const label = src === 'html' ? currentFileIdent() : selectedFiles[0]?.file?.name
-        const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}`, {method: 'POST', body: fd})
+        const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}`, {method: 'POST', headers: getApiHeaders(), body: fd})
         const json = await resp.json()
         if (!resp.ok) {
           const msg = json.detail || json.error?.message || `HTTP ${resp.status}`
@@ -1585,7 +1644,7 @@
         if (src === 'url') {
           const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            headers: getApiHeaders({'Content-Type': 'application/x-www-form-urlencoded'}),
             body: 'url=' + encodeURIComponent(urlEntries[0])
           })
           const json = await resp.json()
@@ -1604,7 +1663,7 @@
         const fd = new FormData()
         for (const e of selectedFiles) fd.append(fn, e.file, e.file.name)
         const label = src === 'html' ? ident : selectedFiles[0]?.file?.name
-        const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}`, {method: 'POST', body: fd})
+        const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}`, {method: 'POST', headers: getApiHeaders(), body: fd})
         const json = await resp.json()
         if (!resp.ok) {
           const msg = json.detail || json.error?.message || `HTTP ${resp.status}`
@@ -1651,7 +1710,7 @@
           for (var ui = 0; ui < urlEntries.length; ui++) params.append('url', urlEntries[ui])
           const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}`, {
             method: 'POST',
-            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            headers: getApiHeaders({'Content-Type': 'application/x-www-form-urlencoded'}),
             body: params.toString()
           })
           const json = await resp.json()
@@ -1671,7 +1730,7 @@
         for (const f of selectedFiles) {
           fd.append(fn, f.file, f.file.name)
         }
-        const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}`, {method: 'POST', body: fd})
+        const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}`, {method: 'POST', headers: getApiHeaders(), body: fd})
         const json = await resp.json()
         if (!resp.ok) {
           const msg = json.detail || json.error?.message || `HTTP ${resp.status}`

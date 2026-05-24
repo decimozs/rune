@@ -1,12 +1,13 @@
 from datetime import datetime, timezone
 from typing import cast
 from enum import Enum
-from fastapi import APIRouter, File, Form, Query, UploadFile, HTTPException
+from fastapi import APIRouter, File, Form, Query, UploadFile, HTTPException, Depends
 from config import settings
 from schemas.response import APIResponse, ResponseMetadata
 from services.processor import process_file, process_url, process_html
 from services.batch import batch_processor, MAX_BATCH_SIZE
 from services.background import background_processor
+from services.auth import verify_api_key
 from schemas.ocr import BatchItemResult, BatchStatus, SingleJobStatus, JsonOutputOptions
 
 
@@ -82,6 +83,7 @@ async def parse_file(
     include_confidence: bool = Query(True),
     include_extracted_text: bool = Query(True),
     include_page_image: bool = Query(True),
+    identity: str | None = Depends(verify_api_key),
 ):
     validate_upload(file)
 
@@ -111,6 +113,7 @@ async def create_job(
     include_confidence: bool = Query(True),
     include_extracted_text: bool = Query(True),
     include_page_image: bool = Query(True),
+    identity: str | None = Depends(verify_api_key),
 ):
     validate_upload(file)
 
@@ -179,6 +182,7 @@ async def parse_batch(
     include_confidence: bool = Query(True),
     include_extracted_text: bool = Query(True),
     include_page_image: bool = Query(True),
+    identity: str | None = Depends(verify_api_key),
 ):
     if len(file) > MAX_BATCH_SIZE:
         raise HTTPException(413, f"Max {MAX_BATCH_SIZE} files per batch")
@@ -267,6 +271,7 @@ async def parse_url(
     include_confidence: bool = Query(True),
     include_extracted_text: bool = Query(True),
     include_page_image: bool = Query(True),
+    identity: str | None = Depends(verify_api_key),
 ):
     opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
     data, error, elapsed = await process_url(url, output_format.value, options=opts)
@@ -283,6 +288,7 @@ async def create_url_job(
     include_confidence: bool = Query(True),
     include_extracted_text: bool = Query(True),
     include_page_image: bool = Query(True),
+    identity: str | None = Depends(verify_api_key),
 ):
     opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
     job_id = background_processor.create_job(
@@ -305,6 +311,7 @@ async def parse_url_batch(
     include_confidence: bool = Query(True),
     include_extracted_text: bool = Query(True),
     include_page_image: bool = Query(True),
+    identity: str | None = Depends(verify_api_key),
 ):
     if len(url) > MAX_BATCH_SIZE:
         raise HTTPException(413, f"Max {MAX_BATCH_SIZE} URLs per batch")
@@ -330,6 +337,7 @@ async def parse_html(
     include_confidence: bool = Query(True),
     include_extracted_text: bool = Query(True),
     include_page_image: bool = Query(True),
+    identity: str | None = Depends(verify_api_key),
 ):
     if not files:
         raise HTTPException(400, "At least one file required (index.html)")
@@ -354,6 +362,7 @@ async def create_html_job(
     include_confidence: bool = Query(True),
     include_extracted_text: bool = Query(True),
     include_page_image: bool = Query(True),
+    identity: str | None = Depends(verify_api_key),
 ):
     if not files:
         raise HTTPException(400, "At least one file required (index.html)")
@@ -384,6 +393,7 @@ async def parse_html_batch(
     include_confidence: bool = Query(True),
     include_extracted_text: bool = Query(True),
     include_page_image: bool = Query(True),
+    identity: str | None = Depends(verify_api_key),
 ):
     file_tuples = []
     for f in files:

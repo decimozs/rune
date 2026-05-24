@@ -35,6 +35,15 @@ class Settings(BaseSettings):
     # Gotenberg
     gotenberg_url: str = "http://localhost:3000"
 
+    # Auth
+    api_keys: str = "#"  # comma-separated. "#" disables auth
+
+    # URL safety
+    url_max_length: int = 2048
+    url_blocked_domains: str = ""
+    url_allowed_domains: str = ""
+    company_domains_only: bool = False
+
     # Logging
     log_level: str = "INFO"
 
@@ -56,6 +65,32 @@ class Settings(BaseSettings):
     @property
     def output_dir_path(self) -> Path:
         return Path(self.output_dir)
+
+    @property
+    def api_keys_list(self) -> list[str]:
+        return [k.strip() for k in self.api_keys.split(",") if k.strip()]
+
+    @property
+    def api_key_map(self) -> dict[str, str]:
+        result = {}
+        for item in self.api_keys.split(","):
+            item = item.strip()
+            if not item:
+                continue
+            if "=" in item:
+                k, v = item.split("=", 1)
+                result[k.strip()] = v.strip()
+            else:
+                result[item] = "unknown"
+        return result
+
+    @property
+    def url_blocked_domain_list(self) -> list[str]:
+        return [d.strip() for d in self.url_blocked_domains.split(",") if d.strip()]
+
+    @property
+    def url_allowed_domain_list(self) -> list[str]:
+        return [d.strip() for d in self.url_allowed_domains.split(",") if d.strip()]
 
 
 settings = Settings()

@@ -9,6 +9,7 @@ from typing import Optional
 from config import settings
 from services.converter import converter
 from services.ocr import ocr_service
+from services.url_guard import validate_url
 from schemas.ocr import JsonOutputOptions
 
 logger = logging.getLogger(__name__)
@@ -80,6 +81,7 @@ async def process_url(
     output_format: str,
     options: Optional[dict] = None,
 ) -> tuple[object, str | None, float]:
+    validate_url(url_str)
     async with _ocr_semaphore:
         start = time.time()
         stem = uuid.uuid4().hex

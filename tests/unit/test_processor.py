@@ -32,8 +32,9 @@ class TestProcessUrl:
     @patch("app.services.processor.uuid.uuid4")
     @patch("app.services.processor.converter")
     @patch("app.services.processor.ocr_service")
+    @patch("app.services.processor.validate_url")
     async def test_process_url_calls_converter_and_ocr(
-        self, mock_ocr, mock_converter, mock_uuid, tmp_path
+        self, mock_validate, mock_ocr, mock_converter, mock_uuid, tmp_path
     ):
         from app.services.processor import process_url
         from app.config import settings
@@ -52,8 +53,9 @@ class TestProcessUrl:
     @patch("app.services.processor.uuid.uuid4")
     @patch("app.services.processor.converter")
     @patch("app.services.processor.ocr_service")
+    @patch("app.services.processor.validate_url")
     async def test_process_url_markdown_format(
-        self, mock_ocr, mock_converter, mock_uuid, tmp_path
+        self, mock_validate, mock_ocr, mock_converter, mock_uuid, tmp_path
     ):
         from app.services.processor import process_url
         from app.config import settings
@@ -71,8 +73,9 @@ class TestProcessUrl:
     @patch("app.services.processor.uuid.uuid4")
     @patch("app.services.processor.converter")
     @patch("app.services.processor.ocr_service")
+    @patch("app.services.processor.validate_url")
     async def test_process_url_xml_format(
-        self, mock_ocr, mock_converter, mock_uuid, tmp_path
+        self, mock_validate, mock_ocr, mock_converter, mock_uuid, tmp_path
     ):
         from app.services.processor import process_url
         from app.config import settings
@@ -89,7 +92,8 @@ class TestProcessUrl:
 
     @patch("app.services.processor.uuid.uuid4")
     @patch("app.services.processor.converter")
-    async def test_process_url_converter_error(self, mock_converter, mock_uuid, tmp_path):
+    @patch("app.services.processor.validate_url")
+    async def test_process_url_converter_error(self, mock_validate, mock_converter, mock_uuid, tmp_path):
         from app.services.processor import process_url
         from app.config import settings
 

@@ -499,6 +499,71 @@ curl -X POST "http://localhost:8000/ocr/parse/html/batch?format=json" \
 
 ---
 
+---
+
+## Authentication
+
+All POST endpoints (`/ocr/parse`, `/ocr/parse/jobs`, `/ocr/parse/batch`, `/ocr/parse/url`, `/ocr/parse/url/jobs`, `/ocr/parse/url/batch`, `/ocr/parse/html`, `/ocr/parse/html/jobs`, `/ocr/parse/html/batch`) accept an optional `X-API-Key` header.
+
+When `OCR_API_KEYS` is set in `.env` (default `#` = disabled), the header is **required**:
+
+```bash
+curl -X POST http://localhost:8000/ocr/parse \
+  -H "X-API-Key: sk-prod-abc123" \
+  -F "file=@image.png"
+```
+
+Invalid or missing keys return **401**:
+
+```json
+{
+  "error": {
+    "code": "http_error",
+    "message": "Invalid API key"
+  }
+}
+```
+
+GET endpoints (`/health`, `/health/ready`, `/ocr/parse/jobs/{id}`, `/ocr/parse/batch/{id}`) do not require authentication.
+
+Key format: `key=name` pairs for audit identity. Example: `OCR_API_KEYS=sk-abc=alice,sk-def=bob`. The dependency returns the key name (or `"unknown"` for bare keys).
+
+---
+
+## URL Safety
+
+URL and HTML source endpoints enforce security checks to prevent SSRF and internal network access:
+
+| Check | Behavior |
+|---|---|
+| **Scheme** | Only `http://` and `https://` allowed. `file://`, `ftp://`, `data://` rejected. |
+| **Loopback** | `localhost`, `127.0.0.1`, `[::1]`, `0.0.0.0` rejected by string + DNS resolution. |
+| **Private IPs** | `10.x.x.x`, `172.16.x.x`–`172.31.x.x`, `192.168.x.x` rejected. |
+| **Link-local** | `169.254.x.x` rejected. |
+| **Broadcast** | `255.255.255.255` rejected. |
+| **DNS resolution** | Hostnames are resolved and the resolved IP is checked. DNS-to-private-IP (e.g., `internal.corp` → `10.0.0.5`) is blocked. |
+| **Max URL length** | Default 2048 characters (`OCR_URL_MAX_LENGTH`). |
+| **Blocked domains** | `OCR_URL_BLOCKED_DOMAINS` — exact hostname match. |
+| **Company-only mode** | `OCR_COMPANY_DOMAINS_ONLY=true` restricts to domains in `OCR_URL_ALLOWED_DOMAINS` (prefix/subdomain match). |
+
+Validation runs before any network call to Gotenberg. Errors return **400** with code `validation_error`.
+
+```bash
+# Blocked: localhost
+curl -X POST "http://localhost:8000/ocr/parse/url" \
+  -d "url=http://localhost:8080/admin"
+
+# Blocked: private IP
+curl -X POST "http://localhost:8000/ocr/parse/url" \
+  -d "url=http://192.168.1.1/dashboard"
+
+# Blocked: bad scheme
+curl -X POST "http://localhost:8000/ocr/parse/url" \
+  -d "url=file:///etc/passwd"
+```
+
+---
+
 ## Limitations & Warnings
 
 | Issue | Warning |
@@ -515,3 +580,5 @@ curl -X POST "http://localhost:8000/ocr/parse/html/batch?format=json" \
 | **Output TTL** | Page images and markdown assets expire after 1 hour (`OCR_OUTPUT_TTL`). Sweep runs every 5 minutes. |
 | **Batch/job TTL** | Batch and background job results expire after 1 hour. Cleanup runs every 60 seconds. |
 | **JSON output options** | `include_bbox`, `include_confidence`, `include_extracted_text`, `include_page_image` only affect `format=json`. Markdown and XML always include all fields. Setting any `include_*` to `false` strips the field from the JSON response entirely (not set to `null`). |
+| **Auth** | Set `OCR_API_KEYS` in `.env` (comma-separated, format `key=name`). When set, all POST endpoints require `X-API-Key` header. Default `#` disables auth. |
+| **URL safety** | URL endpoints validate scheme (http/https only), block private IP ranges (10.x, 172.16-31.x, 192.168.x), loopback (localhost, 127.x.x.x), link-local (169.254.x.x), metadata IPs (0.x.x.x). DNS resolution checks prevent SSRF. See `OCR_URL_BLOCKED_DOMAINS`, `OCR_URL_ALLOWED_DOMAINS`, `OCR_COMPANY_DOMAINS_ONLY`. |
