@@ -139,6 +139,11 @@ class TestValidateUrl:
 
 
 class TestAuth:
+    @pytest.fixture(autouse=True)
+    def _env_auth_mode(self):
+        with patch("services.auth.settings.db_path", ""):
+            yield
+
     async def _call(self, key=None):
         from services.auth import verify_api_key
         return await verify_api_key(key)
