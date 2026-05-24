@@ -13,6 +13,12 @@
       "skillPath": "skills/multi-stage-dockerfile/SKILL.md",
       "computedHash": "698bf93a84dae18fd7bd0b1d35c21427307fde78fbdf4624be9726f5f98189ca"
     },
+    "pytest-patterns": {
+      "source": "manutej/luxor-claude-marketplace",
+      "sourceType": "github",
+      "skillPath": "plugins/luxor-testing-essentials/skills/pytest-patterns/SKILL.md",
+      "computedHash": "730a64a00c96e7956bbc4228423ba38fa7797079b410970577e87b27a5348c85"
+    },
     "python-performance-optimization": {
       "source": "wshobson/agents",
       "sourceType": "github",

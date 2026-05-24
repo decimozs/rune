@@ -215,6 +215,43 @@
       color: var(--text)
     }
 
+    .btn-group .btn-opt:first-child {
+      border-radius: var(--radius-sm) 0 0 var(--radius-sm)
+    }
+
+    .btn-group .btn-opt:last-child {
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0
+    }
+
+    .toggle-group {
+      display: flex;
+      gap: 2px;
+      background: var(--border);
+      border-radius: var(--radius-sm);
+      padding: 2px
+    }
+
+    .toggle-btn {
+      font-family: var(--font);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      user-select: none;
+      transition: all .15s;
+      background: transparent;
+      color: var(--text-dim);
+      letter-spacing: .3px
+    }
+
+    .toggle-btn.active {
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, .08)
+    }
+
     /* drop zone */
     .dropzone {
       position: relative;
@@ -1090,6 +1127,15 @@
           <button class="btn-opt" data-value="batch">Batch</button>
         </div>
       </div>
+      <div class="control-group" id="outputOptionsGroup" style="display:none">
+        <label>Output</label>
+        <div class="toggle-group">
+          <button type="button" class="toggle-btn active" data-opt="include_bbox">BBox</button>
+          <button type="button" class="toggle-btn active" data-opt="include_confidence">Conf</button>
+          <button type="button" class="toggle-btn active" data-opt="include_extracted_text">Text</button>
+          <button type="button" class="toggle-btn active" data-opt="include_page_image">Img</button>
+        </div>
+      </div>
     </div>
 
     <div id="helpText" class="help-text">
@@ -1201,6 +1247,21 @@
       const mode = () => $('modeGroup').querySelector('.active').dataset.value
       const sourceType = () => document.querySelector('.source-tab.active')?.dataset?.source || 'file'
 
+      function jsonOptionsString() {
+        if (format() !== 'json') return ''
+        const opts = $('outputOptionsGroup').querySelectorAll('.toggle-btn')
+        const pairs = []
+        for (const btn of opts) {
+          pairs.push(btn.dataset.opt + '=' + btn.classList.contains('active'))
+        }
+        return '&' + pairs.join('&')
+      }
+
+      function updateOutputOptionsVisibility() {
+        const el = $('outputOptionsGroup')
+        el.style.display = format() === 'json' ? '' : 'none'
+      }
+
       // ---- source tabs ----
       document.querySelectorAll('.source-tab').forEach(tab => {
         tab.addEventListener('click', () => {
@@ -1244,9 +1305,19 @@
             btn.classList.add('active')
             onModeChange()
             updateProcessBtn()
+            if (group.id === 'formatGroup') updateOutputOptionsVisibility()
           })
         })
       })
+
+      // ---- output option toggles ----
+      $('outputOptionsGroup').querySelectorAll('.toggle-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          btn.classList.toggle('active')
+        })
+      })
+
+      updateOutputOptionsVisibility()
 
       function onModeChange() {
         const m = mode()
@@ -1474,7 +1545,7 @@
       async function processDirect() {
         const src = sourceType()
         if (src === 'url') {
-          const resp = await fetch(`${apiUrl()}${currentEndpoint('')}?format=${format()}`, {
+          const resp = await fetch(`${apiUrl()}${currentEndpoint('')}?format=${format()}${jsonOptionsString()}`, {
             method: 'POST',
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
             body: 'url=' + encodeURIComponent(urlEntries[0])
@@ -1495,7 +1566,7 @@
         for (const e of selectedFiles) fd.append(fn, e.file, e.file.name)
         const ep = currentEndpoint('')
         const label = src === 'html' ? currentFileIdent() : selectedFiles[0]?.file?.name
-        const resp = await fetch(`${apiUrl()}${ep}?format=${format()}`, {method: 'POST', body: fd})
+        const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}`, {method: 'POST', body: fd})
         const json = await resp.json()
         if (!resp.ok) {
           const msg = json.detail || json.error?.message || `HTTP ${resp.status}`
@@ -1512,7 +1583,7 @@
         const ep = currentEndpoint('/jobs')
 
         if (src === 'url') {
-          const resp = await fetch(`${apiUrl()}${ep}?format=${format()}`, {
+          const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}`, {
             method: 'POST',
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
             body: 'url=' + encodeURIComponent(urlEntries[0])
@@ -1533,7 +1604,7 @@
         const fd = new FormData()
         for (const e of selectedFiles) fd.append(fn, e.file, e.file.name)
         const label = src === 'html' ? ident : selectedFiles[0]?.file?.name
-        const resp = await fetch(`${apiUrl()}${ep}?format=${format()}`, {method: 'POST', body: fd})
+        const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}`, {method: 'POST', body: fd})
         const json = await resp.json()
         if (!resp.ok) {
           const msg = json.detail || json.error?.message || `HTTP ${resp.status}`
@@ -1578,7 +1649,7 @@
         if (src === 'url') {
           var params = new URLSearchParams()
           for (var ui = 0; ui < urlEntries.length; ui++) params.append('url', urlEntries[ui])
-          const resp = await fetch(`${apiUrl()}${ep}?format=${format()}`, {
+          const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}`, {
             method: 'POST',
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
             body: params.toString()
@@ -1600,7 +1671,7 @@
         for (const f of selectedFiles) {
           fd.append(fn, f.file, f.file.name)
         }
-        const resp = await fetch(`${apiUrl()}${ep}?format=${format()}`, {method: 'POST', body: fd})
+        const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}`, {method: 'POST', body: fd})
         const json = await resp.json()
         if (!resp.ok) {
           const msg = json.detail || json.error?.message || `HTTP ${resp.status}`

@@ -1,18 +1,22 @@
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 from config import settings
-from schemas.ocr import BoundingBox, WordBlock, OCRPage, OCRResult
+from schemas.ocr import BoundingBox, WordBlock, OCRPage, OCRResult, JsonOutputOptions
 
 logger = logging.getLogger(__name__)
 
 
 class OCRFormatter:
     @staticmethod
-    def structure(result: list[dict[str, Any]] | None, stem: str | None = None) -> dict[str, Any]:
+    def structure(
+        result: list[dict[str, Any]] | None,
+        stem: str | None = None,
+        options: Optional[JsonOutputOptions] = None,
+    ) -> dict[str, Any]:
         if not result or result[0] is None:
             logger.warning("OCR returned empty result")
-            return OCRResult(pages=[]).model_dump()
+            return OCRResult(pages=[]).model_dump(exclude_none=True)
 
         pages = []
         for page_num, page in enumerate(result, start=1):
@@ -22,20 +26,23 @@ class OCRFormatter:
 
             words = []
             for text, score, box in zip(texts, scores, boxes):
+                bbox = BoundingBox(
+                    points=box.tolist() if hasattr(box, "tolist") else box
+                ) if options is None or options.include_bbox else None
+
                 words.append(
                     WordBlock(
                         text=text,
-                        confidence=round(float(score), 4),
-                        bbox=BoundingBox(
-                            points=box.tolist() if hasattr(box, "tolist") else box
-                        ),
+                        confidence=round(float(score), 4) if options is None or options.include_confidence else None,
+                        bbox=bbox,
                     )
                 )
 
             page_image_url = None
             ocr_width = None
             ocr_height = None
-            if stem is not None:
+            save_page_image = options is None or options.include_page_image
+            if stem is not None and save_page_image:
                 img = page.get("doc_preprocessor_res", {}).get("output_img")
                 if img is not None:
                     h, w = img.shape[:2]
@@ -48,15 +55,19 @@ class OCRFormatter:
                     cv2.imwrite(str(img_path), img)
                     page_image_url = f"/assets/pages/{stem}/page_{page_num}.png"
 
+            extracted_text = None
+            if options is None or options.include_extracted_text:
+                extracted_text = " ".join(w.text for w in words)
+
             pages.append(
                 OCRPage(
                     page=page_num,
                     words=words,
-                    extracted_text=" ".join(w.text for w in words),
+                    extracted_text=extracted_text,
                     page_image_url=page_image_url,
                     ocr_width=ocr_width,
                     ocr_height=ocr_height,
                 )
             )
 
-        return OCRResult(pages=pages).model_dump()
+        return OCRResult(pages=pages).model_dump(exclude_none=True)

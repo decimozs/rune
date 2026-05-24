@@ -7,7 +7,7 @@ from schemas.response import APIResponse, ResponseMetadata
 from services.processor import process_file, process_url, process_html
 from services.batch import batch_processor, MAX_BATCH_SIZE
 from services.background import background_processor
-from schemas.ocr import BatchItemResult, BatchStatus, SingleJobStatus
+from schemas.ocr import BatchItemResult, BatchStatus, SingleJobStatus, JsonOutputOptions
 
 
 def _split_group_by_html(entries: list[tuple[str, bytes]]) -> list[list[tuple[str, bytes]]]:
@@ -68,10 +68,20 @@ def build_response(
     ).model_dump(exclude_none=True)
 
 
+def _build_options(output_format: OutputFormat, **kwargs) -> dict | None:
+    if output_format != OutputFormat.json:
+        return None
+    return JsonOutputOptions(**kwargs).model_dump()
+
+
 @router.post("/parse")
 async def parse_file(
     file: UploadFile = File(...),
     output_format: OutputFormat = Query(default=OutputFormat.json, alias="format"),
+    include_bbox: bool = Query(True),
+    include_confidence: bool = Query(True),
+    include_extracted_text: bool = Query(True),
+    include_page_image: bool = Query(True),
 ):
     validate_upload(file)
 
@@ -81,9 +91,10 @@ async def parse_file(
 
     filename = cast(str, file.filename)
     content_type = cast(str, file.content_type)
+    opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
 
     data, error, elapsed = await process_file(
-        content, filename, content_type, output_format.value
+        content, filename, content_type, output_format.value, options=opts
     )
 
     if error:
@@ -96,6 +107,10 @@ async def parse_file(
 async def create_job(
     file: UploadFile = File(...),
     output_format: OutputFormat = Query(OutputFormat.json, alias="format"),
+    include_bbox: bool = Query(True),
+    include_confidence: bool = Query(True),
+    include_extracted_text: bool = Query(True),
+    include_page_image: bool = Query(True),
 ):
     validate_upload(file)
 
@@ -105,9 +120,10 @@ async def create_job(
 
     filename = cast(str, file.filename)
     content_type = cast(str, file.content_type)
+    opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
 
     job_id = background_processor.create_job(
-        filename, content_type, content, output_format.value
+        filename, content_type, content, output_format.value, output_options=opts,
     )
     job = background_processor.get_job(job_id)
 
@@ -159,6 +175,10 @@ async def get_job_status(job_id: str):
 async def parse_batch(
     file: list[UploadFile] = File(...),
     output_format: OutputFormat = Query(OutputFormat.json, alias="format"),
+    include_bbox: bool = Query(True),
+    include_confidence: bool = Query(True),
+    include_extracted_text: bool = Query(True),
+    include_page_image: bool = Query(True),
 ):
     if len(file) > MAX_BATCH_SIZE:
         raise HTTPException(413, f"Max {MAX_BATCH_SIZE} files per batch")
@@ -172,7 +192,8 @@ async def parse_batch(
         if len(content) > settings.max_file_size:
             raise HTTPException(413, f"File too large: {f.filename}")
         files_data.append((cast(str, f.filename), cast(str, f.content_type), content))
-    batch_id = batch_processor.create_job(files_data, output_format.value)
+    opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
+    batch_id = batch_processor.create_job(files_data, output_format.value, output_options=opts)
     job = batch_processor.get_job(batch_id)
 
     return APIResponse(
@@ -242,8 +263,13 @@ async def get_batch_status(batch_id: str):
 async def parse_url(
     url: str = Form(...),
     output_format: OutputFormat = Query(default=OutputFormat.json, alias="format"),
+    include_bbox: bool = Query(True),
+    include_confidence: bool = Query(True),
+    include_extracted_text: bool = Query(True),
+    include_page_image: bool = Query(True),
 ):
-    data, error, elapsed = await process_url(url, output_format.value)
+    opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
+    data, error, elapsed = await process_url(url, output_format.value, options=opts)
     if error:
         raise HTTPException(500, detail=error)
     return build_response(data, output_format, url, "source/url", elapsed)
@@ -253,10 +279,15 @@ async def parse_url(
 async def create_url_job(
     url: str = Form(...),
     output_format: OutputFormat = Query(OutputFormat.json, alias="format"),
+    include_bbox: bool = Query(True),
+    include_confidence: bool = Query(True),
+    include_extracted_text: bool = Query(True),
+    include_page_image: bool = Query(True),
 ):
+    opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
     job_id = background_processor.create_job(
         url, "source/url", b"", output_format.value,
-        source_type="url", extra_data=url,
+        source_type="url", extra_data=url, output_options=opts,
     )
     job = background_processor.get_job(job_id)
     return APIResponse(
@@ -270,12 +301,17 @@ async def create_url_job(
 async def parse_url_batch(
     url: list[str] = Form(...),
     output_format: OutputFormat = Query(OutputFormat.json, alias="format"),
+    include_bbox: bool = Query(True),
+    include_confidence: bool = Query(True),
+    include_extracted_text: bool = Query(True),
+    include_page_image: bool = Query(True),
 ):
     if len(url) > MAX_BATCH_SIZE:
         raise HTTPException(413, f"Max {MAX_BATCH_SIZE} URLs per batch")
     if len(url) == 0:
         raise HTTPException(400, "At least one URL required")
-    batch_id = batch_processor.create_job(url, output_format.value, source_type="url")
+    opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
+    batch_id = batch_processor.create_job(url, output_format.value, source_type="url", output_options=opts)
     job = batch_processor.get_job(batch_id)
     return APIResponse(
         success=True,
@@ -290,6 +326,10 @@ async def parse_url_batch(
 async def parse_html(
     files: list[UploadFile] = File(...),
     output_format: OutputFormat = Query(default=OutputFormat.json, alias="format"),
+    include_bbox: bool = Query(True),
+    include_confidence: bool = Query(True),
+    include_extracted_text: bool = Query(True),
+    include_page_image: bool = Query(True),
 ):
     if not files:
         raise HTTPException(400, "At least one file required (index.html)")
@@ -299,7 +339,8 @@ async def parse_html(
         if len(content) > settings.max_file_size:
             raise HTTPException(413, f"File too large: {f.filename}")
         file_tuples.append((cast(str, f.filename), content))
-    data, error, elapsed = await process_html(file_tuples, output_format.value)
+    opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
+    data, error, elapsed = await process_html(file_tuples, output_format.value, options=opts)
     if error:
         raise HTTPException(500, detail=error)
     return build_response(data, output_format, "index.html", "source/html", elapsed)
@@ -309,6 +350,10 @@ async def parse_html(
 async def create_html_job(
     files: list[UploadFile] = File(...),
     output_format: OutputFormat = Query(OutputFormat.json, alias="format"),
+    include_bbox: bool = Query(True),
+    include_confidence: bool = Query(True),
+    include_extracted_text: bool = Query(True),
+    include_page_image: bool = Query(True),
 ):
     if not files:
         raise HTTPException(400, "At least one file required (index.html)")
@@ -318,9 +363,10 @@ async def create_html_job(
         if len(content) > settings.max_file_size:
             raise HTTPException(413, f"File too large: {f.filename}")
         file_tuples.append((cast(str, f.filename), content))
+    opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
     job_id = background_processor.create_job(
         "index.html", "source/html", b"", output_format.value,
-        source_type="html", extra_data=file_tuples,
+        source_type="html", extra_data=file_tuples, output_options=opts,
     )
     job = background_processor.get_job(job_id)
     return APIResponse(
@@ -334,6 +380,10 @@ async def create_html_job(
 async def parse_html_batch(
     files: list[UploadFile] = File(...),
     output_format: OutputFormat = Query(OutputFormat.json, alias="format"),
+    include_bbox: bool = Query(True),
+    include_confidence: bool = Query(True),
+    include_extracted_text: bool = Query(True),
+    include_page_image: bool = Query(True),
 ):
     file_tuples = []
     for f in files:
@@ -348,7 +398,8 @@ async def parse_html_batch(
     if len(items) > MAX_BATCH_SIZE:
         raise HTTPException(413, f"Max {MAX_BATCH_SIZE} file sets per batch")
 
-    batch_id = batch_processor.create_job(items, output_format.value, source_type="html")
+    opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
+    batch_id = batch_processor.create_job(items, output_format.value, source_type="html", output_options=opts)
     job = batch_processor.get_job(batch_id)
     return APIResponse(
         success=True,

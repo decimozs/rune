@@ -23,6 +23,7 @@ class BackgroundJob:
         output_format: str,
         source_type: str = "file",
         extra_data: Any = None,
+        output_options: Optional[dict] = None,
     ):
         self.id = job_id
         self.status = "pending"
@@ -37,6 +38,7 @@ class BackgroundJob:
         self._content = content
         self.source_type = source_type
         self.extra_data = extra_data
+        self.output_options = output_options
 
 
 class BackgroundProcessor:
@@ -72,9 +74,10 @@ class BackgroundProcessor:
     def create_job(
         self, file_name: str, file_type: str, content: bytes, output_format: str,
         source_type: str = "file", extra_data: Any = None,
+        output_options: Optional[dict] = None,
     ) -> str:
         job_id = uuid.uuid4().hex[:12]
-        job = BackgroundJob(job_id, file_name, file_type, content, output_format, source_type, extra_data)
+        job = BackgroundJob(job_id, file_name, file_type, content, output_format, source_type, extra_data, output_options)
         self._jobs[job_id] = job
         asyncio.create_task(self._run_job(job_id))
         return job_id
@@ -88,12 +91,12 @@ class BackgroundProcessor:
         start = time.time()
 
         if job.source_type == "url":
-            data, error, elapsed = await process_url(job.extra_data, job.output_format)
+            data, error, elapsed = await process_url(job.extra_data, job.output_format, options=job.output_options)
         elif job.source_type == "html":
-            data, error, elapsed = await process_html(job.extra_data, job.output_format)
+            data, error, elapsed = await process_html(job.extra_data, job.output_format, options=job.output_options)
         else:
             fn, ct, content = job.file_name, job.file_type, job._content
-            data, error, elapsed = await process_file(content, fn, ct, job.output_format)
+            data, error, elapsed = await process_file(content, fn, ct, job.output_format, options=job.output_options)
 
         if error:
             job.error = {"code": "PROCESSING_ERROR", "message": error}

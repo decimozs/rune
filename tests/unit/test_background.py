@@ -60,7 +60,7 @@ class TestBackgroundProcessor:
         job = BackgroundJob("j1", "url", "source/url", b"", "json", source_type="url", extra_data="https://example.com")
         bp._jobs["j1"] = job
         await bp._run_job("j1")
-        mock_process_url.assert_awaited_once_with("https://example.com", "json")
+        mock_process_url.assert_awaited_once_with("https://example.com", "json", options=None)
         assert job.status == "completed"
         assert job.data == "result"
 

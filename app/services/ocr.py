@@ -1,9 +1,11 @@
 import logging
 import uuid
+from typing import Optional
 from services.engine import OCREngine, StructureEngine
 from services.formatter import OCRFormatter
 from services.markdown import MarkdownConverter
 from services.xml_formatter import to_xml as format_xml
+from schemas.ocr import JsonOutputOptions
 
 logger = logging.getLogger(__name__)
 
@@ -27,10 +29,16 @@ class OCRService:
         await self.structure_engine.shutdown()
         await self.engine.shutdown()
 
-    def process(self, file_path: str, filename: str, content_type: str) -> dict:
+    def process(
+        self,
+        file_path: str,
+        filename: str,
+        content_type: str,
+        options: Optional[JsonOutputOptions] = None,
+    ) -> dict:
         stem = uuid.uuid4().hex
         result = self.engine.predict(file_path)
-        return self.formatter.structure(result, stem=stem)
+        return self.formatter.structure(result, stem=stem, options=options)
 
     def to_markdown(
         self,

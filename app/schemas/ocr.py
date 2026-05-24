@@ -17,16 +17,23 @@ class BoundingBox(BaseModel):
         return v
 
 
+class JsonOutputOptions(BaseModel):
+    include_bbox: bool = True
+    include_confidence: bool = True
+    include_extracted_text: bool = True
+    include_page_image: bool = True
+
+
 class WordBlock(BaseModel):
     text: str
-    confidence: float
-    bbox: BoundingBox
+    confidence: Optional[float] = None
+    bbox: Optional[BoundingBox] = None
 
 
 class OCRPage(BaseModel):
     page: int
     words: list[WordBlock]
-    extracted_text: str
+    extracted_text: Optional[str] = None
     page_image_url: Optional[str] = None
     ocr_width: Optional[int] = None
     ocr_height: Optional[int] = None

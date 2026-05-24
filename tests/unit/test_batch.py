@@ -46,7 +46,7 @@ class TestBatchProcessor:
         job = BatchJob("b_url", ["https://example.com"], "json", source_type="url")
         bp._jobs["b_url"] = job
         await bp._run_job("b_url")
-        mock_process_url.assert_awaited_once_with("https://example.com", "json")
+        mock_process_url.assert_awaited_once_with("https://example.com", "json", options=None)
         assert job.status == "completed"
 
     @pytest.mark.asyncio

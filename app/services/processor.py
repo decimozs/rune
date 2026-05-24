@@ -4,10 +4,12 @@ import uuid
 import magic
 import logging
 from pathlib import Path
+from typing import Optional
 
 from config import settings
 from services.converter import converter
 from services.ocr import ocr_service
+from schemas.ocr import JsonOutputOptions
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +26,7 @@ async def process_file(
     filename: str,
     declared_type: str,
     output_format: str,
+    options: Optional[dict] = None,
 ) -> tuple[object, str | None, float]:
     async with _ocr_semaphore:
         start = time.time()
@@ -56,8 +59,9 @@ async def process_file(
                     ocr_service.to_xml, str(safe), filename, detected
                 )
             else:
+                opts = JsonOutputOptions(**options) if options else None
                 result = await asyncio.to_thread(
-                    ocr_service.process, str(safe), filename, detected
+                    ocr_service.process, str(safe), filename, detected, opts
                 )
 
             elapsed = round((time.time() - start) * 1000, 2)
@@ -71,7 +75,11 @@ async def process_file(
             safe.unlink(missing_ok=True)
 
 
-async def process_url(url_str: str, output_format: str) -> tuple[object, str | None, float]:
+async def process_url(
+    url_str: str,
+    output_format: str,
+    options: Optional[dict] = None,
+) -> tuple[object, str | None, float]:
     async with _ocr_semaphore:
         start = time.time()
         stem = uuid.uuid4().hex
@@ -84,7 +92,8 @@ async def process_url(url_str: str, output_format: str) -> tuple[object, str | N
             elif output_format == "xml":
                 result = await asyncio.to_thread(ocr_service.to_xml, str(safe), display_name, "application/pdf")
             else:
-                result = await asyncio.to_thread(ocr_service.process, str(safe), display_name, "application/pdf")
+                opts = JsonOutputOptions(**options) if options else None
+                result = await asyncio.to_thread(ocr_service.process, str(safe), display_name, "application/pdf", opts)
             elapsed = round((time.time() - start) * 1000, 2)
             return result, None, elapsed
         except Exception as e:
@@ -94,7 +103,11 @@ async def process_url(url_str: str, output_format: str) -> tuple[object, str | N
             safe.unlink(missing_ok=True)
 
 
-async def process_html(files: list[tuple[str, bytes]], output_format: str) -> tuple[object, str | None, float]:
+async def process_html(
+    files: list[tuple[str, bytes]],
+    output_format: str,
+    options: Optional[dict] = None,
+) -> tuple[object, str | None, float]:
     async with _ocr_semaphore:
         start = time.time()
         stem = uuid.uuid4().hex
@@ -108,7 +121,8 @@ async def process_html(files: list[tuple[str, bytes]], output_format: str) -> tu
             elif output_format == "xml":
                 result = await asyncio.to_thread(ocr_service.to_xml, str(safe), display_name, "application/pdf")
             else:
-                result = await asyncio.to_thread(ocr_service.process, str(safe), display_name, "application/pdf")
+                opts = JsonOutputOptions(**options) if options else None
+                result = await asyncio.to_thread(ocr_service.process, str(safe), display_name, "application/pdf", opts)
             elapsed = round((time.time() - start) * 1000, 2)
             return result, None, elapsed
         except Exception as e:
