@@ -148,7 +148,10 @@ async def create_job(
 
 
 @router.get("/parse/jobs/{job_id}")
-async def get_job_status(job_id: str):
+async def get_job_status(
+    job_id: str,
+    identity: str | None = Depends(verify_api_key),
+):
     job = background_processor.get_job(job_id)
     if not job:
         raise HTTPException(404, f"Job {job_id} not found")
@@ -217,7 +220,10 @@ async def parse_batch(
 
 
 @router.get("/parse/batch/{batch_id}")
-async def get_batch_status(batch_id: str):
+async def get_batch_status(
+    batch_id: str,
+    identity: str | None = Depends(verify_api_key),
+):
     job = batch_processor.get_job(batch_id)
     if not job:
         raise HTTPException(404, f"Batch {batch_id} not found")

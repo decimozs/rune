@@ -503,9 +503,34 @@ curl -X POST "http://localhost:8000/ocr/parse/html/batch?format=json" \
 
 ## Authentication
 
-All POST endpoints (`/ocr/parse`, `/ocr/parse/jobs`, `/ocr/parse/batch`, `/ocr/parse/url`, `/ocr/parse/url/jobs`, `/ocr/parse/url/batch`, `/ocr/parse/html`, `/ocr/parse/html/jobs`, `/ocr/parse/html/batch`) require the `X-API-Key` header when auth is enabled.
+Auth mode depends on config:
 
-When `OCR_API_KEYS` is set in `.env` (default `#` = disabled — no header required), the header is **required**:
+| Config | Auth mode | Key storage |
+|---|---|---|
+| `OCR_API_KEYS=#` (default), no `OCR_DB_PATH` | **Disabled** — no header required | — |
+| `OCR_API_KEYS=key=name,...`, no `OCR_DB_PATH` | **Env-var** — keys read from `.env` | Plaintext in env, restart required to change |
+| `OCR_DB_PATH=app/data/ocr.db` | **DB-backed** — keys stored hashed in SQLite | SHA-256 hash, no restart needed for new/revoked keys |
+
+### DB-backed auth (recommended)
+
+Set `OCR_DB_PATH` in `.env`. Keys are stored as SHA-256 hashes. Auto-migrates `OCR_API_KEYS` entries on first startup if the key table is empty.
+
+```bash
+# Create a key
+uv run python scripts/create_api_key.py --name marlon --team engineering --db-path app/data/ocr.db
+# Output: API key: sk_live_AbCdEf...
+
+# Test it
+curl -X POST http://localhost:8000/ocr/parse \
+  -H "X-API-Key: sk_live_AbCdEf..." \
+  -F "file=@image.png"
+```
+
+New keys work **immediately** — no server restart.
+
+### Env-var auth (legacy)
+
+When `OCR_API_KEYS` is set in `.env` (default `#` = disabled) and `OCR_DB_PATH` is empty:
 
 ```bash
 curl -X POST http://localhost:8000/ocr/parse \
@@ -513,7 +538,19 @@ curl -X POST http://localhost:8000/ocr/parse \
   -F "file=@image.png"
 ```
 
-Invalid or missing keys return **401**:
+Key format: `key=name` pairs for audit identity. Example: `OCR_API_KEYS=sk-abc=alice,sk-def=bob`. The dependency returns the key name (or `"unknown"` for bare keys).
+
+### Protected endpoints
+
+All POST endpoints **require** `X-API-Key` header when auth is enabled:
+`/ocr/parse`, `/ocr/parse/jobs`, `/ocr/parse/batch`, `/ocr/parse/url`, `/ocr/parse/url/jobs`, `/ocr/parse/url/batch`, `/ocr/parse/html`, `/ocr/parse/html/jobs`, `/ocr/parse/html/batch`
+
+GET endpoints also **require** `X-API-Key` when auth is enabled:
+`/ocr/parse/jobs/{id}`, `/ocr/parse/batch/{id}`
+
+Health endpoints (`/health`, `/health/ready`) are always open.
+
+### Error response (401)
 
 ```json
 {
@@ -524,9 +561,13 @@ Invalid or missing keys return **401**:
 }
 ```
 
-GET endpoints (`/health`, `/health/ready`, `/ocr/parse/jobs/{id}`, `/ocr/parse/batch/{id}`) do not require authentication.
+### CLI key management
 
-Key format: `key=name` pairs for audit identity. Example: `OCR_API_KEYS=sk-abc=alice,sk-def=bob`. The dependency returns the key name (or `"unknown"` for bare keys).
+| Script | Purpose |
+|---|---|
+| `scripts/create_api_key.py --name <name> --db-path <path>` | Generate a new `sk_live_*` key, store hash in SQLite |
+| `scripts/list_api_keys.py --db-path <path>` | List all keys with prefix, name, team, active status, dates |
+| `scripts/revoke_api_key.py --prefix <prefix> --db-path <path>` | Revoke a key (set `is_active=0`) |
 
 ---
 
@@ -580,5 +621,7 @@ curl -X POST "http://localhost:8000/ocr/parse/url" \
 | **Output TTL** | Page images and markdown assets expire after 1 hour (`OCR_OUTPUT_TTL`). Sweep runs every 5 minutes. |
 | **Batch/job TTL** | Batch and background job results expire after 1 hour. Cleanup runs every 60 seconds. |
 | **JSON output options** | `include_bbox`, `include_confidence`, `include_extracted_text`, `include_page_image` only affect `format=json`. Markdown and XML always include all fields. Setting any `include_*` to `false` strips the field from the JSON response entirely (not set to `null`). |
-| **Auth** | Set `OCR_API_KEYS` in `.env` (comma-separated, format `key=name`). When set, all POST endpoints require `X-API-Key` header. Default `#` disables auth. |
+| **Auth (env-var)** | Set `OCR_API_KEYS` in `.env` (comma-separated, format `key=name`). When set, all POST + GET job/batch endpoints require `X-API-Key` header. Default `#` disables auth. Restart required to add/revoke keys. |
+| **Auth (DB)** | Set `OCR_DB_PATH=app/data/ocr.db` in `.env`. Keys stored as SHA-256 hashes in SQLite. Use `scripts/create_api_key.py` to generate keys. New keys work immediately — no restart. |
+| **GET auth** | `GET /ocr/parse/jobs/{id}` and `GET /ocr/parse/batch/{id}` now require `X-API-Key` when auth is enabled. Health endpoints remain open. |
 | **URL safety** | URL endpoints validate scheme (http/https only), block private IP ranges (10.x, 172.16-31.x, 192.168.x), loopback (localhost, 127.x.x.x), link-local (169.254.x.x), metadata IPs (0.x.x.x). DNS resolution checks prevent SSRF. See `OCR_URL_BLOCKED_DOMAINS`, `OCR_URL_ALLOWED_DOMAINS`, `OCR_COMPANY_DOMAINS_ONLY`. |

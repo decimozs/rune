@@ -37,6 +37,7 @@ class Settings(BaseSettings):
 
     # Auth
     api_keys: str = "#"  # comma-separated. "#" disables auth
+    db_path: str = ""  # path to SQLite DB. empty = use env-var auth
 
     # URL safety
     url_max_length: int = 2048

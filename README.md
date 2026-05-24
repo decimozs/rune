@@ -12,6 +12,7 @@ Internal OCR service for **Exist Software Labs**. Uses [PaddleOCR](https://githu
 - **aiofiles** — async file I/O
 - **python-magic** — MIME type validation
 - **Gotenberg** — document-to-PDF conversion via LibreOffice + Chromium (reused httpx client)
+- **aiosqlite** — SQLite-backed API key registry with SHA-256 hashing
 - **Docker** — multi-stage containerized deployment
 - **CORS** — `allow_origins=["*"]` for internal demo access
 - **Static Files** — `/assets` serves markdown images from OCR output

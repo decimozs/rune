@@ -14,6 +14,8 @@ from services.batch import batch_processor
 from services.background import background_processor
 from services.converter import converter
 from services.cleanup import output_cleaner
+import services.db as svc_db
+from services.db import KeyDB
 from services.exceptions import OCRValidationError, OCRRuntimeError
 
 logging.basicConfig(
@@ -26,6 +28,12 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     settings.output_dir_path.mkdir(parents=True, exist_ok=True)
+    if settings.db_path:
+        db = KeyDB(settings.db_path)
+        await db.init()
+        svc_db.key_db = db
+        logger.info("KeyDB initialized at %s", settings.db_path)
+    logger.info("Loading PaddleOCR models (may take 20-40s on first run)...")
     await ocr_service.init()
     await converter.start()
     await batch_processor.start()
@@ -38,6 +46,8 @@ async def lifespan(_app: FastAPI):
     await batch_processor.stop()
     await converter.stop()
     await ocr_service.shutdown()
+    if svc_db.key_db:
+        await svc_db.key_db.close()
     logger.info("Shutdown complete")
 
 

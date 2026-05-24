@@ -4,11 +4,12 @@ SHELL := bash
 .DEFAULT_GOAL := help
 
 API_URL ?= http://localhost:8000
+KEY    ?=
 COMPOSE ?= docker compose
 SERVICE ?= ocr
 
 .PHONY: help install dev run test up down build rebuild restart logs ps app-logs \
-        pull shell health test-routes test-formats benchmark stress convert clean
+        pull shell health test-routes test-formats test-auth benchmark stress convert clean
 
 help: ## Show this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage: make \033[36mtarget\033[0m\n"} \
@@ -72,6 +73,9 @@ test-routes: ## Validate all API routes
 
 test-formats: ## Test all supported file formats
 	scripts/test_formats.sh $(API_URL)
+
+test-auth: ## Test API key auth flow (KEY=sk_live_... for valid key test)
+	scripts/test_auth.sh $(API_URL) $(KEY)
 
 benchmark: ## Run OCR benchmark
 	scripts/benchmark.sh $(API_URL)

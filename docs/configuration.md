@@ -16,7 +16,8 @@ Settings loaded from `.env` file (see `.env.example`) or environment variables w
 | `OCR_ALLOWED_CONTENT_TYPES` | `image/jpeg,image/png,image/bmp,image/tiff,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/rtf,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` | Comma-separated allowed MIME types. Any `.env` override replaces the entire list. |
 | `OCR_OUTPUT_DIR` | `app/outputs` | Markdown output directory |
 | `OCR_GOTENBERG_URL` | `http://localhost:3000` | Gotenberg document conversion API (LibreOffice + Chromium endpoints). Overridden to `http://gotenberg:3000` inside Docker Compose via `docker-compose.yml` environment. Required for office docs, URL, and HTML source types. |
-| `OCR_API_KEYS` | `#` | Comma-separated API keys (`key=name` format for audit identity). `"#"` disables auth (no header required). When set, all POST endpoints require `X-API-Key` header. |
+| `OCR_API_KEYS` | `#` | Comma-separated API keys (`key=name` format for audit identity). `"#"` disables auth (no header required). When set, all POST endpoints require `X-API-Key` header. Auto-migrated hashed into SQLite on first startup when `OCR_DB_PATH` is set. |
+| `OCR_DB_PATH` | `""` | Path to SQLite DB for API key storage. When set, keys are stored hashed in SQLite instead of read from env var. Keys generated via `scripts/create_api_key.py` work immediately without server restart. Leave empty for env-var-only auth. |
 | `OCR_URL_MAX_LENGTH` | `2048` | Max URL length (chars) for `/ocr/parse/url` endpoints |
 | `OCR_URL_BLOCKED_DOMAINS` | `""` | Comma-separated blocked domains (exact hostname match) |
 | `OCR_URL_ALLOWED_DOMAINS` | `""` | Comma-separated allowed domains (exact or subdomain match) |

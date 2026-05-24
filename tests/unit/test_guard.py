@@ -139,52 +139,52 @@ class TestValidateUrl:
 
 
 class TestAuth:
-    def _call(self, key=None):
+    async def _call(self, key=None):
         from services.auth import verify_api_key
-        return verify_api_key(key)
+        return await verify_api_key(key)
 
     @patch("services.auth.settings.api_keys", "#")
-    def test_auth_disabled_returns_none(self):
-        assert self._call(None) is None
-        assert self._call("some-key") is None
+    async def test_auth_disabled_returns_none(self):
+        assert await self._call(None) is None
+        assert await self._call("some-key") is None
 
     @patch("services.auth.settings.api_keys", "sk-prod-abc")
-    def test_missing_key_returns_401(self):
+    async def test_missing_key_returns_401(self):
         from fastapi import HTTPException
         with pytest.raises(HTTPException) as exc:
-            self._call(None)
+            await self._call(None)
         assert exc.value.status_code == 401
 
     @patch("services.auth.settings.api_keys", "sk-prod-abc")
-    def test_wrong_key_returns_401(self):
+    async def test_wrong_key_returns_401(self):
         from fastapi import HTTPException
         with pytest.raises(HTTPException) as exc:
-            self._call("sk-prod-wrong")
+            await self._call("sk-prod-wrong")
         assert exc.value.status_code == 401
 
     @patch("services.auth.settings.api_keys", "sk-prod-abc")
-    def test_valid_key_returns_key_name(self):
-        name = self._call("sk-prod-abc")
+    async def test_valid_key_returns_key_name(self):
+        name = await self._call("sk-prod-abc")
         assert name == "unknown"
 
     @patch("services.auth.settings.api_keys", "sk-abc=alice,sk-def=bob")
-    def test_valid_key_with_name_returns_name(self):
-        assert self._call("sk-abc") == "alice"
-        assert self._call("sk-def") == "bob"
+    async def test_valid_key_with_name_returns_name(self):
+        assert await self._call("sk-abc") == "alice"
+        assert await self._call("sk-def") == "bob"
 
     @patch("services.auth.settings.api_keys", "sk-abc=alice,sk-def=bob")
-    def test_valid_key_from_multi_returns_name(self):
-        assert self._call("sk-def") == "bob"
+    async def test_valid_key_from_multi_returns_name(self):
+        assert await self._call("sk-def") == "bob"
 
     @patch("services.auth.settings.api_keys", "sk-abc=alice,sk-def=bob")
-    def test_key_not_in_list_returns_401(self):
+    async def test_key_not_in_list_returns_401(self):
         from fastapi import HTTPException
         with pytest.raises(HTTPException) as exc:
-            self._call("sk-nonexistent")
+            await self._call("sk-nonexistent")
         assert exc.value.status_code == 401
 
     @patch("services.auth.settings.api_keys", "sk-abc=alice,sk-def=bob")
-    def test_empty_key_returns_401(self):
+    async def test_empty_key_returns_401(self):
         from fastapi import HTTPException
         with pytest.raises(HTTPException):
-            self._call("")
+            await self._call("")

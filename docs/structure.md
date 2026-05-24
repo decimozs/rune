@@ -20,7 +20,8 @@ app/
 │   ├── processor.py      # Shared file pipeline: write → magic → convert → OCR → cleanup
 │   ├── batch.py          # Batch processor: in-memory queue, per-file isolation, 1hr TTL
 │   ├── background.py     # Background job processor: single-file async with TTL cleanup
-│   ├── auth.py           # API key verification FastAPI dependency
+│   ├── auth.py           # API key verification FastAPI dependency (DB-backed or env-var)
+│   ├── db.py             # SQLite KeyDB — auto-migration, key CRUD, SHA-256 hashing
 │   ├── url_guard.py      # SSRF-safe URL validation (scheme, private IPs, DNS, domain lists)
 │   ├── cleanup.py        # Output file sweeper (page images, markdown assets)
 │   └── exceptions.py     # Custom exceptions (OCRValidationError, OCRRuntimeError)
@@ -49,6 +50,10 @@ scripts/                  # Automation & testing scripts
 ├── ocr_job.sh            # Submit single file to background job endpoint, poll, save output
 ├── test_routes.sh        # Validate all routes (health, sync, jobs, batch, edge cases)
 ├── parallel_ocr.sh       # Burst-submit individual background jobs, poll all concurrently
+├── test_auth.sh          # API key auth flow tests (missing, wrong, valid, GET protection)
+├── create_api_key.py     # Generate new API key (sk_live_*) and store hashed in SQLite
+├── list_api_keys.py      # List all keys (prefix, name, team, active status, dates)
+├── revoke_api_key.py     # Revoke a key by prefix (sets is_active=0)
 └── cleanup.sh
 
 tests/
