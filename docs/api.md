@@ -72,6 +72,10 @@ Upload an image, PDF, or office document for OCR extraction. Office documents (D
 
 **Query Parameters:**
 - `format` — `json` (default), `markdown`, or `xml`
+- `include_bbox` — bool, default `true`. Include bbox coordinates in JSON output (JSON format only)
+- `include_confidence` — bool, default `true`. Include confidence scores in JSON output (JSON format only)
+- `include_extracted_text` — bool, default `true`. Include extracted text in JSON output (JSON format only)
+- `include_page_image` — bool, default `true`. Include page image URLs in JSON output (JSON format only)
 
 **Request:** `multipart/form-data` with field `file`
 
@@ -103,6 +107,13 @@ curl -X POST http://localhost:8000/ocr/parse \
   -F "file=@path/to/image.png"
 ```
 
+**cURL (JSON — exclude bbox and page image):**
+
+```bash
+curl -X POST "http://localhost:8000/ocr/parse?include_bbox=false&include_page_image=false" \
+  -F "file=@path/to/image.png"
+```
+
 **cURL (Markdown — office document):**
 
 ```bash
@@ -123,7 +134,9 @@ curl -X POST "http://localhost:8000/ocr/parse?format=xml" \
 
 **CORS:** Endpoints allow `*` origin for internal demo access (e.g., `file://` origins from the standalone frontend).
 
-**Success Response (200):**
+> **JSON output options** (`include_bbox`, `include_confidence`, `include_extracted_text`, `include_page_image`) only affect `format=json`. Setting any to `false` strips the corresponding field from the response. Markdown and XML output always include all data and ignore these params.
+
+**Success Response — default JSON (200):**
 
 ```json
 {
@@ -158,6 +171,35 @@ curl -X POST "http://localhost:8000/ocr/parse?format=xml" \
   }
 }
 ```
+
+**Success Response — JSON with `include_bbox=false&include_confidence=false&include_page_image=false`:**
+
+```json
+{
+  "success": true,
+  "metadata": {
+    "timestamp": "2026-05-21T12:00:00Z",
+    "model": "PP-OCRv4",
+    "format": "json",
+    "processing_time_ms": 123.45,
+    "file_name": "image.png",
+    "file_type": "image/png"
+  },
+  "data": {
+    "pages": [
+      {
+        "page": 1,
+        "words": [
+          { "text": "Hello World" }
+        ],
+        "extracted_text": "Hello World"
+      }
+    ]
+  }
+}
+```
+
+Note: `exclude_none=true` strips null fields. When `page_image_url` is excluded, the field is absent rather than `null`.
 
 **Success Response — XML (200):**
 
@@ -208,6 +250,10 @@ Upload multiple files for asynchronous batch processing. Returns immediately wit
 
 **Query Parameters:**
 - `format` — `json` (default), `markdown`, or `xml`
+- `include_bbox` — bool, default `true` (JSON only)
+- `include_confidence` — bool, default `true` (JSON only)
+- `include_extracted_text` — bool, default `true` (JSON only)
+- `include_page_image` — bool, default `true` (JSON only)
 
 **cURL:**
 ```bash
@@ -276,6 +322,10 @@ Upload a single file for asynchronous background processing. Like `/ocr/parse` b
 
 **Query Parameters:**
 - `format` — `json` (default), `markdown`, or `xml`
+- `include_bbox` — bool, default `true` (JSON only)
+- `include_confidence` — bool, default `true` (JSON only)
+- `include_extracted_text` — bool, default `true` (JSON only)
+- `include_page_image` — bool, default `true` (JSON only)
 
 **cURL:**
 ```bash
@@ -344,6 +394,10 @@ Synchronous — convert a URL to PDF via Gotenberg Chromium, then OCR the result
 
 **Query Parameters:**
 - `format` — `json` (default), `markdown`, or `xml`
+- `include_bbox` — bool, default `true` (JSON only)
+- `include_confidence` — bool, default `true` (JSON only)
+- `include_extracted_text` — bool, default `true` (JSON only)
+- `include_page_image` — bool, default `true` (JSON only)
 
 **Request:** `application/x-www-form-urlencoded` with field `url`
 
@@ -375,6 +429,8 @@ curl -X POST "http://localhost:8000/ocr/parse/url/jobs?format=json" \
 
 Batch — submit up to 20 URLs. Each URL is independently converted and OCR'd.
 
+Accepts same query params as `/ocr/parse/url` (`include_bbox`, `include_confidence`, `include_extracted_text`, `include_page_image`).
+
 **cURL:**
 ```bash
 curl -X POST "http://localhost:8000/ocr/parse/url/batch?format=json" \
@@ -391,6 +447,10 @@ Synchronous — upload an HTML file (plus optional assets) for Chromium renderin
 
 **Query Parameters:**
 - `format` — `json` (default), `markdown`, or `xml`
+- `include_bbox` — bool, default `true` (JSON only)
+- `include_confidence` — bool, default `true` (JSON only)
+- `include_extracted_text` — bool, default `true` (JSON only)
+- `include_page_image` — bool, default `true` (JSON only)
 
 **Request:** `multipart/form-data` with field `files`. At minimum include `index.html`:
 
@@ -426,6 +486,8 @@ curl -X POST "http://localhost:8000/ocr/parse/html/jobs?format=json" \
 
 Batch — upload multiple HTML file sets. Each `.html`/`.htm` file starts a new batch item; subsequent assets (CSS, images, etc.) attach to the preceding HTML item until the next `.html`/`.htm` file.
 
+Accepts same query params as `/ocr/parse/html` (`include_bbox`, `include_confidence`, `include_extracted_text`, `include_page_image`).
+
 **cURL:**
 ```bash
 curl -X POST "http://localhost:8000/ocr/parse/html/batch?format=json" \
@@ -452,3 +514,4 @@ curl -X POST "http://localhost:8000/ocr/parse/html/batch?format=json" \
 | **`use_doc_unwarping=False`** | Disables PaddleOCR's DocPreprocessor unwarping and orientation classification. Bbox coordinates match the original rendered page image. Do not enable unless you understand the coordinate space implications. |
 | **Output TTL** | Page images and markdown assets expire after 1 hour (`OCR_OUTPUT_TTL`). Sweep runs every 5 minutes. |
 | **Batch/job TTL** | Batch and background job results expire after 1 hour. Cleanup runs every 60 seconds. |
+| **JSON output options** | `include_bbox`, `include_confidence`, `include_extracted_text`, `include_page_image` only affect `format=json`. Markdown and XML always include all fields. Setting any `include_*` to `false` strips the field from the JSON response entirely (not set to `null`). |
