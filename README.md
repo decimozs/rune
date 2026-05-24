@@ -2,7 +2,7 @@
 
 Internal OCR service for **Exist Software Labs**. Uses [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) (PP-OCRv4) to extract text and bounding boxes from uploaded images, PDFs, office documents, URLs, and HTML pages.
 
-> **Status: Heavy Development & Testing** — API, architecture, and features are subject to change.
+> **Status: Beta** — API and core features are stable. Additive refinements in progress.
 
 ## Tech Stack
 
