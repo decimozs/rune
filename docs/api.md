@@ -503,9 +503,9 @@ curl -X POST "http://localhost:8000/ocr/parse/html/batch?format=json" \
 
 ## Authentication
 
-All POST endpoints (`/ocr/parse`, `/ocr/parse/jobs`, `/ocr/parse/batch`, `/ocr/parse/url`, `/ocr/parse/url/jobs`, `/ocr/parse/url/batch`, `/ocr/parse/html`, `/ocr/parse/html/jobs`, `/ocr/parse/html/batch`) accept an optional `X-API-Key` header.
+All POST endpoints (`/ocr/parse`, `/ocr/parse/jobs`, `/ocr/parse/batch`, `/ocr/parse/url`, `/ocr/parse/url/jobs`, `/ocr/parse/url/batch`, `/ocr/parse/html`, `/ocr/parse/html/jobs`, `/ocr/parse/html/batch`) require the `X-API-Key` header when auth is enabled.
 
-When `OCR_API_KEYS` is set in `.env` (default `#` = disabled), the header is **required**:
+When `OCR_API_KEYS` is set in `.env` (default `#` = disabled — no header required), the header is **required**:
 
 ```bash
 curl -X POST http://localhost:8000/ocr/parse \

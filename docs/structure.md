@@ -20,6 +20,9 @@ app/
 │   ├── processor.py      # Shared file pipeline: write → magic → convert → OCR → cleanup
 │   ├── batch.py          # Batch processor: in-memory queue, per-file isolation, 1hr TTL
 │   ├── background.py     # Background job processor: single-file async with TTL cleanup
+│   ├── auth.py           # API key verification FastAPI dependency
+│   ├── url_guard.py      # SSRF-safe URL validation (scheme, private IPs, DNS, domain lists)
+│   ├── cleanup.py        # Output file sweeper (page images, markdown assets)
 │   └── exceptions.py     # Custom exceptions (OCRValidationError, OCRRuntimeError)
 ├── schemas/
 │   ├── ocr.py            # Domain models: BoundingBox, WordBlock, OCRPage, SingleJobStatus, BatchItemResult, BatchStatus
