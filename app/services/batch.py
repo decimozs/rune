@@ -104,6 +104,7 @@ class BatchProcessor:
         job = BatchJob(batch_id, files, output_format, source_type, output_options)
         self._jobs[batch_id] = job
         asyncio.create_task(self._run_job(batch_id))
+        logger.info("Created batch job: id=%s, files=%d, source=%s, format=%s", batch_id, len(files), source_type, output_format)
         return batch_id
 
     def get_job(self, batch_id: str) -> Optional[BatchJob]:
@@ -115,6 +116,7 @@ class BatchProcessor:
         job = self._jobs[batch_id]
         job.status = "processing"
         start = time.time()
+        logger.info("Processing batch job: id=%s, files=%d", batch_id, job.total_files)
 
         async def process_one(index: int):
             """Process a single batch item by source type."""
@@ -140,13 +142,19 @@ class BatchProcessor:
                 data=data if error is None else None,
                 error={"code": "PROCESSING_ERROR", "message": error} if error else None,
             )
+            if error:
+                logger.error("Batch item failed: batch=%s, index=%d, name=%s, error=%s, duration=%sms", batch_id, index, fn, error, elapsed)
+            else:
+                logger.info("Batch item done: batch=%s, index=%d, name=%s, duration=%sms", batch_id, index, fn, elapsed)
 
         for i in range(job.total_files):
+            logger.info("Batch progress: batch=%s, item=%d/%d", batch_id, i + 1, job.total_files)
             await process_one(i)
+
         job.processing_time_ms = round((time.time() - start) * 1000, 2)
         job.status = "completed"
         job.completed_at = datetime.now(timezone.utc)
-        logger.info("Batch %s completed in %sms", batch_id, job.processing_time_ms)
+        logger.info("Batch completed: id=%s, files=%d, duration=%sms", batch_id, job.total_files, job.processing_time_ms)
 
 
 batch_processor = BatchProcessor()

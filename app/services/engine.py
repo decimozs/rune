@@ -7,6 +7,7 @@ asyncio.to_thread in processor.py to avoid blocking the event loop.
 PaddleOCR model loading takes ~22s on first run and ~300MB of RAM.
 """
 
+import time
 import logging
 from paddleocr import PaddleOCR, PPStructureV3
 from config import settings
@@ -26,6 +27,7 @@ class OCREngine:
 
     async def init(self):
         """Initialize the PaddleOCR model. Called once in main.py lifespan."""
+        start = time.time()
         self.ocr_model = PaddleOCR(
             use_textline_orientation=settings.use_textline_orientation,
             lang=settings.lang,
@@ -33,6 +35,8 @@ class OCREngine:
             ocr_version=settings.version,
             use_doc_unwarping=False,
         )
+        elapsed = round((time.time() - start) * 1000, 2)
+        logger.info("OCREngine initialized in %sms", elapsed)
 
     async def shutdown(self):
         """Release the model. Called during graceful shutdown."""
@@ -58,12 +62,15 @@ class StructureEngine:
 
     async def init(self):
         """Initialize the PPStructureV3 model. Called once in main.py lifespan."""
+        start = time.time()
         self._engine = PPStructureV3(
             use_textline_orientation=settings.use_textline_orientation,
             ocr_version=settings.version,
             lang=settings.lang,
             enable_mkldnn=settings.enable_mkldnn,
         )
+        elapsed = round((time.time() - start) * 1000, 2)
+        logger.info("StructureEngine initialized in %sms", elapsed)
 
     async def shutdown(self):
         """Release the model. Called during graceful shutdown."""

@@ -107,6 +107,7 @@ class BackgroundProcessor:
         job = BackgroundJob(job_id, file_name, file_type, content, output_format, source_type, extra_data, output_options)
         self._jobs[job_id] = job
         asyncio.create_task(self._run_job(job_id))
+        logger.info("Created background job: id=%s, name=%s, type=%s, size=%d, source=%s", job_id, file_name, file_type, len(content), source_type)
         return job_id
 
     def get_job(self, job_id: str) -> Optional[BackgroundJob]:
@@ -118,6 +119,7 @@ class BackgroundProcessor:
         job = self._jobs[job_id]
         job.status = "processing"
         start = time.time()
+        logger.info("Processing background job: id=%s, source=%s", job_id, job.source_type)
 
         if job.source_type == "url":
             data, error, elapsed = await process_url(job.extra_data, job.output_format, options=job.output_options)
@@ -130,13 +132,14 @@ class BackgroundProcessor:
         if error:
             job.error = {"code": "PROCESSING_ERROR", "message": error}
             job.status = "failed"
+            logger.error("Background job failed: id=%s, error=%s, duration=%sms", job_id, error, elapsed)
         else:
             job.data = data
             job.status = "completed"
+            logger.info("Background job completed: id=%s, duration=%sms", job_id, elapsed)
 
         job.processing_time_ms = elapsed
         job.completed_at = datetime.now(timezone.utc)
-        logger.info("Background job %s %s in %sms", job_id, job.status, elapsed)
 
 
 background_processor = BackgroundProcessor()

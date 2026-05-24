@@ -23,6 +23,7 @@ from config import settings
 from services.converter import converter
 from services.ocr import ocr_service
 from services.url_guard import validate_url
+from services.log_ctx import sanitize_url
 from schemas.ocr import JsonOutputOptions
 
 logger = logging.getLogger(__name__)
@@ -58,6 +59,7 @@ async def process_file(
     """
     async with _ocr_semaphore:
         start = time.time()
+        logger.info("Processing file: name=%s, type=%s, size=%d, format=%s", filename, declared_type, len(content), output_format)
 
         stem = uuid.uuid4().hex
         safe_filename = Path(filename).name
@@ -66,23 +68,20 @@ async def process_file(
         try:
             safe.write_bytes(content)
 
-            # Trust the declared type for text-based MIMEs (avoid magic overhead).
-            # Otherwise detect with python-magic and reject unknown types.
             if declared_type in TEXT_BASED_TYPES:
                 detected = declared_type
             else:
                 detected = magic.from_file(str(safe), mime=True)
                 if detected not in settings.allowed_types_list:
                     safe.unlink(missing_ok=True)
+                    logger.warning("Unsupported type: name=%s, detected=%s", filename, detected)
                     return None, f"Unsupported type: {detected}", round((time.time() - start) * 1000, 2)
 
-            # Office docs need Gotenberg LibreOffice conversion before OCR
             if converter.needs_conversion(detected):
+                logger.info("Converting via Gotenberg: name=%s, type=%s", filename, detected)
                 safe = await converter.to_pdf(safe, detected)
                 detected = "application/pdf"
 
-            # Dispatch to the right OCR path based on output format.
-            # All OCR calls are CPU-bound synchronous — run in thread pool.
             if output_format == "markdown":
                 result = await asyncio.to_thread(
                     ocr_service.to_markdown, str(safe), filename, detected
@@ -98,10 +97,18 @@ async def process_file(
                 )
 
             elapsed = round((time.time() - start) * 1000, 2)
+            logger.info(
+                "Processing complete: name=%s, format=%s, duration=%sms",
+                filename, output_format, elapsed,
+            )
             return result, None, elapsed
 
         except Exception as e:
             elapsed = round((time.time() - start) * 1000, 2)
+            logger.error(
+                "Processing failed: name=%s, error=%s, duration=%sms",
+                filename, e, elapsed,
+            )
             return None, f"{type(e).__name__}: {e}", elapsed
 
         finally:
@@ -119,6 +126,7 @@ async def process_url(
     """
     async with _ocr_semaphore:
         start = time.time()
+        logger.info("Processing URL: url=%s, format=%s", sanitize_url(url_str), output_format)
         stem = uuid.uuid4().hex
         safe = settings.upload_dir_path / f"{stem}.pdf"
         try:
@@ -133,9 +141,11 @@ async def process_url(
                 opts = JsonOutputOptions(**options) if options else None
                 result = await asyncio.to_thread(ocr_service.process, str(safe), display_name, "application/pdf", opts)
             elapsed = round((time.time() - start) * 1000, 2)
+            logger.info("URL processing complete: duration=%sms", elapsed)
             return result, None, elapsed
         except Exception as e:
             elapsed = round((time.time() - start) * 1000, 2)
+            logger.error("URL processing failed: error=%s, duration=%sms", e, elapsed)
             return None, f"{type(e).__name__}: {e}", elapsed
         finally:
             safe.unlink(missing_ok=True)
@@ -152,6 +162,7 @@ async def process_html(
     """
     async with _ocr_semaphore:
         start = time.time()
+        logger.info("Processing HTML: files=%d, format=%s", len(files), output_format)
         stem = uuid.uuid4().hex
         safe = settings.upload_dir_path / f"{stem}.pdf"
         try:
@@ -166,9 +177,11 @@ async def process_html(
                 opts = JsonOutputOptions(**options) if options else None
                 result = await asyncio.to_thread(ocr_service.process, str(safe), display_name, "application/pdf", opts)
             elapsed = round((time.time() - start) * 1000, 2)
+            logger.info("HTML processing complete: files=%d, duration=%sms", len(files), elapsed)
             return result, None, elapsed
         except Exception as e:
             elapsed = round((time.time() - start) * 1000, 2)
+            logger.error("HTML processing failed: error=%s, duration=%sms", e, elapsed)
             return None, f"{type(e).__name__}: {e}", elapsed
         finally:
             safe.unlink(missing_ok=True)

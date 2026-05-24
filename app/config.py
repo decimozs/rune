@@ -59,6 +59,7 @@ class Settings(BaseSettings):
 
     # Logging
     log_level: str = "INFO"
+    log_format: str = "text"
 
     model_config = SettingsConfigDict(
         env_prefix="OCR_",

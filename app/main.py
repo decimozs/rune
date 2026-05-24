@@ -10,6 +10,7 @@ static mount serves page images and markdown images from the
 output directory.
 """
 
+import uuid
 import time
 import logging
 from fastapi import FastAPI, Request, HTTPException
@@ -29,11 +30,16 @@ from services.cleanup import output_cleaner
 import services.db as svc_db
 from services.db import KeyDB
 from services.exceptions import OCRValidationError, OCRRuntimeError
+from services.log_ctx import LogContextFilter, JSONFormatter, request_id_var, identity_var, sanitize_url
 
 logging.basicConfig(
     level=getattr(logging, settings.log_level),
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
+for handler in logging.root.handlers:
+    handler.addFilter(LogContextFilter())
+    if settings.log_format == "json":
+        handler.setFormatter(JSONFormatter())
 logger = logging.getLogger(__name__)
 
 
@@ -88,13 +94,31 @@ app.include_router(ocr_router)
 
 
 @app.middleware("http")
-async def timing_middleware(request: Request, call_next):
-    """Add X-Processing-Time-Ms header to every response."""
+async def request_context_middleware(request: Request, call_next):
+    """Set request_id context var and return it as a response header.
+
+    Allows correlating logs across auth, processing, and error handling
+    for a single request. Client can pass X-Request-ID to correlate
+    client-side; otherwise a UUID is generated.
+
+    Contextvars are reset in finally to prevent leaking across requests.
+    Background tasks capture context at creation time, so they retain
+    the correct values even after reset.
+    """
+    req_id = request.headers.get("X-Request-ID") or uuid.uuid4().hex[:12]
+    req_id_token = request_id_var.set(req_id)
+    identity_token = identity_var.set(identity_var.get())
+
     start = time.perf_counter()
-    response = await call_next(request)
-    elapsed = time.perf_counter() - start
-    response.headers["X-Processing-Time-Ms"] = str(round(elapsed * 1000, 2))
-    return response
+    try:
+        response = await call_next(request)
+        elapsed = time.perf_counter() - start
+        response.headers["X-Request-ID"] = req_id
+        response.headers["X-Processing-Time-Ms"] = str(round(elapsed * 1000, 2))
+        return response
+    finally:
+        request_id_var.reset(req_id_token)
+        identity_var.reset(identity_token)
 
 
 # The handler order matters: more specific handlers first, catch-all last.
@@ -104,6 +128,11 @@ async def timing_middleware(request: Request, call_next):
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc: HTTPException):
     """Handle FastAPI-native HTTP errors (401, 404, 413, etc.)."""
+    ident = identity_var.get()
+    logger.warning(
+        "HTTP %d on %s %s (identity=%s): %s",
+        exc.status_code, request.method, request.url.path, ident, exc.detail,
+    )
     return JSONResponse(
         status_code=exc.status_code,
         content={
@@ -119,7 +148,11 @@ async def http_exception_handler(request, exc: HTTPException):
 @app.exception_handler(OCRValidationError)
 async def validation_error_handler(request, exc: OCRValidationError):
     """Handle user-correctable input errors (bad type, invalid URL, etc.)."""
-    logger.warning("Validation error: %s", exc)
+    ident = identity_var.get()
+    logger.warning(
+        "Validation error on %s (identity=%s): %s",
+        request.url.path, ident, exc,
+    )
     return JSONResponse(
         status_code=400,
         content={
@@ -135,7 +168,11 @@ async def validation_error_handler(request, exc: OCRValidationError):
 @app.exception_handler(OCRRuntimeError)
 async def runtime_error_handler(request, exc: OCRRuntimeError):
     """Handle internal system failures (conversion failure, OCR crash)."""
-    logger.error("Runtime error: %s", exc)
+    ident = identity_var.get()
+    logger.error(
+        "Runtime error on %s (identity=%s): %s",
+        request.url.path, ident, exc,
+    )
     return JSONResponse(
         status_code=500,
         content={
@@ -151,7 +188,10 @@ async def runtime_error_handler(request, exc: OCRRuntimeError):
 @app.exception_handler(Exception)
 async def global_error_handler(request, exc: Exception):
     """Catch-all for unexpected errors. Returns generic message to client."""
-    logger.exception("Unhandled exception in request")
+    ident = identity_var.get()
+    logger.exception(
+        "Unhandled exception on %s (identity=%s)", request.url.path, ident,
+    )
     return JSONResponse(
         status_code=500,
         content={
