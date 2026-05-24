@@ -1,9 +1,20 @@
+"""Pydantic models for OCR input options, output structure, and API responses.
+
+BoundingBox enforces exactly 4 corner points. JsonOutputOptions controls
+field visibility in JSON output. BatchStatus and SingleJobStatus model
+the async job API responses.
+"""
+
 from datetime import datetime
 from pydantic import BaseModel, field_validator
 from typing import Any, Optional
 
 
 class BoundingBox(BaseModel):
+    """Quadrilateral bounding box with exactly 4 [x, y] points.
+
+    Order typically follows: top-left, top-right, bottom-right, bottom-left.
+    """
     points: list[list[float]]
 
     @field_validator("points")
@@ -18,6 +29,11 @@ class BoundingBox(BaseModel):
 
 
 class JsonOutputOptions(BaseModel):
+    """Controls which fields appear in JSON output. Only affects JSON format.
+
+    Setting any to False strips the field from the response entirely
+    (not set to null), via exclude_none=True in the final model dump.
+    """
     include_bbox: bool = True
     include_confidence: bool = True
     include_extracted_text: bool = True
@@ -25,12 +41,14 @@ class JsonOutputOptions(BaseModel):
 
 
 class WordBlock(BaseModel):
+    """A single recognized word with optional bounding box and confidence."""
     text: str
     confidence: Optional[float] = None
     bbox: Optional[BoundingBox] = None
 
 
 class OCRPage(BaseModel):
+    """One page of OCR results. page_image_url links to the rendered page image."""
     page: int
     words: list[WordBlock]
     extracted_text: Optional[str] = None
@@ -40,10 +58,12 @@ class OCRPage(BaseModel):
 
 
 class OCRResult(BaseModel):
+    """Complete OCR result across all pages."""
     pages: list[OCRPage]
 
 
 class BatchItemResult(BaseModel):
+    """Result for one file in a batch. success=False if processing failed."""
     file_name: str
     file_type: str
     processing_time_ms: float
@@ -53,6 +73,7 @@ class BatchItemResult(BaseModel):
 
 
 class BatchStatus(BaseModel):
+    """Response model for GET /parse/batch/{id}."""
     batch_id: str
     status: str
     total_files: int
@@ -64,6 +85,7 @@ class BatchStatus(BaseModel):
 
 
 class SingleJobStatus(BaseModel):
+    """Response model for GET /parse/jobs/{id}."""
     job_id: str
     status: str
     file_name: str

@@ -1,3 +1,19 @@
+"""Top-level OCR service facade.
+
+Composes OCREngine (PaddleOCR), StructureEngine (PPStructureV3),
+OCRFormatter, MarkdownConverter, and XML formatter into a unified
+interface. The module-level ocr_service singleton is imported by
+routes and processors.
+
+Each output format uses a different engine:
+    - JSON/Markdown:   OCREngine (PaddleOCR) + OCRFormatter
+    - XML:             OCREngine (PaddleOCR) + OCRFormatter → xml_formatter
+    - Markdown output: StructureEngine (PPStructureV3) + MarkdownConverter
+
+All predict() calls are synchronous and CPU-bound. The caller in
+processor.py wraps them in asyncio.to_thread.
+"""
+
 import logging
 import uuid
 from typing import Optional
@@ -11,6 +27,12 @@ logger = logging.getLogger(__name__)
 
 
 class OCRService:
+    """Orchestrates OCR engines and formatters.
+
+    Instantiated once at module level. init() loads models (slow).
+    predict methods are synchronous — wrap in to_thread.
+    """
+
     def __init__(self):
         self.engine = OCREngine()
         self.structure_engine = StructureEngine()
@@ -19,13 +41,16 @@ class OCRService:
 
     @property
     def is_ready(self) -> bool:
+        """True once both PaddleOCR and PPStructureV3 models are loaded."""
         return self.engine.is_ready and self.structure_engine.is_ready
 
     async def init(self):
+        """Load both models. Called once in main.py lifespan. Blocks ~30s."""
         await self.engine.init()
         await self.structure_engine.init()
 
     async def shutdown(self):
+        """Release both models. Called during graceful shutdown."""
         await self.structure_engine.shutdown()
         await self.engine.shutdown()
 
@@ -36,6 +61,12 @@ class OCRService:
         content_type: str,
         options: Optional[JsonOutputOptions] = None,
     ) -> dict:
+        """OCR with PaddleOCR → structured dict for JSON output.
+
+        Page images are saved to pages/{stem}/page_{N}.png and served
+        via /assets/ static mount. The stem is a random UUID to avoid
+        collisions.
+        """
         stem = uuid.uuid4().hex
         result = self.engine.predict(file_path)
         return self.formatter.structure(result, stem=stem, options=options)
@@ -46,6 +77,12 @@ class OCRService:
         filename: str,
         content_type: str,
     ) -> str:
+        """Structure-aware OCR → markdown string.
+
+        Uses PPStructureV3 which understands tables, headings, and
+        basic document layout. Slower than plain OCR but produces
+        richer output.
+        """
         result = self.structure_engine.predict(file_path)
         return self.markdown_converter.convert(
             result,
@@ -60,6 +97,7 @@ class OCRService:
         filename: str,
         content_type: str,
     ) -> str:
+        """OCR → XML string using stdlib xml.etree.ElementTree."""
         result = self.engine.predict(file_path)
         raw = self.formatter.structure(result)
         return format_xml(raw)

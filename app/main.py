@@ -1,3 +1,15 @@
+"""FastAPI application entrypoint.
+
+Wires together all services, middleware, exception handlers, and
+static file mounts. The lifespan function controls startup and
+shutdown ordering (important: KeyDB → PaddleOCR → converters →
+processors → cleaners).
+
+PaddleOCR model loading blocks for ~22s on first run. The /assets
+static mount serves page images and markdown images from the
+output directory.
+"""
+
 import time
 import logging
 from fastapi import FastAPI, Request, HTTPException
@@ -27,6 +39,16 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    """Startup/shutdown lifecycle.
+
+    Order matters:
+      1. Create output dir
+      2. Init KeyDB (if OCR_DB_PATH configured)
+      3. Load PaddleOCR models (20-40s on first run)
+      4. Start Gotenberg HTTP client
+      5. Start batch/background/cleaner tasks
+    Shutdown is the reverse order.
+    """
     settings.output_dir_path.mkdir(parents=True, exist_ok=True)
     if settings.db_path:
         db = KeyDB(settings.db_path)
@@ -67,6 +89,7 @@ app.include_router(ocr_router)
 
 @app.middleware("http")
 async def timing_middleware(request: Request, call_next):
+    """Add X-Processing-Time-Ms header to every response."""
     start = time.perf_counter()
     response = await call_next(request)
     elapsed = time.perf_counter() - start
@@ -74,8 +97,13 @@ async def timing_middleware(request: Request, call_next):
     return response
 
 
+# The handler order matters: more specific handlers first, catch-all last.
+# FastAPI matches handlers by exception type in registration order.
+
+
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc: HTTPException):
+    """Handle FastAPI-native HTTP errors (401, 404, 413, etc.)."""
     return JSONResponse(
         status_code=exc.status_code,
         content={
@@ -90,6 +118,7 @@ async def http_exception_handler(request, exc: HTTPException):
 
 @app.exception_handler(OCRValidationError)
 async def validation_error_handler(request, exc: OCRValidationError):
+    """Handle user-correctable input errors (bad type, invalid URL, etc.)."""
     logger.warning("Validation error: %s", exc)
     return JSONResponse(
         status_code=400,
@@ -105,6 +134,7 @@ async def validation_error_handler(request, exc: OCRValidationError):
 
 @app.exception_handler(OCRRuntimeError)
 async def runtime_error_handler(request, exc: OCRRuntimeError):
+    """Handle internal system failures (conversion failure, OCR crash)."""
     logger.error("Runtime error: %s", exc)
     return JSONResponse(
         status_code=500,
@@ -120,6 +150,7 @@ async def runtime_error_handler(request, exc: OCRRuntimeError):
 
 @app.exception_handler(Exception)
 async def global_error_handler(request, exc: Exception):
+    """Catch-all for unexpected errors. Returns generic message to client."""
     logger.exception("Unhandled exception in request")
     return JSONResponse(
         status_code=500,

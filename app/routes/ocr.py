@@ -1,3 +1,14 @@
+"""All OCR API endpoints grouped by source type:
+
+File endpoints  (/parse, /parse/jobs, /parse/batch)
+URL endpoints   (/parse/url, /parse/url/jobs, /parse/url/batch)
+HTML endpoints  (/parse/html, /parse/html/jobs, /parse/html/batch)
+
+Each group has sync, background job, and batch variants.
+All POST + GET job/batch endpoints require X-API-Key auth
+(except health endpoints in routes/health.py).
+"""
+
 from datetime import datetime, timezone
 from typing import cast
 from enum import Enum
@@ -12,6 +23,12 @@ from schemas.ocr import BatchItemResult, BatchStatus, SingleJobStatus, JsonOutpu
 
 
 def _split_group_by_html(entries: list[tuple[str, bytes]]) -> list[list[tuple[str, bytes]]]:
+    """Split uploaded files into groups by HTML file boundary.
+
+    Each group starts with an .html/.htm file and includes subsequent
+    non-HTML files as its assets. Assets uploaded before the first
+    HTML file are dropped (orphans with no parent).
+    """
     items = []
     current = []
     for name, content in entries:
@@ -38,6 +55,7 @@ router = APIRouter(prefix="/ocr", tags=["ocr"])
 
 
 def validate_upload(file: UploadFile) -> None:
+    """Check file has a name and its MIME type is in the allowed list."""
     if not file.filename:
         raise HTTPException(400, "Missing filename")
     if file.content_type not in settings.allowed_types_list:
@@ -55,6 +73,7 @@ def build_response(
     content_type: str,
     elapsed: float,
 ) -> dict:
+    """Wrap sync OCR result in APIResponse envelope with metadata."""
     return APIResponse(
         success=True,
         metadata=ResponseMetadata(
@@ -70,9 +89,19 @@ def build_response(
 
 
 def _build_options(output_format: OutputFormat, **kwargs) -> dict | None:
+    """Build JsonOutputOptions dict only for JSON format.
+
+    Markdown and XML always include all fields regardless of query params.
+    Returns None for non-JSON formats, meaning no field filtering.
+    """
     if output_format != OutputFormat.json:
         return None
     return JsonOutputOptions(**kwargs).model_dump()
+
+
+# ---------------------------------------------------------------------------
+# File upload endpoints (image, PDF, office docs)
+# ---------------------------------------------------------------------------
 
 
 @router.post("/parse")
@@ -85,6 +114,7 @@ async def parse_file(
     include_page_image: bool = Query(True),
     identity: str | None = Depends(verify_api_key),
 ):
+    """OCR a single uploaded file. Returns result synchronously."""
     validate_upload(file)
 
     content = await file.read()
@@ -115,6 +145,7 @@ async def create_job(
     include_page_image: bool = Query(True),
     identity: str | None = Depends(verify_api_key),
 ):
+    """Upload a file for background OCR. Returns job ID immediately (202)."""
     validate_upload(file)
 
     content = await file.read()
@@ -152,6 +183,7 @@ async def get_job_status(
     job_id: str,
     identity: str | None = Depends(verify_api_key),
 ):
+    """Poll a background job's status and result."""
     job = background_processor.get_job(job_id)
     if not job:
         raise HTTPException(404, f"Job {job_id} not found")
@@ -187,6 +219,7 @@ async def parse_batch(
     include_page_image: bool = Query(True),
     identity: str | None = Depends(verify_api_key),
 ):
+    """Upload multiple files for batch OCR. Returns batch ID immediately (202)."""
     if len(file) > MAX_BATCH_SIZE:
         raise HTTPException(413, f"Max {MAX_BATCH_SIZE} files per batch")
     if len(file) == 0:
@@ -224,6 +257,7 @@ async def get_batch_status(
     batch_id: str,
     identity: str | None = Depends(verify_api_key),
 ):
+    """Poll a batch job's status with per-item results."""
     job = batch_processor.get_job(batch_id)
     if not job:
         raise HTTPException(404, f"Batch {batch_id} not found")
@@ -267,7 +301,10 @@ async def get_batch_status(
     ).model_dump(exclude_none=True)
 
 
-# ── URL ──────────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# URL source endpoints  (Gotenberg Chromium -> PDF -> OCR)
+# ---------------------------------------------------------------------------
+
 
 @router.post("/parse/url")
 async def parse_url(
@@ -279,6 +316,7 @@ async def parse_url(
     include_page_image: bool = Query(True),
     identity: str | None = Depends(verify_api_key),
 ):
+    """OCR a web page URL. Returns result synchronously."""
     opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
     data, error, elapsed = await process_url(url, output_format.value, options=opts)
     if error:
@@ -296,6 +334,7 @@ async def create_url_job(
     include_page_image: bool = Query(True),
     identity: str | None = Depends(verify_api_key),
 ):
+    """Submit a URL for background OCR. Returns job ID immediately (202)."""
     opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
     job_id = background_processor.create_job(
         url, "source/url", b"", output_format.value,
@@ -319,6 +358,7 @@ async def parse_url_batch(
     include_page_image: bool = Query(True),
     identity: str | None = Depends(verify_api_key),
 ):
+    """Submit multiple URLs for batch OCR. Returns batch ID immediately (202)."""
     if len(url) > MAX_BATCH_SIZE:
         raise HTTPException(413, f"Max {MAX_BATCH_SIZE} URLs per batch")
     if len(url) == 0:
@@ -333,7 +373,10 @@ async def parse_url_batch(
     ).model_dump(exclude_none=True)
 
 
-# ── HTML ─────────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# HTML source endpoints  (upload .html file + assets, Gotenberg -> PDF -> OCR)
+# ---------------------------------------------------------------------------
+
 
 @router.post("/parse/html")
 async def parse_html(
@@ -345,6 +388,7 @@ async def parse_html(
     include_page_image: bool = Query(True),
     identity: str | None = Depends(verify_api_key),
 ):
+    """OCR an uploaded HTML file with assets. Returns result synchronously."""
     if not files:
         raise HTTPException(400, "At least one file required (index.html)")
     file_tuples = []
@@ -370,6 +414,7 @@ async def create_html_job(
     include_page_image: bool = Query(True),
     identity: str | None = Depends(verify_api_key),
 ):
+    """Submit HTML + assets for background OCR. Returns job ID immediately (202)."""
     if not files:
         raise HTTPException(400, "At least one file required (index.html)")
     file_tuples = []
@@ -401,6 +446,11 @@ async def parse_html_batch(
     include_page_image: bool = Query(True),
     identity: str | None = Depends(verify_api_key),
 ):
+    """Upload multiple HTML file groups for batch OCR. Returns batch ID immediately (202).
+
+    Files are grouped by HTML boundary via _split_group_by_html so
+    each HTML file plus its assets forms one batch item.
+    """
     file_tuples = []
     for f in files:
         content = await f.read()

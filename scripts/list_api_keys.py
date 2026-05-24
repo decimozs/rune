@@ -1,11 +1,18 @@
 #!/usr/bin/env python
-"""List all API keys stored in SQLite."""
+"""List all API keys stored in SQLite with their metadata.
+
+Shows key prefix (first 16 chars), owner name, team, active status,
+creation date, last-used timestamp, and revocation date.
+Key hashes are never displayed — only the prefix is shown.
+"""
 
 import argparse
 import os
 import sys
 from pathlib import Path
 
+# Add app/ to path so we can import services.db. Scripts run from
+# the project root or scripts/ directory.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "app"))
 
 from services.db import KeyDB

@@ -1,3 +1,14 @@
+"""SQLite-backed API key registry with schema versioning.
+
+Keys are stored as SHA-256 hashes (never plaintext). The module-level
+key_db singleton is None at import time and wired in main.py lifespan
+when OCR_DB_PATH is configured.
+
+Schema migrations are incremental: new numbered functions added to
+MIGRATIONS dict run in order on startup. The _schema_version table
+tracks which have been applied.
+"""
+
 import hashlib
 import logging
 from datetime import datetime, timezone
@@ -12,28 +23,39 @@ SCHEMA_VERSION = 1
 
 
 def hash_api_key(raw: str) -> str:
+    """Return SHA-256 hex digest of a raw API key string."""
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
 def key_prefix(raw: str) -> str:
+    """First 16 chars of the raw key. Used for display and revocation."""
     return raw[:16]
 
 
 def generate_raw_key() -> str:
+    """Generate a high-entropy API key with sk_live_ prefix.
+
+    The raw key is returned once at creation time and cannot be
+    recovered later. The SHA-256 hash is what gets stored.
+    """
     import secrets
     return "sk_live_" + secrets.token_urlsafe(32)
 
 
 class KeyDB:
+    """Async SQLite wrapper for API key CRUD operations."""
+
     def __init__(self, db_path: str):
         self.db_path = db_path
         self._conn: Optional[aiosqlite.Connection] = None
 
     @property
     def is_initialized(self) -> bool:
+        """True after init() completes successfully."""
         return self._conn is not None
 
     async def init(self) -> None:
+        """Open the DB connection, create parent dirs, run pending migrations."""
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         self._conn = await aiosqlite.connect(self.db_path)
         self._conn.row_factory = aiosqlite.Row
@@ -43,6 +65,7 @@ class KeyDB:
         logger.info("KeyDB initialized at %s (schema v%d)", self.db_path, SCHEMA_VERSION)
 
     async def _migrate(self) -> None:
+        """Apply any pending schema migrations in order."""
         await self._conn.execute("""
             CREATE TABLE IF NOT EXISTS _schema_version (
                 version    INTEGER PRIMARY KEY,
@@ -67,6 +90,7 @@ class KeyDB:
         await self._conn.commit()
 
     async def get_key(self, key_hash: str) -> Optional[dict]:
+        """Look up a key by its SHA-256 hash. Returns None if not found."""
         if not self._conn:
             return None
         cur = await self._conn.execute(
@@ -83,6 +107,7 @@ class KeyDB:
         }
 
     async def update_last_used(self, key_hash: str) -> None:
+        """Record the current timestamp as last_used_at for audit."""
         if not self._conn:
             return
         await self._conn.execute(
@@ -92,6 +117,7 @@ class KeyDB:
         await self._conn.commit()
 
     async def add_key(self, key_hash: str, prefix: str, name: str, team: str = "") -> None:
+        """Insert a new key. Raises IntegrityError if key_hash already exists."""
         if not self._conn:
             raise RuntimeError("KeyDB not initialized")
         now = datetime.now(timezone.utc).isoformat()
@@ -102,6 +128,7 @@ class KeyDB:
         await self._conn.commit()
 
     async def revoke_key(self, key_hash: str) -> bool:
+        """Soft-delete a key by hash. Returns True if a key was actually revoked."""
         if not self._conn:
             return False
         now = datetime.now(timezone.utc).isoformat()
@@ -113,6 +140,7 @@ class KeyDB:
         return cur.rowcount > 0
 
     async def revoke_by_prefix(self, prefix: str) -> bool:
+        """Soft-delete keys by prefix. Returns True if at least one revoked."""
         if not self._conn:
             return False
         now = datetime.now(timezone.utc).isoformat()
@@ -124,6 +152,7 @@ class KeyDB:
         return cur.rowcount > 0
 
     async def list_keys(self) -> list[dict]:
+        """Return all keys ordered by creation date (newest first)."""
         if not self._conn:
             return []
         cur = await self._conn.execute(
@@ -134,12 +163,19 @@ class KeyDB:
         return [dict(r) for r in rows]
 
     async def close(self) -> None:
+        """Close the DB connection. Called in lifespan shutdown."""
         if self._conn:
             await self._conn.close()
             self._conn = None
 
 
 async def _migrate_from_env(db: aiosqlite.Connection) -> None:
+    """Bootstrap: copy hashed entries from OCR_API_KEYS env var into DB.
+
+    Only runs when the api_keys table is empty (first startup with DB mode).
+    After migration, the env var is no longer needed — the DB is the source
+    of truth.
+    """
     from config import settings
     if settings.api_keys == "#":
         return
@@ -164,6 +200,7 @@ async def _migrate_from_env(db: aiosqlite.Connection) -> None:
 
 
 async def _v1(db: aiosqlite.Connection) -> None:
+    """Schema v1: create api_keys table and bootstrap from env vars."""
     await db.execute("""
         CREATE TABLE IF NOT EXISTS api_keys (
             id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -182,4 +219,6 @@ async def _v1(db: aiosqlite.Connection) -> None:
 
 MIGRATIONS = {1: _v1}
 
+# Module-level singleton. None at import time; set in main.py lifespan
+# when OCR_DB_PATH is configured. Consumers must guard against None.
 key_db: Optional[KeyDB] = None

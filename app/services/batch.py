@@ -1,3 +1,14 @@
+"""In-memory batch processor for multi-file OCR jobs.
+
+Items are processed SEQUENTIALLY (not with asyncio.gather) to avoid
+unbounded concurrency. The shared semaphore in processor.py provides
+global fairness across all concurrent calls.
+
+Per-item error isolation: one file failure does not abort the batch.
+The batch always ends as completed, but individual items carry
+success=True/False.
+"""
+
 import uuid
 import time
 import asyncio
@@ -15,6 +26,8 @@ RESULTS_TTL = 3600
 
 
 class BatchItemResult:
+    """Result for a single file within a batch. success=False if processing failed."""
+
     def __init__(
         self,
         file_name: str,
@@ -33,11 +46,14 @@ class BatchItemResult:
 
 
 class BatchJob:
+    """Represents a batch OCR job with multiple files."""
+
     def __init__(self, batch_id: str, files: list, output_format: str, source_type: str = "file", output_options: Optional[dict] = None):
         self.id = batch_id
         self.status = "pending"
         self.output_format = output_format
         self.total_files = len(files)
+        # Pre-allocate result slots; filled in order as items complete
         self.results: list[Optional[BatchItemResult]] = [None] * len(files)
         self.created_at = datetime.now(timezone.utc)
         self.completed_at: Optional[datetime] = None
@@ -48,14 +64,18 @@ class BatchJob:
 
 
 class BatchProcessor:
+    """Manages the batch queue, sequential processing, and TTL cleanup."""
+
     def __init__(self):
         self._jobs: dict[str, BatchJob] = {}
         self._cleanup_task: Optional[asyncio.Task] = None
 
     async def start(self):
+        """Start the TTL-based cleanup loop. Called in lifespan."""
         self._cleanup_task = asyncio.create_task(self._cleanup_loop())
 
     async def stop(self):
+        """Stop the cleanup loop. Called in lifespan shutdown."""
         if self._cleanup_task:
             self._cleanup_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
@@ -63,6 +83,7 @@ class BatchProcessor:
             self._cleanup_task = None
 
     async def _cleanup_loop(self):
+        """Every 60s, remove batches that completed more than TTL ago."""
         while True:
             await asyncio.sleep(60)
             now = datetime.now(timezone.utc)
@@ -78,6 +99,7 @@ class BatchProcessor:
                 logger.info("Expired batch %s", bid)
 
     def create_job(self, files: list, output_format: str, source_type: str = "file", output_options: Optional[dict] = None) -> str:
+        """Create a batch job and start processing. Returns batch ID immediately."""
         batch_id = uuid.uuid4().hex[:12]
         job = BatchJob(batch_id, files, output_format, source_type, output_options)
         self._jobs[batch_id] = job
@@ -85,14 +107,17 @@ class BatchProcessor:
         return batch_id
 
     def get_job(self, batch_id: str) -> Optional[BatchJob]:
+        """Return the batch or None if not found or already expired."""
         return self._jobs.get(batch_id)
 
     async def _run_job(self, batch_id: str):
+        """Process batch items SEQUENTIALLY. Each item runs independently."""
         job = self._jobs[batch_id]
         job.status = "processing"
         start = time.time()
 
         async def process_one(index: int):
+            """Process a single batch item by source type."""
             if job.source_type == "url":
                 url_str = job._files[index]
                 data, error, elapsed = await process_url(url_str, job.output_format, options=job.output_options)

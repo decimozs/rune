@@ -1,3 +1,18 @@
+"""Convert raw PaddleOCR output into structured Pydantic models.
+
+PaddleOCR's predict() returns a list of dicts. Each page dict has:
+    - rec_texts:  list[str]           — recognized text per word block
+    - rec_scores: list[float]         — confidence per word block
+    - rec_polys:  list[list[float]]   — 4-point bbox per word block
+    - doc_preprocessor_res.output_img — numpy array of the rendered page
+                                        (present only for PDF files)
+
+This module maps those raw lists into typed Pydantic models
+(WordBlock, OCRPage, OCRResult), optionally filtering fields
+via JsonOutputOptions, and saves page images to disk for
+serving via /assets/ static mount.
+"""
+
 import logging
 from pathlib import Path
 from typing import Any, Optional
@@ -14,6 +29,16 @@ class OCRFormatter:
         stem: str | None = None,
         options: Optional[JsonOutputOptions] = None,
     ) -> dict[str, Any]:
+        """Convert PaddleOCR page list into a structured OCRResult dict.
+
+        Args:
+            result: Raw PaddleOCR output (list of page dicts).
+            stem: Unique directory name for saving page images.
+            options: Controls which fields appear in JSON output.
+
+        Returns:
+            Serialized OCRResult dict (exclude_none=True strips nulls).
+        """
         if not result or result[0] is None:
             logger.warning("OCR returned empty result")
             return OCRResult(pages=[]).model_dump(exclude_none=True)

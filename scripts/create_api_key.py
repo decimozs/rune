@@ -1,11 +1,17 @@
 #!/usr/bin/env python
-"""Generate a new API key and store in SQLite."""
+"""Generate a new API key and store in SQLite.
+
+Prints the raw key exactly once. It cannot be recovered later —
+only the SHA-256 hash is stored in the database.
+"""
 
 import argparse
 import os
 import sys
 from pathlib import Path
 
+# Add app/ to path so we can import services.db. Scripts run from
+# the project root or scripts/ directory.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "app"))
 
 from services.db import hash_api_key, key_prefix, generate_raw_key, KeyDB

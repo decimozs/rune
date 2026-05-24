@@ -1,3 +1,12 @@
+"""In-memory async single-job queue.
+
+Jobs are stored in a plain dict and processed via fire-and-forget
+asyncio tasks. Completed/failed jobs are evicted after 1 hour TTL.
+
+This is in-memory only — all jobs are lost on application restart.
+No persistence layer exists yet.
+"""
+
 import uuid
 import time
 import asyncio
@@ -14,6 +23,13 @@ BACKGROUND_TTL = 3600
 
 
 class BackgroundJob:
+    """Represents a single background OCR job.
+
+    Stores file content in memory (_content bytes) which can be
+    large for big files. status transitions: pending -> processing
+    -> completed | failed.
+    """
+
     def __init__(
         self,
         job_id: str,
@@ -42,14 +58,18 @@ class BackgroundJob:
 
 
 class BackgroundProcessor:
+    """Manages the job queue and cleanup loop."""
+
     def __init__(self):
         self._jobs: dict[str, BackgroundJob] = {}
         self._cleanup_task: Optional[asyncio.Task] = None
 
     async def start(self):
+        """Start the TTL-based cleanup loop. Called in lifespan."""
         self._cleanup_task = asyncio.create_task(self._cleanup_loop())
 
     async def stop(self):
+        """Stop the cleanup loop. Called in lifespan shutdown."""
         if self._cleanup_task:
             self._cleanup_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
@@ -57,6 +77,7 @@ class BackgroundProcessor:
             self._cleanup_task = None
 
     async def _cleanup_loop(self):
+        """Every 60s, remove jobs that completed/failed more than TTL ago."""
         while True:
             await asyncio.sleep(60)
             now = datetime.now(timezone.utc)
@@ -76,6 +97,12 @@ class BackgroundProcessor:
         source_type: str = "file", extra_data: Any = None,
         output_options: Optional[dict] = None,
     ) -> str:
+        """Create a job and start processing it in the background.
+
+        Returns the job ID immediately. Processing happens in a
+        fire-and-forget asyncio task. The caller polls GET /jobs/{id}
+        to check completion.
+        """
         job_id = uuid.uuid4().hex[:12]
         job = BackgroundJob(job_id, file_name, file_type, content, output_format, source_type, extra_data, output_options)
         self._jobs[job_id] = job
@@ -83,9 +110,11 @@ class BackgroundProcessor:
         return job_id
 
     def get_job(self, job_id: str) -> Optional[BackgroundJob]:
+        """Return the job or None if not found or already expired."""
         return self._jobs.get(job_id)
 
     async def _run_job(self, job_id: str):
+        """Execute the actual OCR processing. Dispatches by source_type."""
         job = self._jobs[job_id]
         job.status = "processing"
         start = time.time()

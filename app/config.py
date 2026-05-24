@@ -1,3 +1,15 @@
+"""System configuration via pydantic-settings.
+
+All settings are prefixed with OCR_ and loaded from .env or environment
+variables. The module-level settings singleton is imported throughout
+the application.
+
+Key defaults:
+    - OCR_API_KEYS=# disables auth (local dev)
+    - OCR_DB_PATH="" means env-var auth mode (legacy)
+    - OCR_GOTENBERG_URL=http://localhost:3000
+"""
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
 
@@ -10,7 +22,7 @@ class Settings(BaseSettings):
     use_textline_orientation: bool = True
 
     # File Upload
-    max_file_size: int = 50 * 1024 * 1024  # 50MB
+    max_file_size: int = 50 * 1024 * 1024
     upload_dir: str = "/tmp"
     allowed_content_types: str = (
         "image/jpeg,image/png,image/bmp,image/tiff,image/webp,"
@@ -27,17 +39,17 @@ class Settings(BaseSettings):
 
     # Output
     output_dir: str = "app/outputs"
-    output_ttl: int = 3600  # old page images / markdown assets cleaned after this
+    output_ttl: int = 3600
 
-    # Concurrency
+    # Concurrency (PaddleOCR is not thread-safe — 2 max is safe for most CPUs)
     max_concurrent_jobs: int = 2
 
     # Gotenberg
     gotenberg_url: str = "http://localhost:3000"
 
     # Auth
-    api_keys: str = "#"  # comma-separated. "#" disables auth
-    db_path: str = ""  # path to SQLite DB. empty = use env-var auth
+    api_keys: str = "#"
+    db_path: str = ""
 
     # URL safety
     url_max_length: int = 2048
@@ -57,6 +69,7 @@ class Settings(BaseSettings):
 
     @property
     def allowed_types_list(self) -> list[str]:
+        """Parsed comma-separated MIME types."""
         return [t.strip() for t in self.allowed_content_types.split(",")]
 
     @property
@@ -69,10 +82,15 @@ class Settings(BaseSettings):
 
     @property
     def api_keys_list(self) -> list[str]:
+        """Parsed comma-separated API keys."""
         return [k.strip() for k in self.api_keys.split(",") if k.strip()]
 
     @property
     def api_key_map(self) -> dict[str, str]:
+        """Map of key -> name from key=name,key=name pairs.
+
+        Keys without = get name "unknown". Only used in env-var auth mode.
+        """
         result = {}
         for item in self.api_keys.split(","):
             item = item.strip()
@@ -87,10 +105,12 @@ class Settings(BaseSettings):
 
     @property
     def url_blocked_domain_list(self) -> list[str]:
+        """Parsed comma-separated blocked domain list."""
         return [d.strip() for d in self.url_blocked_domains.split(",") if d.strip()]
 
     @property
     def url_allowed_domain_list(self) -> list[str]:
+        """Parsed comma-separated allowed domain list."""
         return [d.strip() for d in self.url_allowed_domains.split(",") if d.strip()]
 
 

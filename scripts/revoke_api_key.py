@@ -1,11 +1,18 @@
 #!/usr/bin/env python
-"""Revoke an API key by key prefix."""
+"""Revoke an API key by key prefix.
+
+Keys are soft-deleted: is_active is set to 0 and revoked_at is
+timestamped. The key hash remains in the database. There is no
+re-activation script.
+"""
 
 import argparse
 import os
 import sys
 from pathlib import Path
 
+# Add app/ to path so we can import services.db. Scripts run from
+# the project root or scripts/ directory.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "app"))
 
 from services.db import KeyDB
