@@ -1454,7 +1454,7 @@
       function addUrl(u) {
         u = u.trim()
         if (!u) return
-        if (!u.startsWith('http://') && !u.startsWith('https://')) u = 'https://' + u
+        if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(u)) u = 'https://' + u
         const m = mode()
         if (m === 'batch') {
           if (urlEntries.length >= MAX_BATCH_SIZE) {addResultCard('URL batch', 'fail', null, 'Max ' + MAX_BATCH_SIZE + ' URLs'); return }

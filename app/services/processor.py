@@ -81,12 +81,12 @@ async def process_url(
     output_format: str,
     options: Optional[dict] = None,
 ) -> tuple[object, str | None, float]:
-    validate_url(url_str)
     async with _ocr_semaphore:
         start = time.time()
         stem = uuid.uuid4().hex
         safe = settings.upload_dir_path / f"{stem}.pdf"
         try:
+            validate_url(url_str)
             safe = await converter.url_to_pdf(url_str, safe)
             display_name = f"{stem}.pdf"
             if output_format == "markdown":

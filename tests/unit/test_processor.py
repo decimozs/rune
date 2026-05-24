@@ -107,6 +107,28 @@ class TestProcessUrl:
         assert "RuntimeError" in error
         assert "Gotenberg down" in error
 
+    @patch("app.services.processor.uuid.uuid4")
+    @patch("app.services.processor.converter")
+    @patch("app.services.processor.ocr_service")
+    async def test_process_url_validation_error_caught(
+        self, mock_ocr, mock_converter, mock_uuid, tmp_path
+    ):
+        from app.services.processor import process_url
+        from app.config import settings
+        from services.exceptions import OCRValidationError
+
+        settings.upload_dir = str(tmp_path)
+        mock_uuid.return_value.hex = "valid01"
+        mock_converter.url_to_pdf = AsyncMock(return_value=tmp_path / "valid01.pdf")
+
+        result, error, elapsed = await process_url(
+            "file:///etc/passwd", "json"
+        )
+
+        assert result is None
+        assert "OCRValidationError" in error
+        assert "Only http/https" in error
+
 
 class TestProcessHtml:
     @patch("app.services.processor.uuid.uuid4")
