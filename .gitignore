@@ -21,3 +21,6 @@ htmlcov/
 app/outputs/
 tests/outputs/
 app/datasets/
+
+# Runtime data (SQLite DB, etc.)
+app/data/

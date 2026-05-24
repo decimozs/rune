@@ -8,6 +8,7 @@ tests/
 outputs/
 app/datasets/
 app/outputs/
+app/data/
 *.md
 docs/
 .agents/

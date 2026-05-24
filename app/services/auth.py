@@ -8,7 +8,9 @@ from config import settings
 
 async def verify_api_key(x_api_key: str | None = Header(None)) -> str | None:
     db = svc_db.key_db
-    if settings.db_path and db and db.is_initialized:
+    if settings.db_path:
+        if not db or not db.is_initialized:
+            raise HTTPException(503, "Auth database not initialized")
         if not x_api_key:
             raise HTTPException(401, "Missing API key")
         key_hash = hashlib.sha256(x_api_key.encode()).hexdigest()

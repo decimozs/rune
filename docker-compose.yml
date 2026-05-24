@@ -17,8 +17,10 @@ services:
     env_file: .env
     environment:
       OCR_GOTENBERG_URL: http://gotenberg:3000
+      OCR_DB_PATH: /app/data/ocr.db
     volumes:
-      - paddle_models:/home/appuser/.paddleocr 
+      - paddle_models:/home/appuser/.paddleocr
+      - ocr_data:/app/data
     depends_on:
       gotenberg:
         condition: service_healthy
@@ -30,4 +32,5 @@ services:
       retries: 3
 
 volumes:
-  paddle_models: 
+  paddle_models:
+  ocr_data: 

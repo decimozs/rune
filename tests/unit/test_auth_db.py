@@ -78,6 +78,23 @@ class TestDbAuth:
              patch("services.auth.settings.api_keys", "sk-fallback=admin"):
             assert await self._call("sk-fallback") == "admin"
 
+    async def test_db_mode_fail_closed_when_keydb_none(self):
+        with patch("services.auth.settings.db_path", "/some/db"), \
+             patch("services.db.key_db", None):
+            from fastapi import HTTPException
+            with pytest.raises(HTTPException) as exc:
+                await self._call("any-key")
+            assert exc.value.status_code == 503
+
+    async def test_db_mode_fail_closed_when_keydb_uninitialized(self):
+        with patch("services.auth.settings.db_path", "/some/db"), \
+             patch("services.db.key_db") as mock_db:
+            mock_db.is_initialized = False
+            from fastapi import HTTPException
+            with pytest.raises(HTTPException) as exc:
+                await self._call("any-key")
+            assert exc.value.status_code == 503
+
     async def test_env_fallback_disabled(self, db, settings_with_db):
         with patch("services.auth.settings.db_path", ""), \
              patch("services.auth.settings.api_keys", "#"):

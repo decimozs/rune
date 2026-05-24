@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 COPY --from=builder /app/.venv /app/.venv
+COPY scripts/ scripts/
 COPY app/ app/
 RUN useradd -m -r appuser && chown -R appuser:appuser /app
 USER appuser
