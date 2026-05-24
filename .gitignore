@@ -12,6 +12,11 @@ wheels/
 # Environment
 .env
 
+# Coverage reports
+.coverage
+coverage/
+htmlcov/
+
 # Generated outputs
 app/outputs/
 tests/outputs/
