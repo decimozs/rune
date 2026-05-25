@@ -18,9 +18,12 @@ services:
     environment:
       OCR_GOTENBERG_URL: http://gotenberg:3000
       OCR_DB_PATH: /app/data/ocr.db
+      OCR_OUTPUT_DIR: /app/outputs
+      OCR_ASSET_BASE_URL: http://localhost:8080
     volumes:
       - paddle_models:/home/appuser/.paddleocr
       - ocr_data:/app/data
+      - ocr_assets:/app/outputs
     depends_on:
       gotenberg:
         condition: service_healthy
@@ -31,6 +34,18 @@ services:
       timeout: 5s
       retries: 3
 
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ocr_assets:/usr/share/nginx/html
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - ocr
+    restart: unless-stopped
+
 volumes:
   paddle_models:
-  ocr_data: 
+  ocr_data:
+  ocr_assets: 

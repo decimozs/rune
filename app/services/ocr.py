@@ -73,9 +73,9 @@ class OCRService:
     ) -> dict:
         """OCR with PaddleOCR → structured dict for JSON output.
 
-        Page images are saved to pages/{stem}/page_{N}.png and served
-        via /assets/ static mount. The stem is a random UUID to avoid
-        collisions.
+        Page images are saved to pages/{stem}/page_{N}.png in the
+        shared ocr_assets volume and served by nginx. The stem is a
+        random UUID to avoid collisions.
         """
         stem = uuid.uuid4().hex
         result = self.engine.predict(file_path)

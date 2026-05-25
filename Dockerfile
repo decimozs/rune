@@ -24,11 +24,15 @@ WORKDIR /app
 COPY --from=builder /app/.venv /app/.venv
 COPY scripts/ scripts/
 COPY app/ app/
-RUN useradd -m -r appuser && chown -R appuser:appuser /app
-USER appuser
+RUN useradd -m -r appuser && \
+    mkdir -p /app/data /app/outputs /home/appuser/.paddleocr && \
+    chown -R appuser:appuser /app /home/appuser/.paddleocr
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD curl -f http://localhost:80/health || exit 1
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["uv", "run", "uvicorn", "main:app", \
      "--app-dir", "./app", \
      "--host", "0.0.0.0", \

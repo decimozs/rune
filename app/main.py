@@ -1,13 +1,12 @@
 """FastAPI application entrypoint.
 
 Wires together all services, middleware, exception handlers, and
-static file mounts. The lifespan function controls startup and
+background tasks. The lifespan function controls startup and
 shutdown ordering (important: KeyDB → PaddleOCR → converters →
 processors → cleaners).
 
-PaddleOCR model loading blocks for ~22s on first run. The /assets
-static mount serves page images and markdown images from the
-output directory.
+Page images and markdown images are served by nginx from the
+shared ocr_assets volume.
 """
 
 import logging
@@ -20,7 +19,6 @@ from config import settings
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 from routes.health import router as health_router
 from routes.ocr import router as ocr_router
 from services.async_job import async_job_processor
@@ -87,9 +85,6 @@ app.add_middleware(
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
-)
-app.mount(
-    "/assets", StaticFiles(directory=str(settings.output_dir_path)), name="assets"
 )
 app.include_router(health_router)
 app.include_router(ocr_router)

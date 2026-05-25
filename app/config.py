@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     # Output
     output_dir: str = "app/outputs"
     output_ttl: int = 3600
+    asset_base_url: str = ""
 
     # Concurrency (PaddleOCR is not thread-safe — 2 max is safe for most CPUs)
     max_concurrent_jobs: int = 2

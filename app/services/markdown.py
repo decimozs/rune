@@ -2,8 +2,9 @@
 
 PPStructureV3 returns a per-page result object with a .markdown
 attribute containing markdown text and embedded image references.
-This module merges per-page results, saves images to disk, and
-rewrites image paths so they serve from the /assets/ static mount.
+This module merges per-page results, saves images to the shared
+ocr_assets volume, and rewrites image paths so nginx can serve
+them.
 
 PDF and image inputs share the same logic. The only difference is
 that PDF markdown is also written to {output_dir}/{filename}.md
@@ -44,7 +45,7 @@ class MarkdownConverter:
             content_type: Determines whether to write .md to disk.
 
         Returns:
-            Markdown string with /assets/imgs/ paths for images.
+            Markdown string with nginx-served /assets/imgs/ paths for images.
         """
         settings.output_dir_path.mkdir(parents=True, exist_ok=True)
 
@@ -93,9 +94,10 @@ class MarkdownConverter:
                         file_path.parent.mkdir(parents=True, exist_ok=True)
                         image.save(file_path)
 
-        # Rewrite relative imgs/ paths to absolute /assets/imgs/ URLs
-        raw_text = re.sub(r"(!\[.*?\]\()imgs/", r"\1/assets/imgs/", raw_text)
-        raw_text = re.sub(r'(<img[^>]*src=")imgs/', r"\1/assets/imgs/", raw_text)
+        # Rewrite relative imgs/ paths to nginx-served URLs
+        base = settings.asset_base_url
+        raw_text = re.sub(r"(!\[.*?\]\()imgs/", rf"\1{base}/assets/imgs/", raw_text)
+        raw_text = re.sub(r'(<img[^>]*src=")imgs/', rf"\1{base}/assets/imgs/", raw_text)
         return raw_text
 
     def _handle_image(self, result) -> str:
@@ -128,7 +130,8 @@ class MarkdownConverter:
                         file_path.parent.mkdir(parents=True, exist_ok=True)
                         image.save(file_path)
 
-        # Rewrite relative imgs/ paths to absolute /assets/imgs/ URLs
-        raw_text = re.sub(r"(!\[.*?\]\()imgs/", r"\1/assets/imgs/", raw_text)
-        raw_text = re.sub(r'(<img[^>]*src=")imgs/', r"\1/assets/imgs/", raw_text)
+        # Rewrite relative imgs/ paths to nginx-served URLs
+        base = settings.asset_base_url
+        raw_text = re.sub(r"(!\[.*?\]\()imgs/", rf"\1{base}/assets/imgs/", raw_text)
+        raw_text = re.sub(r'(<img[^>]*src=")imgs/', rf"\1{base}/assets/imgs/", raw_text)
         return raw_text

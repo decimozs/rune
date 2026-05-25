@@ -9,8 +9,8 @@ PaddleOCR's predict() returns a list of dicts. Each page dict has:
 
 This module maps those raw lists into typed Pydantic models
 (WordBlock, OCRPage, OCRResult), optionally filtering fields
-via JsonOutputOptions, and saves page images to disk for
-serving via /assets/ static mount.
+via JsonOutputOptions, and saves page images to the shared
+ocr_assets volume so nginx can serve them.
 """
 
 import logging
@@ -83,7 +83,7 @@ class OCRFormatter:
                     import cv2
 
                     cv2.imwrite(str(img_path), img)
-                    page_image_url = f"/assets/pages/{stem}/page_{page_num}.png"
+                    page_image_url = f"{settings.asset_base_url}/assets/pages/{stem}/page_{page_num}.png"
 
             extracted_text = None
             if options is None or options.include_extracted_text:
