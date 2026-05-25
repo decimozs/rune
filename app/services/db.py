@@ -11,9 +11,8 @@ tracks which have been applied.
 
 import hashlib
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
 
 import aiosqlite
 
@@ -39,6 +38,7 @@ def generate_raw_key() -> str:
     recovered later. The SHA-256 hash is what gets stored.
     """
     import secrets
+
     return "sk_live_" + secrets.token_urlsafe(32)
 
 
@@ -47,7 +47,7 @@ class KeyDB:
 
     def __init__(self, db_path: str):
         self.db_path = db_path
-        self._conn: Optional[aiosqlite.Connection] = None
+        self._conn: aiosqlite.Connection | None = None
 
     @property
     def is_initialized(self) -> bool:
@@ -62,7 +62,9 @@ class KeyDB:
         await self._conn.execute("PRAGMA journal_mode=WAL")
         await self._conn.execute("PRAGMA foreign_keys=ON")
         await self._migrate()
-        logger.info("KeyDB initialized at %s (schema v%d)", self.db_path, SCHEMA_VERSION)
+        logger.info(
+            "KeyDB initialized at %s (schema v%d)", self.db_path, SCHEMA_VERSION
+        )
 
     async def _migrate(self) -> None:
         """Apply any pending schema migrations in order."""
@@ -85,11 +87,11 @@ class KeyDB:
                 await migration(self._conn)
                 await self._conn.execute(
                     "INSERT INTO _schema_version (version, applied_at) VALUES (?, ?)",
-                    (v, datetime.now(timezone.utc).isoformat()),
+                    (v, datetime.now(UTC).isoformat()),
                 )
         await self._conn.commit()
 
-    async def get_key(self, key_hash: str) -> Optional[dict]:
+    async def get_key(self, key_hash: str) -> dict | None:
         """Look up a key by its SHA-256 hash. Returns None if not found."""
         if not self._conn:
             return None
@@ -112,15 +114,17 @@ class KeyDB:
             return
         await self._conn.execute(
             "UPDATE api_keys SET last_used_at = ? WHERE key_hash = ?",
-            (datetime.now(timezone.utc).isoformat(), key_hash),
+            (datetime.now(UTC).isoformat(), key_hash),
         )
         await self._conn.commit()
 
-    async def add_key(self, key_hash: str, prefix: str, name: str, team: str = "") -> None:
+    async def add_key(
+        self, key_hash: str, prefix: str, name: str, team: str = ""
+    ) -> None:
         """Insert a new key. Raises IntegrityError if key_hash already exists."""
         if not self._conn:
             raise RuntimeError("KeyDB not initialized")
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         await self._conn.execute(
             "INSERT INTO api_keys (key_prefix, key_hash, name, team, created_at) VALUES (?, ?, ?, ?, ?)",
             (prefix, key_hash, name, team, now),
@@ -131,7 +135,7 @@ class KeyDB:
         """Soft-delete a key by hash. Returns True if a key was actually revoked."""
         if not self._conn:
             return False
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         cur = await self._conn.execute(
             "UPDATE api_keys SET is_active = 0, revoked_at = ? WHERE key_hash = ? AND is_active = 1",
             (now, key_hash),
@@ -143,7 +147,7 @@ class KeyDB:
         """Soft-delete keys by prefix. Returns True if at least one revoked."""
         if not self._conn:
             return False
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         cur = await self._conn.execute(
             "UPDATE api_keys SET is_active = 0, revoked_at = ? WHERE key_prefix = ? AND is_active = 1",
             (now, prefix),
@@ -177,13 +181,14 @@ async def _migrate_from_env(db: aiosqlite.Connection) -> None:
     of truth.
     """
     from config import settings
+
     if settings.api_keys == "#":
         return
     cur = await db.execute("SELECT COUNT(*) FROM api_keys")
     row = await cur.fetchone()
     if row and row[0] > 0:
         return
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     for item in settings.api_keys_list:
         if "=" in item:
             key, name = item.split("=", 1)
@@ -221,4 +226,4 @@ MIGRATIONS = {1: _v1}
 
 # Module-level singleton. None at import time; set in main.py lifespan
 # when OCR_DB_PATH is configured. Consumers must guard against None.
-key_db: Optional[KeyDB] = None
+key_db: KeyDB | None = None

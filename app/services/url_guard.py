@@ -11,10 +11,9 @@ All checks throw OCRValidationError which maps to HTTP 400.
 """
 
 import ipaddress
+import logging
 import re
 import socket
-import ipaddress
-import logging
 from urllib.parse import urlparse
 
 from config import settings
@@ -44,7 +43,9 @@ def validate_url(url: str) -> None:
 
     if parsed.scheme not in ("http", "https"):
         logger.warning("Blocked URL (bad scheme): scheme=%s", parsed.scheme)
-        raise OCRValidationError(f"Only http/https URLs are allowed, got: {parsed.scheme}")
+        raise OCRValidationError(
+            f"Only http/https URLs are allowed, got: {parsed.scheme}"
+        )
 
     hostname = parsed.hostname or ""
     if not hostname:
@@ -63,7 +64,9 @@ def validate_url(url: str) -> None:
         allowlist = settings.url_allowed_domain_list
         if not allowlist:
             logger.warning("Blocked URL (no allowlist): host=%s", hostname)
-            raise OCRValidationError("Company-domains-only mode enabled but no allowed domains configured")
+            raise OCRValidationError(
+                "Company-domains-only mode enabled but no allowed domains configured"
+            )
         if not any(hostname == d or hostname.endswith("." + d) for d in allowlist):
             logger.warning("Blocked URL (not in allowlist): host=%s", hostname)
             raise OCRValidationError("Domain not in company allowlist")
@@ -110,7 +113,9 @@ def _check_host(hostname: str) -> None:
 
     for pattern, msg in _PRIVATE_PATTERNS:
         if re.match(pattern, hostname):
-            logger.warning("Blocked URL (IP pattern): host=%s, reason=%s", hostname, msg)
+            logger.warning(
+                "Blocked URL (IP pattern): host=%s, reason=%s", hostname, msg
+            )
             raise OCRValidationError(msg)
 
     ip_match = re.match(r"^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$", hostname)
@@ -141,7 +146,9 @@ def _check_host(hostname: str) -> None:
     try:
         resolved = socket.gethostbyaddr(ip_str)[0] if not ip_match else hostname
         if resolved in _BARE_HOST_BLOCK:
-            logger.warning("Blocked URL (reverse DNS): host=%s, resolved=%s", hostname, resolved)
+            logger.warning(
+                "Blocked URL (reverse DNS): host=%s, resolved=%s", hostname, resolved
+            )
             raise OCRValidationError("Resolved to local/private host")
     except (socket.herror, socket.gaierror):
         pass

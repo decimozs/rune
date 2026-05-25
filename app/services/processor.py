@@ -12,24 +12,27 @@ and CPU-bound. Temp files are cleaned up in finally blocks.
 """
 
 import asyncio
+import logging
 import time
 import uuid
-import magic
-import logging
 from pathlib import Path
-from typing import Optional, Union
 
+import magic
 from config import settings
+from schemas.ocr import JsonOutputOptions
 from services.converter import converter
+from services.log_ctx import sanitize_url
 from services.ocr import ocr_service
 from services.url_guard import validate_url
-from services.log_ctx import sanitize_url
-from schemas.ocr import JsonOutputOptions
 
 logger = logging.getLogger(__name__)
 
 TEXT_BASED_TYPES = {
-    "text/csv", "text/plain", "text/rtf", "text/html", "message/rfc822",
+    "text/csv",
+    "text/plain",
+    "text/rtf",
+    "text/html",
+    "message/rfc822",
 }
 
 # Module-level semaphore bounds concurrent PaddleOCR calls across ALL
@@ -43,7 +46,7 @@ async def _run_ocr(
     display_name: str,
     detected_type: str,
     output_format: str,
-    options: Optional[dict] = None,
+    options: dict | None = None,
 ):
     """Dispatch to the right OCR backend by output format. Shared by all source types."""
     if output_format == "markdown":
@@ -61,11 +64,11 @@ async def _run_ocr(
 
 
 async def process_file(
-    content: Union[bytes, Path],
+    content: bytes | Path,
     filename: str,
     declared_type: str,
     output_format: str,
-    options: Optional[dict] = None,
+    options: dict | None = None,
 ) -> tuple[object, str | None, float]:
     """Full OCR pipeline for an uploaded file.
 
@@ -82,8 +85,16 @@ async def process_file(
     """
     async with _ocr_semaphore:
         start = time.time()
-        content_size = len(content) if isinstance(content, bytes) else Path(content).stat().st_size
-        logger.info("Processing file: name=%s, type=%s, size=%d, format=%s", filename, declared_type, content_size, output_format)
+        content_size = (
+            len(content) if isinstance(content, bytes) else Path(content).stat().st_size
+        )
+        logger.info(
+            "Processing file: name=%s, type=%s, size=%d, format=%s",
+            filename,
+            declared_type,
+            content_size,
+            output_format,
+        )
 
         if isinstance(content, Path):
             safe = content
@@ -101,11 +112,19 @@ async def process_file(
                 detected = magic.from_file(str(safe), mime=True)
                 if detected not in settings.allowed_types_list:
                     safe.unlink(missing_ok=True)
-                    logger.warning("Unsupported type: name=%s, detected=%s", filename, detected)
-                    return None, f"Unsupported type: {detected}", round((time.time() - start) * 1000, 2)
+                    logger.warning(
+                        "Unsupported type: name=%s, detected=%s", filename, detected
+                    )
+                    return (
+                        None,
+                        f"Unsupported type: {detected}",
+                        round((time.time() - start) * 1000, 2),
+                    )
 
             if converter.needs_conversion(detected):
-                logger.info("Converting via Gotenberg: name=%s, type=%s", filename, detected)
+                logger.info(
+                    "Converting via Gotenberg: name=%s, type=%s", filename, detected
+                )
                 safe = await converter.to_pdf(safe, detected)
                 detected = "application/pdf"
 
@@ -114,7 +133,9 @@ async def process_file(
             elapsed = round((time.time() - start) * 1000, 2)
             logger.info(
                 "Processing complete: name=%s, format=%s, duration=%sms",
-                filename, output_format, elapsed,
+                filename,
+                output_format,
+                elapsed,
             )
             return result, None, elapsed
 
@@ -122,7 +143,9 @@ async def process_file(
             elapsed = round((time.time() - start) * 1000, 2)
             logger.error(
                 "Processing failed: name=%s, error=%s, duration=%sms",
-                filename, e, elapsed,
+                filename,
+                e,
+                elapsed,
             )
             return None, f"{type(e).__name__}: {e}", elapsed
 
@@ -133,7 +156,7 @@ async def process_file(
 async def process_url(
     url_str: str,
     output_format: str,
-    options: Optional[dict] = None,
+    options: dict | None = None,
 ) -> tuple[object, str | None, float]:
     """Full OCR pipeline for a URL source.
 
@@ -141,14 +164,18 @@ async def process_url(
     """
     async with _ocr_semaphore:
         start = time.time()
-        logger.info("Processing URL: url=%s, format=%s", sanitize_url(url_str), output_format)
+        logger.info(
+            "Processing URL: url=%s, format=%s", sanitize_url(url_str), output_format
+        )
         stem = uuid.uuid4().hex
         safe = settings.upload_dir_path / f"{stem}.pdf"
         try:
             validate_url(url_str)
             safe = await converter.url_to_pdf(url_str, safe)
             display_name = f"{stem}.pdf"
-            result = await _run_ocr(safe, display_name, "application/pdf", output_format, options)
+            result = await _run_ocr(
+                safe, display_name, "application/pdf", output_format, options
+            )
             elapsed = round((time.time() - start) * 1000, 2)
             logger.info("URL processing complete: duration=%sms", elapsed)
             return result, None, elapsed
@@ -163,7 +190,7 @@ async def process_url(
 async def process_html(
     files: list[tuple[str, bytes]],
     output_format: str,
-    options: Optional[dict] = None,
+    options: dict | None = None,
 ) -> tuple[object, str | None, float]:
     """Full OCR pipeline for HTML + assets upload.
 
@@ -178,9 +205,13 @@ async def process_html(
             files_dict = {name: content for name, content in files}
             safe = await converter.html_to_pdf(files_dict, safe)
             display_name = f"{stem}.pdf"
-            result = await _run_ocr(safe, display_name, "application/pdf", output_format, options)
+            result = await _run_ocr(
+                safe, display_name, "application/pdf", output_format, options
+            )
             elapsed = round((time.time() - start) * 1000, 2)
-            logger.info("HTML processing complete: files=%d, duration=%sms", len(files), elapsed)
+            logger.info(
+                "HTML processing complete: files=%d, duration=%sms", len(files), elapsed
+            )
             return result, None, elapsed
         except Exception as e:
             elapsed = round((time.time() - start) * 1000, 2)
@@ -188,4 +219,3 @@ async def process_html(
             return None, f"{type(e).__name__}: {e}", elapsed
         finally:
             safe.unlink(missing_ok=True)
-

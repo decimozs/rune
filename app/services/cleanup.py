@@ -13,7 +13,6 @@ import contextlib
 import logging
 import time
 from pathlib import Path
-from typing import Optional
 
 from config import settings
 
@@ -26,7 +25,7 @@ class OutputCleaner:
     """Background task that removes expired OCR output files."""
 
     def __init__(self):
-        self._task: Optional[asyncio.Task] = None
+        self._task: asyncio.Task | None = None
 
     async def start(self):
         """Start the periodic sweep loop. Called in lifespan."""

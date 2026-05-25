@@ -6,8 +6,9 @@ the async job API responses.
 """
 
 from datetime import datetime
+from typing import Any
+
 from pydantic import BaseModel, field_validator
-from typing import Any, Optional
 
 
 class BoundingBox(BaseModel):
@@ -15,6 +16,7 @@ class BoundingBox(BaseModel):
 
     Order typically follows: top-left, top-right, bottom-right, bottom-left.
     """
+
     points: list[list[float]]
 
     @field_validator("points")
@@ -34,6 +36,7 @@ class JsonOutputOptions(BaseModel):
     Setting any to False strips the field from the response entirely
     (not set to null), via exclude_none=True in the final model dump.
     """
+
     include_bbox: bool = True
     include_confidence: bool = True
     include_extracted_text: bool = True
@@ -42,56 +45,62 @@ class JsonOutputOptions(BaseModel):
 
 class WordBlock(BaseModel):
     """A single recognized word with optional bounding box and confidence."""
+
     text: str
-    confidence: Optional[float] = None
-    bbox: Optional[BoundingBox] = None
+    confidence: float | None = None
+    bbox: BoundingBox | None = None
 
 
 class OCRPage(BaseModel):
     """One page of OCR results. page_image_url links to the rendered page image."""
+
     page: int
     words: list[WordBlock]
-    extracted_text: Optional[str] = None
-    page_image_url: Optional[str] = None
-    ocr_width: Optional[int] = None
-    ocr_height: Optional[int] = None
+    extracted_text: str | None = None
+    page_image_url: str | None = None
+    ocr_width: int | None = None
+    ocr_height: int | None = None
 
 
 class OCRResult(BaseModel):
     """Complete OCR result across all pages."""
+
     pages: list[OCRPage]
 
 
 class BatchItemResult(BaseModel):
     """Result for one file in a batch. success=False if processing failed."""
+
     file_name: str
     file_type: str
     processing_time_ms: float
     success: bool
-    data: Optional[Any] = None
-    error: Optional[dict] = None
+    data: Any | None = None
+    error: dict | None = None
 
 
 class BatchStatus(BaseModel):
     """Response model for GET /parse/batch/{id}."""
+
     batch_id: str
     status: str
     total_files: int
     completed: int
     failed: int
-    processing_time_ms: Optional[float] = None
-    items: list[Optional[BatchItemResult]]
+    processing_time_ms: float | None = None
+    items: list[BatchItemResult | None]
     created_at: datetime
 
 
 class SingleJobStatus(BaseModel):
     """Response model for GET /parse/jobs/{id}."""
+
     job_id: str
     status: str
     file_name: str
     file_type: str
     created_at: datetime
-    completed_at: Optional[datetime] = None
-    processing_time_ms: Optional[float] = None
-    data: Optional[Any] = None
-    error: Optional[dict] = None
+    completed_at: datetime | None = None
+    processing_time_ms: float | None = None
+    data: Any | None = None
+    error: dict | None = None

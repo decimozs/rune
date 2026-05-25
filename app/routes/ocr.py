@@ -14,20 +14,23 @@ buffers in memory for the job's TTL lifetime.
 """
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from enum import StrEnum
 from pathlib import Path
 from typing import cast
-from enum import Enum
-from fastapi import APIRouter, File, Form, Query, UploadFile, HTTPException, Depends
+
 from config import settings
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from schemas.ocr import BatchItemResult, BatchStatus, JsonOutputOptions, SingleJobStatus
 from schemas.response import APIResponse, ResponseMetadata
-from services.processor import process_file, process_url, process_html
-from services.async_job import async_job_processor, MAX_BATCH_SIZE
+from services.async_job import MAX_BATCH_SIZE, async_job_processor
 from services.auth import verify_api_key
-from schemas.ocr import BatchItemResult, BatchStatus, SingleJobStatus, JsonOutputOptions
+from services.processor import process_file, process_html, process_url
 
 
-def _split_group_by_html(entries: list[tuple[str, bytes]]) -> list[list[tuple[str, bytes]]]:
+def _split_group_by_html(
+    entries: list[tuple[str, bytes]],
+) -> list[list[tuple[str, bytes]]]:
     """Split uploaded files into groups by HTML file boundary.
 
     Each group starts with an .html/.htm file and includes subsequent
@@ -50,7 +53,7 @@ def _split_group_by_html(entries: list[tuple[str, bytes]]) -> list[list[tuple[st
     return [g for g in items if any(n.endswith((".html", ".htm")) for n, _ in g)]
 
 
-class OutputFormat(str, Enum):
+class OutputFormat(StrEnum):
     json = "json"
     markdown = "markdown"
     xml = "xml"
@@ -82,7 +85,7 @@ def build_response(
     return APIResponse(
         success=True,
         metadata=ResponseMetadata(
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             model=settings.version,
             format=output_format.value,
             processing_time_ms=elapsed,
@@ -128,7 +131,13 @@ async def parse_file(
 
     filename = cast(str, file.filename)
     content_type = cast(str, file.content_type)
-    opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
+    opts = _build_options(
+        output_format,
+        include_bbox=include_bbox,
+        include_confidence=include_confidence,
+        include_extracted_text=include_extracted_text,
+        include_page_image=include_page_image,
+    )
 
     data, error, elapsed = await process_file(
         content, filename, content_type, output_format.value, options=opts
@@ -164,18 +173,28 @@ async def create_job(
     safe = settings.upload_dir_path / f"{stem}_{Path(filename).name}"
     safe.write_bytes(content)
 
-    opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
+    opts = _build_options(
+        output_format,
+        include_bbox=include_bbox,
+        include_confidence=include_confidence,
+        include_extracted_text=include_extracted_text,
+        include_page_image=include_page_image,
+    )
 
     job_id = async_job_processor.create_job(
-        filename, content_type, output_format.value,
-        source_type="file", temp_path=str(safe), output_options=opts,
+        filename,
+        content_type,
+        output_format.value,
+        source_type="file",
+        temp_path=str(safe),
+        output_options=opts,
     )
     job = async_job_processor.get_job(job_id)
 
     return APIResponse(
         success=True,
         metadata=ResponseMetadata(
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             model=settings.version,
             format=output_format.value,
         ),
@@ -202,7 +221,7 @@ async def get_job_status(
     return APIResponse(
         success=True,
         metadata=ResponseMetadata(
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             model=settings.version,
             format=job.output_format,
         ),
@@ -246,14 +265,22 @@ async def parse_batch(
         safe = settings.upload_dir_path / f"{stem}_{Path(cast(str, f.filename)).name}"
         safe.write_bytes(content)
         files_data.append((cast(str, f.filename), cast(str, f.content_type), str(safe)))
-    opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
-    batch_id = async_job_processor.create_batch(files_data, output_format.value, output_options=opts)
+    opts = _build_options(
+        output_format,
+        include_bbox=include_bbox,
+        include_confidence=include_confidence,
+        include_extracted_text=include_extracted_text,
+        include_page_image=include_page_image,
+    )
+    batch_id = async_job_processor.create_batch(
+        files_data, output_format.value, output_options=opts
+    )
     job = async_job_processor.get_job(batch_id)
 
     return APIResponse(
         success=True,
         metadata=ResponseMetadata(
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             model=settings.version,
             format=output_format.value,
         ),
@@ -298,7 +325,7 @@ async def get_batch_status(
     return APIResponse(
         success=True,
         metadata=ResponseMetadata(
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             model=settings.version,
             format=job.output_format,
         ),
@@ -331,7 +358,13 @@ async def parse_url(
     identity: str | None = Depends(verify_api_key),
 ):
     """OCR a web page URL. Returns result synchronously."""
-    opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
+    opts = _build_options(
+        output_format,
+        include_bbox=include_bbox,
+        include_confidence=include_confidence,
+        include_extracted_text=include_extracted_text,
+        include_page_image=include_page_image,
+    )
     data, error, elapsed = await process_url(url, output_format.value, options=opts)
     if error:
         raise HTTPException(500, detail=error)
@@ -349,16 +382,36 @@ async def create_url_job(
     identity: str | None = Depends(verify_api_key),
 ):
     """Submit a URL for background OCR. Returns job ID immediately (202)."""
-    opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
+    opts = _build_options(
+        output_format,
+        include_bbox=include_bbox,
+        include_confidence=include_confidence,
+        include_extracted_text=include_extracted_text,
+        include_page_image=include_page_image,
+    )
     job_id = async_job_processor.create_job(
-        url, "source/url", output_format.value,
-        source_type="url", extra_data=url, output_options=opts,
+        url,
+        "source/url",
+        output_format.value,
+        source_type="url",
+        extra_data=url,
+        output_options=opts,
     )
     job = async_job_processor.get_job(job_id)
     return APIResponse(
         success=True,
-        metadata=ResponseMetadata(timestamp=datetime.now(timezone.utc), model=settings.version, format=output_format.value),
-        data={"job_id": job_id, "status": job.status, "file_name": url, "file_type": "source/url", "created_at": job.created_at.isoformat()},
+        metadata=ResponseMetadata(
+            timestamp=datetime.now(UTC),
+            model=settings.version,
+            format=output_format.value,
+        ),
+        data={
+            "job_id": job_id,
+            "status": job.status,
+            "file_name": url,
+            "file_type": "source/url",
+            "created_at": job.created_at.isoformat(),
+        },
     ).model_dump(exclude_none=True)
 
 
@@ -377,13 +430,30 @@ async def parse_url_batch(
         raise HTTPException(413, f"Max {MAX_BATCH_SIZE} URLs per batch")
     if len(url) == 0:
         raise HTTPException(400, "At least one URL required")
-    opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
-    batch_id = async_job_processor.create_batch(url, output_format.value, source_type="url", output_options=opts)
+    opts = _build_options(
+        output_format,
+        include_bbox=include_bbox,
+        include_confidence=include_confidence,
+        include_extracted_text=include_extracted_text,
+        include_page_image=include_page_image,
+    )
+    batch_id = async_job_processor.create_batch(
+        url, output_format.value, source_type="url", output_options=opts
+    )
     job = async_job_processor.get_job(batch_id)
     return APIResponse(
         success=True,
-        metadata=ResponseMetadata(timestamp=datetime.now(timezone.utc), model=settings.version, format=output_format.value),
-        data={"batch_id": batch_id, "status": job.status, "total_files": job.total_files, "created_at": job.created_at.isoformat()},
+        metadata=ResponseMetadata(
+            timestamp=datetime.now(UTC),
+            model=settings.version,
+            format=output_format.value,
+        ),
+        data={
+            "batch_id": batch_id,
+            "status": job.status,
+            "total_files": job.total_files,
+            "created_at": job.created_at.isoformat(),
+        },
     ).model_dump(exclude_none=True)
 
 
@@ -411,8 +481,16 @@ async def parse_html(
         if len(content) > settings.max_file_size:
             raise HTTPException(413, f"File too large: {f.filename}")
         file_tuples.append((cast(str, f.filename), content))
-    opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
-    data, error, elapsed = await process_html(file_tuples, output_format.value, options=opts)
+    opts = _build_options(
+        output_format,
+        include_bbox=include_bbox,
+        include_confidence=include_confidence,
+        include_extracted_text=include_extracted_text,
+        include_page_image=include_page_image,
+    )
+    data, error, elapsed = await process_html(
+        file_tuples, output_format.value, options=opts
+    )
     if error:
         raise HTTPException(500, detail=error)
     return build_response(data, output_format, "index.html", "source/html", elapsed)
@@ -437,16 +515,36 @@ async def create_html_job(
         if len(content) > settings.max_file_size:
             raise HTTPException(413, f"File too large: {f.filename}")
         file_tuples.append((cast(str, f.filename), content))
-    opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
+    opts = _build_options(
+        output_format,
+        include_bbox=include_bbox,
+        include_confidence=include_confidence,
+        include_extracted_text=include_extracted_text,
+        include_page_image=include_page_image,
+    )
     job_id = async_job_processor.create_job(
-        "index.html", "source/html", output_format.value,
-        source_type="html", extra_data=file_tuples, output_options=opts,
+        "index.html",
+        "source/html",
+        output_format.value,
+        source_type="html",
+        extra_data=file_tuples,
+        output_options=opts,
     )
     job = async_job_processor.get_job(job_id)
     return APIResponse(
         success=True,
-        metadata=ResponseMetadata(timestamp=datetime.now(timezone.utc), model=settings.version, format=output_format.value),
-        data={"job_id": job_id, "status": job.status, "file_name": "index.html", "file_type": "source/html", "created_at": job.created_at.isoformat()},
+        metadata=ResponseMetadata(
+            timestamp=datetime.now(UTC),
+            model=settings.version,
+            format=output_format.value,
+        ),
+        data={
+            "job_id": job_id,
+            "status": job.status,
+            "file_name": "index.html",
+            "file_type": "source/html",
+            "created_at": job.created_at.isoformat(),
+        },
     ).model_dump(exclude_none=True)
 
 
@@ -478,13 +576,28 @@ async def parse_html_batch(
     if len(items) > MAX_BATCH_SIZE:
         raise HTTPException(413, f"Max {MAX_BATCH_SIZE} file sets per batch")
 
-    opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
-    batch_id = async_job_processor.create_batch(items, output_format.value, source_type="html", output_options=opts)
+    opts = _build_options(
+        output_format,
+        include_bbox=include_bbox,
+        include_confidence=include_confidence,
+        include_extracted_text=include_extracted_text,
+        include_page_image=include_page_image,
+    )
+    batch_id = async_job_processor.create_batch(
+        items, output_format.value, source_type="html", output_options=opts
+    )
     job = async_job_processor.get_job(batch_id)
     return APIResponse(
         success=True,
-        metadata=ResponseMetadata(timestamp=datetime.now(timezone.utc), model=settings.version, format=output_format.value),
-        data={"batch_id": batch_id, "status": job.status, "total_files": job.total_files, "created_at": job.created_at.isoformat()},
+        metadata=ResponseMetadata(
+            timestamp=datetime.now(UTC),
+            model=settings.version,
+            format=output_format.value,
+        ),
+        data={
+            "batch_id": batch_id,
+            "status": job.status,
+            "total_files": job.total_files,
+            "created_at": job.created_at.isoformat(),
+        },
     ).model_dump(exclude_none=True)
-
-

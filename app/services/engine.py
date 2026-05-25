@@ -11,11 +11,12 @@ rather than concrete classes. Tests use FakeOCREngine and
 FakeStructureEngine instead of patching import paths.
 """
 
-import time
 import logging
+import time
 from typing import Protocol, runtime_checkable
-from paddleocr import PaddleOCR, PPStructureV3
+
 from config import settings
+from paddleocr import PaddleOCR, PPStructureV3
 
 logger = logging.getLogger(__name__)
 

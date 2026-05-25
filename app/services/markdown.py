@@ -10,9 +10,10 @@ that PDF markdown is also written to {output_dir}/{filename}.md
 on disk for direct file access.
 """
 
-import re
 import logging
+import re
 from typing import TYPE_CHECKING
+
 from config import settings
 
 if TYPE_CHECKING:
@@ -93,8 +94,8 @@ class MarkdownConverter:
                         image.save(file_path)
 
         # Rewrite relative imgs/ paths to absolute /assets/imgs/ URLs
-        raw_text = re.sub(r'(!\[.*?\]\()imgs/', r'\1/assets/imgs/', raw_text)
-        raw_text = re.sub(r'(<img[^>]*src=")imgs/', r'\1/assets/imgs/', raw_text)
+        raw_text = re.sub(r"(!\[.*?\]\()imgs/", r"\1/assets/imgs/", raw_text)
+        raw_text = re.sub(r'(<img[^>]*src=")imgs/', r"\1/assets/imgs/", raw_text)
         return raw_text
 
     def _handle_image(self, result) -> str:
@@ -128,6 +129,6 @@ class MarkdownConverter:
                         image.save(file_path)
 
         # Rewrite relative imgs/ paths to absolute /assets/imgs/ URLs
-        raw_text = re.sub(r'(!\[.*?\]\()imgs/', r'\1/assets/imgs/', raw_text)
-        raw_text = re.sub(r'(<img[^>]*src=")imgs/', r'\1/assets/imgs/', raw_text)
+        raw_text = re.sub(r"(!\[.*?\]\()imgs/", r"\1/assets/imgs/", raw_text)
+        raw_text = re.sub(r'(<img[^>]*src=")imgs/', r"\1/assets/imgs/", raw_text)
         return raw_text

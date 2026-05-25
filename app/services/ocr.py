@@ -16,12 +16,17 @@ processor.py wraps them in asyncio.to_thread.
 
 import logging
 import uuid
-from typing import Optional
-from services.engine import OCREngineProtocol, StructureEngineProtocol, PaddleOCREngine, PaddleStructureEngine
+
+from schemas.ocr import JsonOutputOptions
+from services.engine import (
+    OCREngineProtocol,
+    PaddleOCREngine,
+    PaddleStructureEngine,
+    StructureEngineProtocol,
+)
 from services.formatter import OCRFormatter
 from services.markdown import MarkdownConverter
 from services.xml_formatter import to_xml as format_xml
-from schemas.ocr import JsonOutputOptions
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +69,7 @@ class OCRService:
         file_path: str,
         filename: str,
         content_type: str,
-        options: Optional[JsonOutputOptions] = None,
+        options: JsonOutputOptions | None = None,
     ) -> dict:
         """OCR with PaddleOCR → structured dict for JSON output.
 

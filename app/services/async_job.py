@@ -10,16 +10,16 @@ Batch jobs (create_batch): sequential per-item processing with
 error isolation. Both types share the same cleanup loop.
 """
 
-import uuid
-import time
 import asyncio
 import contextlib
 import logging
+import time
+import uuid
+from datetime import UTC, datetime
 from pathlib import Path
-from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
-from services.processor import process_file, process_url, process_html
+from services.processor import process_file, process_html, process_url
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ class BatchItemResult:
         processing_time_ms: float,
         success: bool,
         data: Any = None,
-        error: Optional[dict] = None,
+        error: dict | None = None,
     ):
         self.file_name = file_name
         self.file_type = file_type
@@ -64,10 +64,10 @@ class AsyncJob:
         job_id: str,
         output_format: str,
         source_type: str = "file",
-        output_options: Optional[dict] = None,
-        file_name: Optional[str] = None,
-        file_type: Optional[str] = None,
-        temp_path: Optional[str] = None,
+        output_options: dict | None = None,
+        file_name: str | None = None,
+        file_type: str | None = None,
+        temp_path: str | None = None,
         extra_data: Any = None,
     ):
         self.id = job_id
@@ -75,19 +75,19 @@ class AsyncJob:
         self.output_format = output_format
         self.source_type = source_type
         self.output_options = output_options
-        self.created_at = datetime.now(timezone.utc)
-        self.completed_at: Optional[datetime] = None
-        self.processing_time_ms: Optional[float] = None
+        self.created_at = datetime.now(UTC)
+        self.completed_at: datetime | None = None
+        self.processing_time_ms: float | None = None
 
         self.file_name = file_name
         self.file_type = file_type
         self.data: Any = None
-        self.error: Optional[dict] = None
+        self.error: dict | None = None
         self.temp_path = temp_path
         self.extra_data = extra_data
 
         self.total_files: int = 0
-        self.results: list[Optional[BatchItemResult]] = []
+        self.results: list[BatchItemResult | None] = []
         self._files: list = []
 
 
@@ -96,7 +96,7 @@ class AsyncJobProcessor:
 
     def __init__(self):
         self._jobs: dict[str, AsyncJob] = {}
-        self._cleanup_task: Optional[asyncio.Task] = None
+        self._cleanup_task: asyncio.Task | None = None
 
     async def start(self):
         """Start the TTL-based cleanup loop. Called in lifespan."""
@@ -114,7 +114,7 @@ class AsyncJobProcessor:
         """Every 60s, remove jobs that completed/failed more than TTL ago."""
         while True:
             await asyncio.sleep(60)
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             expired = [
                 jid
                 for jid, job in self._jobs.items()
@@ -132,9 +132,9 @@ class AsyncJobProcessor:
         file_type: str,
         output_format: str,
         source_type: str = "file",
-        temp_path: Optional[str] = None,
+        temp_path: str | None = None,
         extra_data: Any = None,
-        output_options: Optional[dict] = None,
+        output_options: dict | None = None,
     ) -> str:
         """Create a single-item background job.
 
@@ -171,7 +171,7 @@ class AsyncJobProcessor:
         files: list,
         output_format: str,
         source_type: str = "file",
-        output_options: Optional[dict] = None,
+        output_options: dict | None = None,
     ) -> str:
         """Create a batch job with multiple items.
 
@@ -187,11 +187,14 @@ class AsyncJobProcessor:
         asyncio.create_task(self._run_batch(batch_id))
         logger.info(
             "Created batch job: id=%s, files=%d, source=%s, format=%s",
-            batch_id, len(files), source_type, output_format,
+            batch_id,
+            len(files),
+            source_type,
+            output_format,
         )
         return batch_id
 
-    def get_job(self, job_id: str) -> Optional[AsyncJob]:
+    def get_job(self, job_id: str) -> AsyncJob | None:
         """Return the job or None if not found or already expired."""
         return self._jobs.get(job_id)
 
@@ -221,8 +224,11 @@ class AsyncJobProcessor:
                 )
             else:
                 data, error, elapsed = await process_file(
-                    Path(job.temp_path), job.file_name, job.file_type,
-                    job.output_format, options=job.output_options,
+                    Path(job.temp_path),
+                    job.file_name,
+                    job.file_type,
+                    job.output_format,
+                    options=job.output_options,
                 )
 
             if error:
@@ -230,7 +236,9 @@ class AsyncJobProcessor:
                 job.status = "failed"
                 logger.error(
                     "Background job failed: id=%s, error=%s, duration=%sms",
-                    job_id, error, elapsed,
+                    job_id,
+                    error,
+                    elapsed,
                 )
             else:
                 job.data = data
@@ -240,7 +248,7 @@ class AsyncJobProcessor:
                 )
 
             job.processing_time_ms = elapsed
-            job.completed_at = datetime.now(timezone.utc)
+            job.completed_at = datetime.now(UTC)
 
         except Exception:
             elapsed = round((time.time() - start) * 1000, 2)
@@ -253,7 +261,7 @@ class AsyncJobProcessor:
             }
             job.status = "failed"
             job.processing_time_ms = elapsed
-            job.completed_at = datetime.now(timezone.utc)
+            job.completed_at = datetime.now(UTC)
 
     async def _run_batch(self, batch_id: str):
         """Process batch items SEQUENTIALLY.
@@ -266,11 +274,10 @@ class AsyncJobProcessor:
         job = self._jobs[batch_id]
         job.status = "processing"
         start = time.time()
-        logger.info(
-            "Processing batch job: id=%s, files=%d", batch_id, job.total_files
-        )
+        logger.info("Processing batch job: id=%s, files=%d", batch_id, job.total_files)
 
         try:
+
             async def process_one(index: int):
                 try:
                     if job.source_type == "url":
@@ -282,7 +289,8 @@ class AsyncJobProcessor:
                         ct = "source/url"
                     elif job.source_type == "html":
                         data, error, elapsed = await process_html(
-                            job._files[index], job.output_format,
+                            job._files[index],
+                            job.output_format,
                             options=job.output_options,
                         )
                         fn = f"html_{index}"
@@ -294,7 +302,10 @@ class AsyncJobProcessor:
                         else:
                             content = data_or_path
                         data, error, elapsed = await process_file(
-                            content, fn, ct, job.output_format,
+                            content,
+                            fn,
+                            ct,
+                            job.output_format,
                             options=job.output_options,
                         )
                     job.results[index] = BatchItemResult(
@@ -304,19 +315,27 @@ class AsyncJobProcessor:
                         success=error is None,
                         data=data if error is None else None,
                         error={"code": "PROCESSING_ERROR", "message": error}
-                        if error else None,
+                        if error
+                        else None,
                     )
                     if error:
                         logger.error(
                             "Batch item failed: batch=%s, index=%d, name=%s, "
                             "error=%s, duration=%sms",
-                            batch_id, index, fn, error, elapsed,
+                            batch_id,
+                            index,
+                            fn,
+                            error,
+                            elapsed,
                         )
                     else:
                         logger.info(
                             "Batch item done: batch=%s, index=%d, name=%s, "
                             "duration=%sms",
-                            batch_id, index, fn, elapsed,
+                            batch_id,
+                            index,
+                            fn,
+                            elapsed,
                         )
                 except Exception:
                     elapsed = round((time.time() - start) * 1000, 2)
@@ -337,7 +356,9 @@ class AsyncJobProcessor:
             for i in range(job.total_files):
                 logger.info(
                     "Batch progress: batch=%s, item=%d/%d",
-                    batch_id, i + 1, job.total_files,
+                    batch_id,
+                    i + 1,
+                    job.total_files,
                 )
                 await process_one(i)
 
@@ -348,10 +369,12 @@ class AsyncJobProcessor:
         job.processing_time_ms = round((time.time() - start) * 1000, 2)
         if job.status != "failed":
             job.status = "completed"
-        job.completed_at = datetime.now(timezone.utc)
+        job.completed_at = datetime.now(UTC)
         logger.info(
             "Batch completed: id=%s, files=%d, duration=%sms",
-            batch_id, job.total_files, job.processing_time_ms,
+            batch_id,
+            job.total_files,
+            job.processing_time_ms,
         )
 
 

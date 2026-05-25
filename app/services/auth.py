@@ -1,10 +1,9 @@
 import hashlib
 import logging
+
 import services.db as svc_db
-
-from fastapi import Header, HTTPException
-
 from config import settings
+from fastapi import Header, HTTPException
 from services.log_ctx import identity_var
 
 logger = logging.getLogger(__name__)

@@ -10,26 +10,31 @@ static mount serves page images and markdown images from the
 output directory.
 """
 
-import uuid
-import time
 import logging
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
+import time
+import uuid
 from contextlib import asynccontextmanager
 
-from config import settings
-from routes.ocr import router as ocr_router
-from routes.health import router as health_router
-from services.ocr import ocr_service
-from services.async_job import async_job_processor
-from services.converter import converter
-from services.cleanup import output_cleaner
 import services.db as svc_db
+from config import settings
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from routes.health import router as health_router
+from routes.ocr import router as ocr_router
+from services.async_job import async_job_processor
+from services.cleanup import output_cleaner
+from services.converter import converter
 from services.db import KeyDB
-from services.exceptions import OCRValidationError, OCRRuntimeError
-from services.log_ctx import LogContextFilter, JSONFormatter, request_id_var, identity_var, sanitize_url
+from services.exceptions import OCRRuntimeError, OCRValidationError
+from services.log_ctx import (
+    JSONFormatter,
+    LogContextFilter,
+    identity_var,
+    request_id_var,
+)
+from services.ocr import ocr_service
 
 logging.basicConfig(
     level=getattr(logging, settings.log_level),
@@ -128,7 +133,11 @@ async def http_exception_handler(request, exc: HTTPException):
     ident = identity_var.get()
     logger.warning(
         "HTTP %d on %s %s (identity=%s): %s",
-        exc.status_code, request.method, request.url.path, ident, exc.detail,
+        exc.status_code,
+        request.method,
+        request.url.path,
+        ident,
+        exc.detail,
     )
     return JSONResponse(
         status_code=exc.status_code,
@@ -148,7 +157,9 @@ async def validation_error_handler(request, exc: OCRValidationError):
     ident = identity_var.get()
     logger.warning(
         "Validation error on %s (identity=%s): %s",
-        request.url.path, ident, exc,
+        request.url.path,
+        ident,
+        exc,
     )
     return JSONResponse(
         status_code=400,
@@ -168,7 +179,9 @@ async def runtime_error_handler(request, exc: OCRRuntimeError):
     ident = identity_var.get()
     logger.error(
         "Runtime error on %s (identity=%s): %s",
-        request.url.path, ident, exc,
+        request.url.path,
+        ident,
+        exc,
     )
     return JSONResponse(
         status_code=500,
@@ -187,7 +200,9 @@ async def global_error_handler(request, exc: Exception):
     """Catch-all for unexpected errors. Returns generic message to client."""
     ident = identity_var.get()
     logger.exception(
-        "Unhandled exception on %s (identity=%s)", request.url.path, ident,
+        "Unhandled exception on %s (identity=%s)",
+        request.url.path,
+        ident,
     )
     return JSONResponse(
         status_code=500,

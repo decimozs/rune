@@ -21,9 +21,10 @@ Uses ElementTree for structure and minidom for pretty-printing.
 No third-party dependencies.
 """
 
-from xml.etree.ElementTree import Element, SubElement, tostring
-from xml.dom import minidom
 from typing import Any
+from xml.dom import minidom
+from xml.etree.ElementTree import Element, SubElement, tostring
+
 from schemas.ocr import OCRResult
 
 
@@ -37,7 +38,9 @@ def to_xml(result: dict[str, Any]) -> str:
         words_el = SubElement(page_el, "words")
 
         for w in page.words:
-            word_el = SubElement(words_el, "word", confidence=str(round(w.confidence, 4)))
+            word_el = SubElement(
+                words_el, "word", confidence=str(round(w.confidence, 4))
+            )
             text_el = SubElement(word_el, "text")
             text_el.text = w.text
             _build_bbox(word_el, w.bbox.points)

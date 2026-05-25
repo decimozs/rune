@@ -14,10 +14,10 @@ serving via /assets/ static mount.
 """
 
 import logging
-from pathlib import Path
-from typing import Any, Optional
+from typing import Any
+
 from config import settings
-from schemas.ocr import BoundingBox, WordBlock, OCRPage, OCRResult, JsonOutputOptions
+from schemas.ocr import BoundingBox, JsonOutputOptions, OCRPage, OCRResult, WordBlock
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class OCRFormatter:
     def structure(
         result: list[dict[str, Any]] | None,
         stem: str | None = None,
-        options: Optional[JsonOutputOptions] = None,
+        options: JsonOutputOptions | None = None,
     ) -> dict[str, Any]:
         """Convert PaddleOCR page list into a structured OCRResult dict.
 
@@ -51,14 +51,18 @@ class OCRFormatter:
 
             words = []
             for text, score, box in zip(texts, scores, boxes):
-                bbox = BoundingBox(
-                    points=box.tolist() if hasattr(box, "tolist") else box
-                ) if options is None or options.include_bbox else None
+                bbox = (
+                    BoundingBox(points=box.tolist() if hasattr(box, "tolist") else box)
+                    if options is None or options.include_bbox
+                    else None
+                )
 
                 words.append(
                     WordBlock(
                         text=text,
-                        confidence=round(float(score), 4) if options is None or options.include_confidence else None,
+                        confidence=round(float(score), 4)
+                        if options is None or options.include_confidence
+                        else None,
                         bbox=bbox,
                     )
                 )
@@ -77,6 +81,7 @@ class OCRFormatter:
                     pages_dir.mkdir(parents=True, exist_ok=True)
                     img_path = pages_dir / f"page_{page_num}.png"
                     import cv2
+
                     cv2.imwrite(str(img_path), img)
                     page_image_url = f"/assets/pages/{stem}/page_{page_num}.png"
 

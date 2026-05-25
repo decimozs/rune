@@ -10,10 +10,10 @@ conversions. The httpx client is a singleton managed in main.py
 lifespan (start/stop).
 """
 
-import httpx
 import logging
 from pathlib import Path
-from typing import Self
+
+import httpx
 from config import settings
 
 logger = logging.getLogger(__name__)

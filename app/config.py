@@ -10,8 +10,9 @@ Key defaults:
     - OCR_GOTENBERG_URL=http://localhost:3000
 """
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
