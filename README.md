@@ -15,13 +15,13 @@ Internal OCR service for **Exist Software Labs**. Uses [PaddleOCR](https://githu
 - **aiosqlite** — SQLite-backed API key registry with SHA-256 hashing
 - **Docker** — multi-stage containerized deployment
 - **CORS** — `allow_origins=["*"]` for internal demo access
-- **Static Files** — `/assets` serves markdown images from OCR output
+- **nginx** — serves output images separately from the API
 
 ## Prerequisites
 
 - **Python** 3.11+
 - **uv** — `curl -LsSf https://astral.sh/uv/install.sh | sh`
-- **System libraries** — see [Prerequisites doc](kb/prerequisites.md) for per-OS breakdown
+- **System libraries** — see [Prerequisites doc](kb/tech/06-prerequisites.md) for per-OS breakdown
 - **Gotenberg** (optional, for office docs + URL/HTML conversion) — `docker run --rm -p 3000:3000 gotenberg/gotenberg:8`
 
 ## Installation
@@ -154,11 +154,22 @@ flowchart TB
 
 | Topic | Description |
 |---|---|
-| [Quick Start](kb/quickstart.md) | Prerequisites, local run, docker-compose, make |
-| [Prerequisites](kb/prerequisites.md) | System dependencies (apt, brew, uv, Gotenberg) |
-| [Configuration](kb/configuration.md) | Environment variables table |
-| [API Reference](kb/api.md) | All endpoints (file, URL, HTML) with curl examples and responses (JSON, Markdown, XML) |
-| [Testing Scripts](kb/scripts.md) | Scripts table and usage examples |
-| [Project Structure](kb/structure.md) | Directory layout |
+| | |
+|---|---|
+| **Technical** | |
+| [Architecture Overview](kb/tech/01-overview.md) | How the services fit together |
+| [Quick Start](kb/tech/02-quickstart.md) | Prerequisites, local run, docker-compose, make |
+| [API Reference](kb/tech/03-api.md) | All endpoints with curl examples and response formats |
+| [Configuration](kb/tech/04-configuration.md) | Environment variables table |
+| [Deployment Guide](kb/tech/05-deployment.md) | Docker, Azure VM, production setup |
+| [Prerequisites](kb/tech/06-prerequisites.md) | System dependencies (apt, brew, uv, Gotenberg) |
+| [Testing Scripts](kb/tech/07-scripts.md) | Scripts table and usage examples |
+| [Project Structure](kb/tech/08-structure.md) | Directory layout |
+| [Troubleshooting](kb/tech/09-troubleshooting.md) | Common errors and solutions |
+| **User Guide** (non-technical) | |
+| [What Is This?](kb/user-guide/01-what-is-this.md) | Plain English overview |
+| [Getting Started](kb/user-guide/02-getting-started.md) | How to use the OCR service |
+| [Understanding Results](kb/user-guide/03-understanding-results.md) | How to read JSON, Markdown, XML output |
+| [FAQ](kb/user-guide/04-faq.md) | Common questions |
 | [Demo Frontend](index.html) | Standalone UI — drag-and-drop, 3 source types (File/URL/HTML), 3 modes, markdown/XML preview |
 | [Makefile](Makefile) | Common task automation (dev, Docker, scripts) |
