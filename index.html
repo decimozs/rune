@@ -1678,7 +1678,7 @@
       function pollJob(jobId, card) {
         const timer = setInterval(async () => {
           try {
-            const resp = await fetch(`${apiUrl()}/ocr/parse/jobs/${jobId}`)
+            const resp = await fetch(`${apiUrl()}/ocr/parse/jobs/${jobId}`, {headers: getApiHeaders()})
             const json = await resp.json()
             const data = json.data
             if (data.status === 'completed') {
@@ -1745,7 +1745,7 @@
       function pollBatch(batchId, card) {
         const timer = setInterval(async () => {
           try {
-            const resp = await fetch(`${apiUrl()}/ocr/parse/batch/${batchId}`)
+            const resp = await fetch(`${apiUrl()}/ocr/parse/batch/${batchId}`, {headers: getApiHeaders()})
             const json = await resp.json()
             const data = json.data
 

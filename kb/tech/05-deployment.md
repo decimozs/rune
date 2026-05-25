@@ -20,12 +20,28 @@ docker compose up -d
 docker compose ps
 ```
 
+### UI Mode (--with-ui)
+
+By default, nginx only serves OCR image assets (`/assets/`). To also serve the `index.html` demo UI at the root, use the override file:
+
+```bash
+# Via Makefile
+make up-ui
+
+# Or directly
+docker compose -f docker-compose.yml -f docker-compose.ui.yml up -d
+```
+
+This adds `index.html` to nginx's document root so the demo UI is available at `http://localhost:8080`. The UI polls the API on `http://localhost:8000` for background/batch job results.
+
+To stop, use `make down` (same compose project).
+
 All three services start:
 
 | Service | Internal Port | External Port |
 |---|---|---|
 | OCR API | 80 | 8000 |
-| nginx (images) | 80 | 8080 |
+| nginx (images + optional UI) | 80 | 8080 |
 | Gotenberg | 3000 | 3000 |
 
 Data persists in Docker volumes:

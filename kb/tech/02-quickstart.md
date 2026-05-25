@@ -71,7 +71,8 @@ The server runs at `http://localhost:8000`. Images are served directly by FastAP
 
 | Command | What It Does |
 |---|---|
-| `make up` | Start all Docker services |
+| `make up` | Start all Docker services (headless) |
+| `make up-ui` | Start all Docker services with demo UI at `http://localhost:8080` |
 | `make down` | Stop all Docker services |
 | `make logs` | See logs from all containers |
 | `make rebuild` | Full clean rebuild (down, build, up) |
@@ -83,4 +84,7 @@ Run `make help` to see all available commands.
 
 ## Demo UI
 
-Open `index.html` in your browser (double-click the file — no server needed). This provides a simple drag-and-drop interface to upload files, choose output format, and see results with confidence-colored bounding boxes overlaid on the page image.
+Two ways to use it:
+
+- **Standalone**: Open `index.html` directly in your browser (double-click the file — no server needed). The UI fetches from the API URL you enter.
+- **Via nginx** (`make up-ui`): The UI is served at `http://localhost:8080` alongside OCR image assets. This mode is useful for teams who want to test via browser without opening the file directly.

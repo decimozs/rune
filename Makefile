@@ -8,7 +8,7 @@ KEY    ?=
 COMPOSE ?= docker compose
 SERVICE ?= ocr
 
-.PHONY: help install dev run test up down build rebuild restart logs ps app-logs \
+.PHONY: help install dev run test up up-ui down build rebuild restart logs ps app-logs \
         pull shell health test-routes test-formats test-auth benchmark stress convert clean
 
 help: ## Show this help
@@ -36,8 +36,11 @@ dev-stop: ## Stop Gotenberg container started by make dev
 run: ## Start production server
 	uv run fastapi run app/main.py --port 8000
 
-up: ## Start all Docker services
+up: ## Start all Docker services (headless)
 	$(COMPOSE) up -d
+
+up-ui: ## Start all Docker services with demo UI
+	$(COMPOSE) -f docker-compose.yml -f docker-compose.ui.yml up -d
 
 down: ## Stop all Docker services
 	$(COMPOSE) down
