@@ -1,175 +1,229 @@
 # Exist OCR Service
 
-Internal OCR service for **Exist Software Labs**. Uses [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) (PP-OCRv4) to extract text and bounding boxes from uploaded images, PDFs, office documents, URLs, and HTML pages.
+Internal OCR (Optical Character Recognition) service for **Exist Software Labs**. Takes images, PDFs, office documents, URLs, and HTML pages — extracts the text out of them.
 
-> **Status: Beta** — API and core features are stable. Additive refinements in progress.
+Uses [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) (PP-OCRv4), the open-source OCR engine from Baidu. Designed to run on your own infrastructure so documents never leave your network.
 
-## Tech Stack
+> **Status: Beta** — API and core features are stable. Active development in progress.
 
-- **Python** 3.11+ / **FastAPI** / **uv**
-- **PaddleOCR** (PP-OCRv4) — OCR + structure recognition
-- **pydantic-settings** — env config
-- **aiofiles** — async file I/O
-- **python-magic** — MIME type validation
-- **Gotenberg** — document-to-PDF conversion via LibreOffice + Chromium (reused httpx client)
-- **aiosqlite** — SQLite-backed API key registry with SHA-256 hashing
-- **Docker** — multi-stage containerized deployment
-- **CORS** — `allow_origins=["*"]` for internal demo access
-- **nginx** — serves output images separately from the API
+---
 
-## Prerequisites
+## Key Features
 
-- **Python** 3.11+
-- **uv** — `curl -LsSf https://astral.sh/uv/install.sh | sh`
-- **System libraries** — see [Prerequisites doc](kb/tech/06-prerequisites.md) for per-OS breakdown
-- **Gotenberg** (optional, for office docs + URL/HTML conversion) — `docker run --rm -p 3000:3000 gotenberg/gotenberg:8`
+- **Multiple input types** — images, PDFs, Word, Excel, PowerPoint, CSV, RTF, web URLs, HTML files
+- **Three processing modes** — synchronous (wait for result), background job (poll later), batch (many files at once)
+- **Three output formats** — JSON (structured with word positions), Markdown (formatted text), XML (machine-readable)
+- **Privacy-first** — runs on your own infrastructure, no data sent to third parties
+- **No per-document costs** — pay for the server once, process unlimited documents
+- **API key authentication** — database-backed with secure SHA-256 hashing
+- **SSRF protection** — URL endpoints block internal network addresses
+- **Auto-cleanup** — output files expire after 1 hour (configurable)
+- **Docker Compose** — single-command deployment with Gotenberg + nginx
 
-## Installation
+---
+
+## Quick Start
+
+### Docker Compose (Recommended)
 
 ```bash
-# Clone
 git clone <repo-url>
 cd exist-ocr
+cp .env.example .env
+# Edit .env — at minimum set OCR_API_KEYS
 
-# Install system deps (Ubuntu/Debian)
-sudo apt-get update && sudo apt-get install -y \
-  libmagic1 libgl1 libglib2.0-0 libsm6 libxext6 \
+docker compose up -d
+```
+
+| Service | URL | What It Does |
+|---|---|---|
+| OCR API | `http://localhost:8000` | Process files, return extracted text |
+| nginx | `http://localhost:8080` | Serve page images from OCR output |
+| Gotenberg | `http://localhost:3000` | Convert office docs to PDF |
+| API docs | `http://localhost:8000/docs` | Interactive Swagger UI |
+
+```bash
+# Test it
+curl -X POST http://localhost:8000/ocr/parse \
+  -H "X-API-Key: sk-local-dev" \
+  -F "file=@document.pdf"
+```
+
+### Local Development
+
+```bash
+# System deps (Ubuntu/Debian)
+sudo apt-get install -y libmagic1 libgl1 libglib2.0-0 libsm6 libxext6 \
   libxrender1 libgomp1 libstdc++6 libc6 curl poppler-utils
 
-# Install Python deps
+# Python deps
 uv sync
 
-# Start Gotenberg (for office doc + URL/HTML conversion)
+# Gotenberg (for office docs, URLs, HTML)
 docker run -d --rm -p 3000:3000 --name gotenberg gotenberg/gotenberg:8
 
-# Start dev server
+# Dev server with hot reload
 uv run fastapi dev app/main.py --port 8000
 ```
 
-Server at `http://localhost:8000`. API docs at `http://localhost:8000/docs`.
+### Makefile
 
-## Supported Files
+| Command | What It Does |
+|---|---|
+| `make up` | Start all Docker services |
+| `make down` | Stop all Docker services |
+| `make logs` | Follow logs from all services |
+| `make dev` | Start dev server with hot reload |
+| `make test` | Run unit tests |
+| `make health` | Check API liveness + readiness |
+| `make rebuild` | Clean rebuild (down → build → up) |
 
-Three input source types: **File** (upload), **URL** (fetch), and **HTML** (upload + assets). All three support JSON, Markdown, and XML output.
-
-### Source Types
-
-| Source Type | Formats | Pipeline |
-|---|---|---|
-| **File** (upload) | JPEG, PNG, BMP, TIFF, WebP, PDF, DOC, DOCX, PPT, PPTX, RTF, CSV, XLS, XLSX | Direct OCR, or Gotenberg LibreOffice → PDF → OCR |
-| **URL** | Any public URL | Gotenberg Chromium → PDF → OCR |
-| **HTML** | `index.html` + optional assets (CSS, JS, images) | Gotenberg Chromium → PDF → OCR |
-
-### File Upload — Full Format Table
-
-| Category | MIME Type | Format |
-|---|---|---|
-| Image | `image/jpeg` | JPEG |
-| Image | `image/png` | PNG |
-| Image | `image/bmp` | BMP |
-| Image | `image/tiff` | TIFF |
-| Image | `image/webp` | WebP |
-| Document | `application/pdf` | PDF |
-| Document | `application/msword` | DOC |
-| Document | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | DOCX |
-| Presentation | `application/vnd.ms-powerpoint` | PPT |
-| Presentation | `application/vnd.openxmlformats-officedocument.presentationml.presentation` | PPTX |
-| Document | `text/rtf` | RTF |
-| Spreadsheet | `text/csv` | CSV |
-| Spreadsheet | `application/vnd.ms-excel` | XLS |
-| Spreadsheet | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` | XLSX |
-
-> **⚠️ Gotenberg required** for: office documents (DOC, DOCX, PPT, PPTX, RTF, CSV, XLS, XLSX), URL sources, and HTML sources. Image and PDF uploads work without Gotenberg.
-
-## Output Formats
-
-All source types support three output formats:
-- **JSON** — structured OCR data with per-word bounding boxes, confidence scores, page image URLs
-- **Markdown** — extracted text with embedded images served under `/assets/imgs/`
-- **XML** — same data as JSON, formatted as pretty-printed XML string
+---
 
 ## Architecture
 
 ```mermaid
 flowchart TB
-  Client(["Client / curl / Scripts"])
+    Client["Client / curl / Scripts"] --> API["FastAPI (port 8000)\nProcesses files, returns text"]
+    Client --> NX["nginx (port 8080)\nServes page images"]
 
-  subgraph FastAPI["FastAPI Application"]
-    MW["Middleware\ntiming · X-Processing-Time-Ms"]
-    Routes["routes/\nocr.py + health.py\nPOST /ocr/parse\nPOST /ocr/parse/batch\nGET /ocr/parse/batch/{id}\nPOST /ocr/parse/jobs\nGET /ocr/parse/jobs/{id}\nPOST /ocr/parse/url\nPOST /ocr/parse/url/jobs\nPOST /ocr/parse/url/batch\nPOST /ocr/parse/html\nPOST /ocr/parse/html/jobs\nPOST /ocr/parse/html/batch\nGET /health\nGET /health/ready"]
-    PROC["processor.py\nshared pipeline\nwrite → magic → convert → OCR → cleanup"]
-    BP["BatchProcessor\nin-memory queue\n1hr TTL"]
-    BJP["BackgroundProcessor\nsingle-job queue\n1hr TTL"]
-    OCRS["OCRService\norchestrator"]
-    Conv["DocumentConverter\nreused httpx client"]
-  end
+    API --> GB["Gotenberg (port 3000)\nConverts office docs & URLs to PDF"]
+    API --> OCR["PaddleOCR + PPStructureV3\nReads text from images & PDFs"]
 
-  subgraph Paddle["PaddleOCR"]
-    ENGINE["OCREngine\nPP-OCRv4"]
-    STRUCT["StructureEngine\nPPStructureV3"]
-  end
+    API --> VOL[("ocr_assets volume\nShared output storage")]
+    VOL --> NX
 
-  Gotenberg[("Gotenberg\n(docker)")]
-  FS[("File System\n/uploads")]
+    API --> DB[("ocr_data volume\nSQLite API key DB")]
 
-  Client -->|multipart/file| MW
-  MW --> Routes
+    subgraph Processing["Processing Modes"]
+        SYNC["Sync (immediate)"]
+        JOB["Background job (poll later)"]
+        BATCH["Batch (many files at once)"]
+    end
 
-  Routes -->|sync| PROC
-  Routes -->|async batch| BP
-  Routes -->|async single| BJP
-
-  BP -->|background| PROC
-  BJP -->|background| PROC
-
-  PROC -->|to_thread| ENGINE
-  PROC -->|to_thread| STRUCT
-  PROC -->|needs conversion| Conv
-  PROC -->|URL/HTML source| Conv
-  Conv -->|HTTP POST LibreOffice / Chromium| Gotenberg
-  Gotenberg -->|PDF| Conv
-
-  ENGINE -->|OCR result| PROC
-  STRUCT -->|markdown| PROC
-
-  PROC -->|read| FS
-
-  style Client fill:#333,stroke:#000,stroke-width:1px,color:#fff
-  style FastAPI fill:#fafafa,stroke:#999,stroke-width:1px,color:#666,stroke-dasharray:6 4
-  style Paddle fill:#fafafa,stroke:#999,stroke-width:1px,color:#666,stroke-dasharray:6 4
-  style Routes fill:#eee,stroke:#555,stroke-width:1px,color:#000
-  style MW fill:#eee,stroke:#555,stroke-width:1px,color:#000
-  style PROC fill:#ddd,stroke:#000,stroke-width:1.5px,color:#000
-  style BP fill:#eee,stroke:#555,stroke-width:1px,color:#000
-  style BJP fill:#eee,stroke:#555,stroke-width:1px,color:#000
-  style OCRS fill:#eee,stroke:#555,stroke-width:1px,color:#000
-  style Conv fill:#eee,stroke:#555,stroke-width:1px,color:#000
-  style ENGINE fill:#eee,stroke:#555,stroke-width:1px,color:#000
-  style STRUCT fill:#eee,stroke:#555,stroke-width:1px,color:#000
-  style Gotenberg fill:#fff,stroke:#000,stroke-width:2px,color:#000
-  style FS fill:#fff,stroke:#000,stroke-width:2px,color:#000
+    API --> Processing
+    Processing --> |async| ASJ["AsyncJobProcessor\nIn-memory queues, 1hr TTL"]
+    ASJ --> |background| API
 ```
+
+Three services run in Docker containers:
+
+- **FastAPI** (the OCR application) — receives uploads, validates files, runs PaddleOCR, returns results
+- **Gotenberg** (document converter) — wraps LibreOffice + Chromium to convert office docs, URLs, and HTML to PDF
+- **nginx** (image server) — serves page images from a shared volume so the API stays focused on processing
+
+---
+
+## Supported Files
+
+| Source | Formats | Needs Gotenberg? |
+|---|---|---|
+| File upload | PNG, JPG, BMP, TIFF, WebP, PDF | No (images/PDF only) |
+| File upload | DOC, DOCX, PPT, PPTX, RTF, CSV, XLS, XLSX | Yes |
+| URL | Any public web page | Yes |
+| HTML | `index.html` + optional CSS/JS/images | Yes |
+
+---
+
+## Processing Modes
+
+| Mode | Endpoint | Use Case |
+|---|---|---|
+| **Sync** | `POST /ocr/parse` | One file, need result immediately |
+| **Background job** | `POST /ocr/parse/jobs` | One file, don't want to wait |
+| **Batch** | `POST /ocr/parse/batch` | Many files at once |
+
+Each URL and HTML source has its own sync, job, and batch variant:
+`/ocr/parse/url`, `/ocr/parse/url/jobs`, `/ocr/parse/url/batch`, `/ocr/parse/html`, `/ocr/parse/html/jobs`, `/ocr/parse/html/batch`.
+
+---
+
+## Output Formats
+
+| Format | What You Get |
+|---|---|
+| **JSON** | Every word, its position on the page (bounding box), confidence score, page image URL |
+| **Markdown** | Formatted text with tables, headings, embedded images |
+| **XML** | Same data as JSON in XML structure for integration with other tools |
+
+---
+
+## Authentication
+
+Three modes:
+
+| Mode | Setup | Key Storage |
+|---|---|---|
+| **Disabled** | Default (`OCR_API_KEYS=#`) | None |
+| **Environment variable** | Keys in `.env` | Plaintext, restart to change |
+| **SQLite database** (recommended) | `OCR_DB_PATH=app/data/ocr.db` | SHA-256 hashes, no restart |
+
+```bash
+uv run python scripts/create_api_key.py --name alice --team engineering --db-path app/data/ocr.db
+# → sk_live_AbCdEfGhIjKlMnOp
+```
+
+All POST endpoints and GET job/batch endpoints require the `X-API-Key` header when auth is enabled. Health endpoints are always open.
+
+---
+
+## Security
+
+- **SSRF protection** — URL endpoints block localhost, private IPs, and bad schemes
+- **File validation** — MIME type checked twice (header + content sniffing via libmagic)
+- **Filename sanitization** — path traversal prevented via `Path(filename).name`
+- **Auto-cleanup** — uploaded files deleted after processing, output files expire after 1 hour
+- **Concurrency limit** — max 2 simultaneous PaddleOCR calls (configurable, protects against memory issues)
+
+---
 
 ## Documentation
 
+### Technical
+
 | Topic | Description |
 |---|---|
-| | |
-|---|---|
-| **Technical** | |
-| [Architecture Overview](kb/tech/01-overview.md) | How the services fit together |
-| [Quick Start](kb/tech/02-quickstart.md) | Prerequisites, local run, docker-compose, make |
+| [Architecture Overview](kb/tech/01-overview.md) | Services, data flow, Mermaid diagram |
+| [Quick Start](kb/tech/02-quickstart.md) | Docker, local dev, Makefile, demo UI |
 | [API Reference](kb/tech/03-api.md) | All endpoints with curl examples and response formats |
 | [Configuration](kb/tech/04-configuration.md) | Environment variables table |
-| [Deployment Guide](kb/tech/05-deployment.md) | Docker, Azure VM, production setup |
+| [Deployment Guide](kb/tech/05-deployment.md) | Docker, Azure VM, systemd, backups |
 | [Prerequisites](kb/tech/06-prerequisites.md) | System dependencies (apt, brew, uv, Gotenberg) |
 | [Testing Scripts](kb/tech/07-scripts.md) | Scripts table and usage examples |
 | [Project Structure](kb/tech/08-structure.md) | Directory layout |
-| [Troubleshooting](kb/tech/09-troubleshooting.md) | Common errors and solutions |
-| **User Guide** (non-technical) | |
-| [What Is This?](kb/user-guide/01-what-is-this.md) | Plain English overview |
-| [Getting Started](kb/user-guide/02-getting-started.md) | How to use the OCR service |
+| [Troubleshooting](kb/tech/09-troubleshooting.md) | Common errors and fixes |
+
+### User Guide (non-technical)
+
+| Topic | Description |
+|---|---|
+| [What Is This?](kb/user-guide/01-what-is-this.md) | Plain English overview with analogies |
+| [Getting Started](kb/user-guide/02-getting-started.md) | Web UI, curl, Python/JS examples |
 | [Understanding Results](kb/user-guide/03-understanding-results.md) | How to read JSON, Markdown, XML output |
 | [FAQ](kb/user-guide/04-faq.md) | Common questions |
-| [Demo Frontend](index.html) | Standalone UI — drag-and-drop, 3 source types (File/URL/HTML), 3 modes, markdown/XML preview |
-| [Makefile](Makefile) | Common task automation (dev, Docker, scripts) |
+
+### Other
+
+| File | Description |
+|---|---|
+| [Demo Frontend](index.html) | Standalone drag-and-drop UI, 3 source types, 3 modes, visualize bbox overlays |
+| [Makefile](Makefile) | Task automation (dev, Docker, scripts) |
+| [.env.example](.env.example) | Configuration template |
+
+---
+
+## Tech Stack
+
+| Component | Technology | Purpose |
+|---|---|---|
+| **OCR engine** | PaddleOCR (PP-OCRv4) | Text recognition from images and PDFs |
+| **Structure engine** | PPStructureV3 | Table and layout recognition for markdown output |
+| **Web framework** | FastAPI / Python 3.12 | REST API, middleware, exception handling |
+| **Document conversion** | Gotenberg (LibreOffice + Chromium) | Office docs, URLs, HTML → PDF |
+| **Image server** | nginx | Serves output images, offloads FastAPI |
+| **Auth** | SQLite + SHA-256 | API key storage and verification |
+| **Deployment** | Docker Compose | Multi-container orchestration |
+
+## License
+
+Internal use — Exist Software Labs.
