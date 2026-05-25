@@ -46,13 +46,17 @@ def main():
         print("No API keys found.")
         return
 
-    print(f"{'ID':<4} {'Prefix':<20} {'Name':<20} {'Team':<20} {'Active':<8} {'Created':<24} {'Last Used':<24} {'Revoked':<24}")
+    print(
+        f"{'ID':<4} {'Prefix':<20} {'Name':<20} {'Team':<20} {'Active':<8} {'Created':<24} {'Last Used':<24} {'Revoked':<24}"
+    )
     print("-" * 144)
     for k in keys:
         active = "yes" if k["is_active"] else "no"
         lu = k.get("last_used_at") or ""
         rv = k.get("revoked_at") or ""
-        print(f"{k['id']:<4} {k['key_prefix']:<20} {k['name']:<20} {k['team']:<20} {active:<8} {k['created_at']:<24} {lu:<24} {rv:<24}")
+        print(
+            f"{k['id']:<4} {k['key_prefix']:<20} {k['name']:<20} {k['team']:<20} {active:<8} {k['created_at']:<24} {lu:<24} {rv:<24}"
+        )
 
 
 if __name__ == "__main__":

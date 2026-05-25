@@ -1,12 +1,13 @@
-import pytest
 from unittest.mock import patch
 
+import pytest
 from services.exceptions import OCRValidationError
 
 
 class TestValidateUrl:
     def _call(self, url):
         from services.url_guard import validate_url
+
         validate_url(url)
 
     @patch("services.url_guard.socket.gethostbyname")
@@ -24,11 +25,14 @@ class TestValidateUrl:
         mock_rdns.return_value = ("example.com", [], [])
         self._call("http://93.184.216.34/path")
 
-    @pytest.mark.parametrize("url", [
-        "file:///etc/passwd",
-        "ftp://files.example.com",
-        "data:text/plain,hello",
-    ])
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "file:///etc/passwd",
+            "ftp://files.example.com",
+            "data:text/plain,hello",
+        ],
+    )
     def test_bad_scheme_fails(self, url):
         with pytest.raises(OCRValidationError, match="Only http/https"):
             self._call(url)
@@ -41,32 +45,41 @@ class TestValidateUrl:
         with pytest.raises(OCRValidationError):
             self._call("")
 
-    @pytest.mark.parametrize("url,msg", [
-        ("http://localhost:8080/admin", "Local/private host not allowed"),
-        ("http://127.0.0.1:3000",  "Local/private host not allowed"),
-        ("http://127.0.0.1",       "Local/private host not allowed"),
-        ("http://0.0.0.0",         "Local/private host not allowed"),
-        ("http://[::1]",           "Local/private host not allowed"),
-    ])
+    @pytest.mark.parametrize(
+        "url,msg",
+        [
+            ("http://localhost:8080/admin", "Local/private host not allowed"),
+            ("http://127.0.0.1:3000", "Local/private host not allowed"),
+            ("http://127.0.0.1", "Local/private host not allowed"),
+            ("http://0.0.0.0", "Local/private host not allowed"),
+            ("http://[::1]", "Local/private host not allowed"),
+        ],
+    )
     def test_loopback_and_zero_fails(self, url, msg):
         with pytest.raises(OCRValidationError, match=msg):
             self._call(url)
 
-    @pytest.mark.parametrize("url", [
-        "http://10.0.0.1",
-        "http://10.255.255.255",
-        "http://192.168.1.1/dashboard",
-        "http://172.16.0.1",
-        "http://172.31.255.255",
-    ])
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "http://10.0.0.1",
+            "http://10.255.255.255",
+            "http://192.168.1.1/dashboard",
+            "http://172.16.0.1",
+            "http://172.31.255.255",
+        ],
+    )
     def test_private_ip_fails(self, url):
         with pytest.raises(OCRValidationError, match="Private IP"):
             self._call(url)
 
-    @pytest.mark.parametrize("url", [
-        "http://169.254.1.1",
-        "http://169.254.255.255",
-    ])
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "http://169.254.1.1",
+            "http://169.254.255.255",
+        ],
+    )
     def test_link_local_fails(self, url):
         with pytest.raises(OCRValidationError, match="Link-local"):
             self._call(url)
@@ -146,6 +159,7 @@ class TestAuth:
 
     async def _call(self, key=None):
         from services.auth import verify_api_key
+
         return await verify_api_key(key)
 
     @patch("services.auth.settings.api_keys", "#")
@@ -156,6 +170,7 @@ class TestAuth:
     @patch("services.auth.settings.api_keys", "sk-prod-abc")
     async def test_missing_key_returns_401(self):
         from fastapi import HTTPException
+
         with pytest.raises(HTTPException) as exc:
             await self._call(None)
         assert exc.value.status_code == 401
@@ -163,6 +178,7 @@ class TestAuth:
     @patch("services.auth.settings.api_keys", "sk-prod-abc")
     async def test_wrong_key_returns_401(self):
         from fastapi import HTTPException
+
         with pytest.raises(HTTPException) as exc:
             await self._call("sk-prod-wrong")
         assert exc.value.status_code == 401
@@ -184,6 +200,7 @@ class TestAuth:
     @patch("services.auth.settings.api_keys", "sk-abc=alice,sk-def=bob")
     async def test_key_not_in_list_returns_401(self):
         from fastapi import HTTPException
+
         with pytest.raises(HTTPException) as exc:
             await self._call("sk-nonexistent")
         assert exc.value.status_code == 401
@@ -191,5 +208,6 @@ class TestAuth:
     @patch("services.auth.settings.api_keys", "sk-abc=alice,sk-def=bob")
     async def test_empty_key_returns_401(self):
         from fastapi import HTTPException
+
         with pytest.raises(HTTPException):
             await self._call("")

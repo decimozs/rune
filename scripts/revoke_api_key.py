@@ -20,7 +20,9 @@ from services.db import KeyDB
 
 def main():
     parser = argparse.ArgumentParser(description="Revoke an API key")
-    parser.add_argument("--prefix", required=True, help="Key prefix to revoke (first 16 chars)")
+    parser.add_argument(
+        "--prefix", required=True, help="Key prefix to revoke (first 16 chars)"
+    )
     parser.add_argument(
         "--db-path",
         default=os.environ.get("OCR_DB_PATH", ""),

@@ -14,7 +14,7 @@ from pathlib import Path
 # the project root or scripts/ directory.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "app"))
 
-from services.db import hash_api_key, key_prefix, generate_raw_key, KeyDB
+from services.db import KeyDB, generate_raw_key, hash_api_key, key_prefix
 
 
 def main():

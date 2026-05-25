@@ -1,7 +1,5 @@
 import pytest
 
-from app.services.formatter import OCRFormatter
-
 
 def make_page(texts, scores, polys):
     return {"rec_texts": texts, "rec_scores": scores, "rec_polys": polys}
@@ -40,7 +38,16 @@ class TestStructure:
             ),
         ],
     )
-    def test_words(self, formatter, texts, scores, polys, expected_count, expected_text, expected_conf):
+    def test_words(
+        self,
+        formatter,
+        texts,
+        scores,
+        polys,
+        expected_count,
+        expected_text,
+        expected_conf,
+    ):
         raw = [make_page(texts, scores, polys)]
         result = formatter.structure(raw)
         page = result["pages"][0]

@@ -1,9 +1,8 @@
-from unittest.mock import AsyncMock, MagicMock, patch
-from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from app.services.converter import converter, DocumentConverter, CONVERTIBLE_TYPES
+from app.services.converter import CONVERTIBLE_TYPES, DocumentConverter, converter
 
 
 class TestConvertibleTypes:
@@ -11,7 +10,10 @@ class TestConvertibleTypes:
         "mime,expected",
         [
             ("application/msword", True),
-            ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", True),
+            (
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                True,
+            ),
             ("application/pdf", False),
             ("image/png", False),
             ("image/jpeg", False),
@@ -29,7 +31,10 @@ class TestNeedsConversion:
         "mime,expected",
         [
             ("application/msword", True),
-            ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", True),
+            (
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                True,
+            ),
             ("application/pdf", False),
             ("image/jpeg", False),
             ("application/zip", False),
@@ -53,7 +58,9 @@ class TestChromiumUrl:
         assert result == out
         assert out.read_bytes() == b"pdf-data"
         call_kwargs = c._client.post.call_args.kwargs
-        assert str(c._client.post.call_args.args[0]).endswith("/forms/chromium/convert/url")
+        assert str(c._client.post.call_args.args[0]).endswith(
+            "/forms/chromium/convert/url"
+        )
         assert call_kwargs["data"]["url"] == "https://example.com"
 
 
@@ -72,7 +79,9 @@ class TestChromiumHtml:
         assert result == out
         assert out.read_bytes() == b"pdf-data"
         call_kwargs = c._client.post.call_args.kwargs
-        assert str(c._client.post.call_args.args[0]).endswith("/forms/chromium/convert/html")
+        assert str(c._client.post.call_args.args[0]).endswith(
+            "/forms/chromium/convert/html"
+        )
         req_files = call_kwargs["files"]
         field_map = {f[1][0]: f[0] for f in req_files}
         assert field_map["index.html"] == "index.html"

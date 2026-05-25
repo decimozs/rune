@@ -1,9 +1,9 @@
 import hashlib
-import pytest
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch
 
+import pytest
 from services.auth import verify_api_key
-from services.db import KeyDB, hash_api_key, key_prefix, generate_raw_key
+from services.db import KeyDB, generate_raw_key, hash_api_key, key_prefix
 
 
 @pytest.fixture
@@ -18,8 +18,10 @@ async def db(tmp_path):
 
 @pytest.fixture
 def settings_with_db(db):
-    with patch("services.auth.settings.db_path", db.db_path), \
-         patch("services.db.key_db", db):
+    with (
+        patch("services.auth.settings.db_path", db.db_path),
+        patch("services.db.key_db", db),
+    ):
         yield
 
 
@@ -28,13 +30,16 @@ class TestDbAuth:
         return await verify_api_key(key)
 
     async def test_db_disabled_no_auth(self):
-        with patch("services.auth.settings.db_path", ""), \
-             patch("services.auth.settings.api_keys", "#"):
+        with (
+            patch("services.auth.settings.db_path", ""),
+            patch("services.auth.settings.api_keys", "#"),
+        ):
             assert await self._call(None) is None
             assert await self._call("any-key") is None
 
     async def test_db_mode_missing_key(self, db, settings_with_db):
         from fastapi import HTTPException
+
         with pytest.raises(HTTPException) as exc:
             await self._call(None)
         assert exc.value.status_code == 401
@@ -49,6 +54,7 @@ class TestDbAuth:
 
     async def test_db_mode_wrong_key(self, db, settings_with_db):
         from fastapi import HTTPException
+
         with pytest.raises(HTTPException) as exc:
             await self._call("sk_live_wrongkey1234567890abcdefghijklmnopqrs")
         assert exc.value.status_code == 401
@@ -60,6 +66,7 @@ class TestDbAuth:
         await db.add_key(kh, prefix, "test-user", "eng")
         await db.revoke_key(kh)
         from fastapi import HTTPException
+
         with pytest.raises(HTTPException) as exc:
             await self._call(raw)
         assert exc.value.status_code == 401
@@ -74,30 +81,40 @@ class TestDbAuth:
         assert keys[0]["last_used_at"] is not None
 
     async def test_env_fallback_when_db_path_empty(self, db, settings_with_db):
-        with patch("services.auth.settings.db_path", ""), \
-             patch("services.auth.settings.api_keys", "sk-fallback=admin"):
+        with (
+            patch("services.auth.settings.db_path", ""),
+            patch("services.auth.settings.api_keys", "sk-fallback=admin"),
+        ):
             assert await self._call("sk-fallback") == "admin"
 
     async def test_db_mode_fail_closed_when_keydb_none(self):
-        with patch("services.auth.settings.db_path", "/some/db"), \
-             patch("services.db.key_db", None):
+        with (
+            patch("services.auth.settings.db_path", "/some/db"),
+            patch("services.db.key_db", None),
+        ):
             from fastapi import HTTPException
+
             with pytest.raises(HTTPException) as exc:
                 await self._call("any-key")
             assert exc.value.status_code == 503
 
     async def test_db_mode_fail_closed_when_keydb_uninitialized(self):
-        with patch("services.auth.settings.db_path", "/some/db"), \
-             patch("services.db.key_db") as mock_db:
+        with (
+            patch("services.auth.settings.db_path", "/some/db"),
+            patch("services.db.key_db") as mock_db,
+        ):
             mock_db.is_initialized = False
             from fastapi import HTTPException
+
             with pytest.raises(HTTPException) as exc:
                 await self._call("any-key")
             assert exc.value.status_code == 503
 
     async def test_env_fallback_disabled(self, db, settings_with_db):
-        with patch("services.auth.settings.db_path", ""), \
-             patch("services.auth.settings.api_keys", "#"):
+        with (
+            patch("services.auth.settings.db_path", ""),
+            patch("services.auth.settings.api_keys", "#"),
+        ):
             assert await self._call(None) is None
 
 

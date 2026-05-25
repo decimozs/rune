@@ -36,8 +36,8 @@ class TestProcessUrl:
     async def test_process_url_calls_converter_and_ocr(
         self, mock_validate, mock_ocr, mock_converter, mock_uuid, tmp_path
     ):
-        from app.services.processor import process_url
         from app.config import settings
+        from app.services.processor import process_url
 
         settings.upload_dir = str(tmp_path)
         mock_uuid.return_value.hex = "test123"
@@ -57,8 +57,8 @@ class TestProcessUrl:
     async def test_process_url_markdown_format(
         self, mock_validate, mock_ocr, mock_converter, mock_uuid, tmp_path
     ):
-        from app.services.processor import process_url
         from app.config import settings
+        from app.services.processor import process_url
 
         settings.upload_dir = str(tmp_path)
         mock_uuid.return_value.hex = "test456"
@@ -77,8 +77,8 @@ class TestProcessUrl:
     async def test_process_url_xml_format(
         self, mock_validate, mock_ocr, mock_converter, mock_uuid, tmp_path
     ):
-        from app.services.processor import process_url
         from app.config import settings
+        from app.services.processor import process_url
 
         settings.upload_dir = str(tmp_path)
         mock_uuid.return_value.hex = "test789"
@@ -93,13 +93,17 @@ class TestProcessUrl:
     @patch("app.services.processor.uuid.uuid4")
     @patch("app.services.processor.converter")
     @patch("app.services.processor.validate_url")
-    async def test_process_url_converter_error(self, mock_validate, mock_converter, mock_uuid, tmp_path):
-        from app.services.processor import process_url
+    async def test_process_url_converter_error(
+        self, mock_validate, mock_converter, mock_uuid, tmp_path
+    ):
         from app.config import settings
+        from app.services.processor import process_url
 
         settings.upload_dir = str(tmp_path)
         mock_uuid.return_value.hex = "fail01"
-        mock_converter.url_to_pdf = AsyncMock(side_effect=RuntimeError("Gotenberg down"))
+        mock_converter.url_to_pdf = AsyncMock(
+            side_effect=RuntimeError("Gotenberg down")
+        )
 
         result, error, elapsed = await process_url("https://example.com", "json")
 
@@ -113,17 +117,14 @@ class TestProcessUrl:
     async def test_process_url_validation_error_caught(
         self, mock_ocr, mock_converter, mock_uuid, tmp_path
     ):
-        from app.services.processor import process_url
         from app.config import settings
-        from services.exceptions import OCRValidationError
+        from app.services.processor import process_url
 
         settings.upload_dir = str(tmp_path)
         mock_uuid.return_value.hex = "valid01"
         mock_converter.url_to_pdf = AsyncMock(return_value=tmp_path / "valid01.pdf")
 
-        result, error, elapsed = await process_url(
-            "file:///etc/passwd", "json"
-        )
+        result, error, elapsed = await process_url("file:///etc/passwd", "json")
 
         assert result is None
         assert "OCRValidationError" in error
@@ -137,8 +138,8 @@ class TestProcessHtml:
     async def test_process_html_calls_converter_and_ocr(
         self, mock_ocr, mock_converter, mock_uuid, tmp_path
     ):
-        from app.services.processor import process_html
         from app.config import settings
+        from app.services.processor import process_html
 
         settings.upload_dir = str(tmp_path)
         mock_uuid.return_value.hex = "html01"
@@ -156,6 +157,7 @@ class TestSplitGroupByHtml:
     @pytest.fixture(autouse=True)
     def _import(self):
         from app.routes.ocr import _split_group_by_html
+
         self._split = _split_group_by_html
 
     def test_single_html_becomes_one_group(self):
@@ -171,7 +173,11 @@ class TestSplitGroupByHtml:
         assert len(groups[0]) == 1
 
     def test_html_with_asset_bound_to_preceding_html(self):
-        entries = [("a.html", b"<h1>A</h1>"), ("style.css", b"body {}"), ("b.html", b"<h1>B</h1>")]
+        entries = [
+            ("a.html", b"<h1>A</h1>"),
+            ("style.css", b"body {}"),
+            ("b.html", b"<h1>B</h1>"),
+        ]
         groups = self._split(entries)
         assert len(groups) == 2
         assert len(groups[0]) == 2  # a.html + style.css

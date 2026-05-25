@@ -8,8 +8,7 @@ def make_page_data(page_num, words):
     return {
         "page": page_num,
         "words": [
-            {"text": w[0], "confidence": w[1], "bbox": {"points": w[2]}}
-            for w in words
+            {"text": w[0], "confidence": w[1], "bbox": {"points": w[2]}} for w in words
         ],
         "extracted_text": texts,
     }
@@ -50,6 +49,8 @@ class TestToXml:
         assert xml.count("<point") == 4
 
     def test_page_number_in_xml(self):
-        data = make_page_data(1, [("hello", 0.98, [[0, 0], [10, 0], [10, 10], [0, 10]])])
+        data = make_page_data(
+            1, [("hello", 0.98, [[0, 0], [10, 0], [10, 10], [0, 10]])]
+        )
         xml = to_xml({"pages": [data]})
         assert '<page number="1">' in xml

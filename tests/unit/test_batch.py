@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from app.services.async_job import AsyncJobProcessor, AsyncJob, MAX_BATCH_SIZE
+from app.services.async_job import MAX_BATCH_SIZE, AsyncJob, AsyncJobProcessor
 
 
 class TestAsyncJobBatchInit:
@@ -54,7 +54,9 @@ class TestAsyncJobProcessorBatch:
         job.results = [None]
         bp._jobs["b_url"] = job
         await bp._run_batch("b_url")
-        mock_process_url.assert_awaited_once_with("https://example.com", "json", options=None)
+        mock_process_url.assert_awaited_once_with(
+            "https://example.com", "json", options=None
+        )
         assert job.status == "completed"
 
     @pytest.mark.asyncio
