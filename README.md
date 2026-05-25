@@ -209,6 +209,7 @@ All POST endpoints and GET job/batch endpoints require the `X-API-Key` header wh
 | [Demo Frontend](index.html) | Standalone drag-and-drop UI, 3 source types, 3 modes, visualize bbox overlays |
 | [Makefile](Makefile) | Task automation (dev, Docker, scripts) |
 | [.env.example](.env.example) | Configuration template |
+| [Research References](kb/research.md) | Academic studies, benchmarks, and surveys related to OCR and document processing |
 
 ---
 

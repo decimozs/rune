@@ -47,6 +47,7 @@ exist-ocr/
 ├── tests/                      # Unit tests
 │
 └── kb/                         # Documentation (this folder)
+    ├── research.md             # Academic references and studies
     ├── tech/                   # Technical documentation
     └── user-guide/             # End-user documentation
 ```
