@@ -23,8 +23,7 @@ from config import settings
 from routes.ocr import router as ocr_router
 from routes.health import router as health_router
 from services.ocr import ocr_service
-from services.batch import batch_processor
-from services.background import background_processor
+from services.async_job import async_job_processor
 from services.converter import converter
 from services.cleanup import output_cleaner
 import services.db as svc_db
@@ -64,14 +63,12 @@ async def lifespan(_app: FastAPI):
     logger.info("Loading PaddleOCR models (may take 20-40s on first run)...")
     await ocr_service.init()
     await converter.start()
-    await batch_processor.start()
-    await background_processor.start()
+    await async_job_processor.start()
     await output_cleaner.start()
     logger.info("OCR service initialized, converters and processors started")
     yield
     await output_cleaner.stop()
-    await background_processor.stop()
-    await batch_processor.stop()
+    await async_job_processor.stop()
     await converter.stop()
     await ocr_service.shutdown()
     if svc_db.key_db:

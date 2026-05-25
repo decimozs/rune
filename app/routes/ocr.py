@@ -22,8 +22,7 @@ from fastapi import APIRouter, File, Form, Query, UploadFile, HTTPException, Dep
 from config import settings
 from schemas.response import APIResponse, ResponseMetadata
 from services.processor import process_file, process_url, process_html
-from services.batch import batch_processor, MAX_BATCH_SIZE
-from services.background import background_processor
+from services.async_job import async_job_processor, MAX_BATCH_SIZE
 from services.auth import verify_api_key
 from schemas.ocr import BatchItemResult, BatchStatus, SingleJobStatus, JsonOutputOptions
 
@@ -167,11 +166,11 @@ async def create_job(
 
     opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
 
-    job_id = background_processor.create_job(
+    job_id = async_job_processor.create_job(
         filename, content_type, output_format.value,
         source_type="file", temp_path=str(safe), output_options=opts,
     )
-    job = background_processor.get_job(job_id)
+    job = async_job_processor.get_job(job_id)
 
     return APIResponse(
         success=True,
@@ -196,7 +195,7 @@ async def get_job_status(
     identity: str | None = Depends(verify_api_key),
 ):
     """Poll a background job's status and result."""
-    job = background_processor.get_job(job_id)
+    job = async_job_processor.get_job(job_id)
     if not job:
         raise HTTPException(404, f"Job {job_id} not found")
 
@@ -248,8 +247,8 @@ async def parse_batch(
         safe.write_bytes(content)
         files_data.append((cast(str, f.filename), cast(str, f.content_type), str(safe)))
     opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
-    batch_id = batch_processor.create_job(files_data, output_format.value, output_options=opts)
-    job = batch_processor.get_job(batch_id)
+    batch_id = async_job_processor.create_batch(files_data, output_format.value, output_options=opts)
+    job = async_job_processor.get_job(batch_id)
 
     return APIResponse(
         success=True,
@@ -273,7 +272,7 @@ async def get_batch_status(
     identity: str | None = Depends(verify_api_key),
 ):
     """Poll a batch job's status with per-item results."""
-    job = batch_processor.get_job(batch_id)
+    job = async_job_processor.get_job(batch_id)
     if not job:
         raise HTTPException(404, f"Batch {batch_id} not found")
 
@@ -351,11 +350,11 @@ async def create_url_job(
 ):
     """Submit a URL for background OCR. Returns job ID immediately (202)."""
     opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
-    job_id = background_processor.create_job(
+    job_id = async_job_processor.create_job(
         url, "source/url", output_format.value,
         source_type="url", extra_data=url, output_options=opts,
     )
-    job = background_processor.get_job(job_id)
+    job = async_job_processor.get_job(job_id)
     return APIResponse(
         success=True,
         metadata=ResponseMetadata(timestamp=datetime.now(timezone.utc), model=settings.version, format=output_format.value),
@@ -379,8 +378,8 @@ async def parse_url_batch(
     if len(url) == 0:
         raise HTTPException(400, "At least one URL required")
     opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
-    batch_id = batch_processor.create_job(url, output_format.value, source_type="url", output_options=opts)
-    job = batch_processor.get_job(batch_id)
+    batch_id = async_job_processor.create_batch(url, output_format.value, source_type="url", output_options=opts)
+    job = async_job_processor.get_job(batch_id)
     return APIResponse(
         success=True,
         metadata=ResponseMetadata(timestamp=datetime.now(timezone.utc), model=settings.version, format=output_format.value),
@@ -439,11 +438,11 @@ async def create_html_job(
             raise HTTPException(413, f"File too large: {f.filename}")
         file_tuples.append((cast(str, f.filename), content))
     opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
-    job_id = background_processor.create_job(
+    job_id = async_job_processor.create_job(
         "index.html", "source/html", output_format.value,
         source_type="html", extra_data=file_tuples, output_options=opts,
     )
-    job = background_processor.get_job(job_id)
+    job = async_job_processor.get_job(job_id)
     return APIResponse(
         success=True,
         metadata=ResponseMetadata(timestamp=datetime.now(timezone.utc), model=settings.version, format=output_format.value),
@@ -480,8 +479,8 @@ async def parse_html_batch(
         raise HTTPException(413, f"Max {MAX_BATCH_SIZE} file sets per batch")
 
     opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
-    batch_id = batch_processor.create_job(items, output_format.value, source_type="html", output_options=opts)
-    job = batch_processor.get_job(batch_id)
+    batch_id = async_job_processor.create_batch(items, output_format.value, source_type="html", output_options=opts)
+    job = async_job_processor.get_job(batch_id)
     return APIResponse(
         success=True,
         metadata=ResponseMetadata(timestamp=datetime.now(timezone.utc), model=settings.version, format=output_format.value),
