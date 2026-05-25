@@ -14,6 +14,7 @@ import time
 import asyncio
 import contextlib
 import logging
+from pathlib import Path
 from datetime import datetime, timezone
 from typing import Any, Optional
 
@@ -112,47 +113,76 @@ class BatchProcessor:
         return self._jobs.get(batch_id)
 
     async def _run_job(self, batch_id: str):
-        """Process batch items SEQUENTIALLY. Each item runs independently."""
+        """Process batch items SEQUENTIALLY. Each item runs independently.
+
+        Per-item exceptions are caught to preserve the invariant that
+        one failure does not abort the batch. The outer try/except
+        guards against unexpected failures in the loop logic itself.
+        """
         job = self._jobs[batch_id]
         job.status = "processing"
         start = time.time()
         logger.info("Processing batch job: id=%s, files=%d", batch_id, job.total_files)
 
-        async def process_one(index: int):
-            """Process a single batch item by source type."""
-            if job.source_type == "url":
-                url_str = job._files[index]
-                data, error, elapsed = await process_url(url_str, job.output_format, options=job.output_options)
-                fn = url_str
-                ct = "source/url"
-            elif job.source_type == "html":
-                data, error, elapsed = await process_html(job._files[index], job.output_format, options=job.output_options)
-                fn = f"html_{index}"
-                ct = "source/html"
-            else:
-                fn, ct, content = job._files[index]
-                data, error, elapsed = await process_file(
-                    content, fn, ct, job.output_format, options=job.output_options
-                )
-            job.results[index] = BatchItemResult(
-                file_name=fn,
-                file_type=ct,
-                processing_time_ms=elapsed,
-                success=error is None,
-                data=data if error is None else None,
-                error={"code": "PROCESSING_ERROR", "message": error} if error else None,
-            )
-            if error:
-                logger.error("Batch item failed: batch=%s, index=%d, name=%s, error=%s, duration=%sms", batch_id, index, fn, error, elapsed)
-            else:
-                logger.info("Batch item done: batch=%s, index=%d, name=%s, duration=%sms", batch_id, index, fn, elapsed)
+        try:
+            async def process_one(index: int):
+                """Process a single batch item by source type.
 
-        for i in range(job.total_files):
-            logger.info("Batch progress: batch=%s, item=%d/%d", batch_id, i + 1, job.total_files)
-            await process_one(i)
+                Wrapped so one item's crash doesn't abort the entire batch.
+                """
+                try:
+                    if job.source_type == "url":
+                        url_str = job._files[index]
+                        data, error, elapsed = await process_url(url_str, job.output_format, options=job.output_options)
+                        fn = url_str
+                        ct = "source/url"
+                    elif job.source_type == "html":
+                        data, error, elapsed = await process_html(job._files[index], job.output_format, options=job.output_options)
+                        fn = f"html_{index}"
+                        ct = "source/html"
+                    else:
+                        fn, ct, data_or_path = job._files[index]
+                        if isinstance(data_or_path, str):
+                            content = Path(data_or_path)
+                        else:
+                            content = data_or_path
+                        data, error, elapsed = await process_file(
+                            content, fn, ct, job.output_format, options=job.output_options
+                        )
+                    job.results[index] = BatchItemResult(
+                        file_name=fn,
+                        file_type=ct,
+                        processing_time_ms=elapsed,
+                        success=error is None,
+                        data=data if error is None else None,
+                        error={"code": "PROCESSING_ERROR", "message": error} if error else None,
+                    )
+                    if error:
+                        logger.error("Batch item failed: batch=%s, index=%d, name=%s, error=%s, duration=%sms", batch_id, index, fn, error, elapsed)
+                    else:
+                        logger.info("Batch item done: batch=%s, index=%d, name=%s, duration=%sms", batch_id, index, fn, elapsed)
+                except Exception:
+                    elapsed = round((time.time() - start) * 1000, 2)
+                    logger.exception("Batch item crashed: batch=%s, index=%d", batch_id, index)
+                    job.results[index] = BatchItemResult(
+                        file_name=f"item_{index}",
+                        file_type="unknown",
+                        processing_time_ms=elapsed,
+                        success=False,
+                        error={"code": "ITEM_CRASH", "message": "Item processing failed unexpectedly"},
+                    )
+
+            for i in range(job.total_files):
+                logger.info("Batch progress: batch=%s, item=%d/%d", batch_id, i + 1, job.total_files)
+                await process_one(i)
+
+        except Exception:
+            logger.exception("Batch job crashed: id=%s", batch_id)
+            job.status = "failed"
 
         job.processing_time_ms = round((time.time() - start) * 1000, 2)
-        job.status = "completed"
+        if job.status != "failed":
+            job.status = "completed"
         job.completed_at = datetime.now(timezone.utc)
         logger.info("Batch completed: id=%s, files=%d, duration=%sms", batch_id, job.total_files, job.processing_time_ms)
 

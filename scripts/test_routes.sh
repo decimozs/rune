@@ -7,6 +7,9 @@ POLL_INTERVAL=2
 
 PASS=0
 FAIL=0
+
+API_KEY="${OCR_API_KEY:-sk-local-dev}"
+AUTH=(-H "X-API-Key: $API_KEY")
 OUTDIR="tests/outputs/test_routes_$(date +%Y%m%d_%H%M%S)"
 
 pass() {
@@ -58,7 +61,7 @@ poll_job() {
     waited=$((waited + POLL_INTERVAL))
 
     local resp
-    resp=$(curl -sf "$BASE_URL/ocr/parse/jobs/$job_id") || continue
+    resp=$(curl -sf "${AUTH[@]}" "$BASE_URL/ocr/parse/jobs/$job_id") || continue
     echo "$resp" | jq . > "$OUTDIR/${label}/status.json" 2>/dev/null
 
     local st
@@ -106,7 +109,7 @@ poll_batch() {
     waited=$((waited + POLL_INTERVAL))
 
     local resp
-    resp=$(curl -sf "$BASE_URL/ocr/parse/batch/$batch_id") || continue
+    resp=$(curl -sf "${AUTH[@]}" "$BASE_URL/ocr/parse/batch/$batch_id") || continue
     echo "$resp" | jq . > "$OUTDIR/06-batch/status.json" 2>/dev/null
 
     local st
@@ -142,7 +145,7 @@ poll_batch() {
 mkdirok() { mkdir -p "$OUTDIR/$1"; }
 
 mkdirok "01-sync-json"
-resp=$(curl -sf -X POST "$BASE_URL/ocr/parse?format=json" \
+resp=$(curl -sf "${AUTH[@]}" -X POST "$BASE_URL/ocr/parse?format=json" \
   -F "file=@app/datasets/images/sample1.png" 2>&1) && rc=0 || rc=$?
 echo "$resp" | jq . > "$OUTDIR/01-sync-json/response.json" 2>/dev/null
 
@@ -157,7 +160,7 @@ fi
 # Test 2: sync md image
 # ══════════════════════════════════════════════════════════════════════
 mkdirok "02-sync-md"
-resp=$(curl -sf -X POST "$BASE_URL/ocr/parse?format=markdown" \
+resp=$(curl -sf "${AUTH[@]}" -X POST "$BASE_URL/ocr/parse?format=markdown" \
   -F "file=@app/datasets/images/sample1.png" 2>&1) && rc=0 || rc=$?
 echo "$resp" | jq . > "$OUTDIR/02-sync-md/response.json" 2>/dev/null
 
@@ -173,7 +176,7 @@ fi
 # ══════════════════════════════════════════════════════════════════════
 mkdirok "03-sync-docx"
 mime=$(get_mime "app/datasets/docx/sample1.docx")
-resp=$(curl -sf -X POST "$BASE_URL/ocr/parse?format=json" \
+resp=$(curl -sf "${AUTH[@]}" -X POST "$BASE_URL/ocr/parse?format=json" \
   -F "file=@app/datasets/docx/sample1.docx;type=$mime" 2>&1) && rc=0 || rc=$?
 echo "$resp" | jq . > "$OUTDIR/03-sync-docx/response.json" 2>/dev/null
 
@@ -189,7 +192,7 @@ fi
 # ══════════════════════════════════════════════════════════════════════
 mkdirok "04-job-json"
 mime=$(get_mime "app/datasets/images/sample2.png")
-submit_resp=$(curl -sf -X POST "$BASE_URL/ocr/parse/jobs?format=json" \
+submit_resp=$(curl -sf "${AUTH[@]}" -X POST "$BASE_URL/ocr/parse/jobs?format=json" \
   -F "file=@app/datasets/images/sample2.png;type=$mime") && rc=0 || rc=$?
 echo "$submit_resp" | jq . > "$OUTDIR/04-job-json/submit.json" 2>/dev/null
 
@@ -205,7 +208,7 @@ fi
 # ══════════════════════════════════════════════════════════════════════
 mkdirok "05-job-md"
 mime=$(get_mime "app/datasets/rtf/sample1.rtf")
-submit_resp=$(curl -sf -X POST "$BASE_URL/ocr/parse/jobs?format=markdown" \
+submit_resp=$(curl -sf "${AUTH[@]}" -X POST "$BASE_URL/ocr/parse/jobs?format=markdown" \
   -F "file=@app/datasets/rtf/sample1.rtf;type=$mime") && rc=0 || rc=$?
 echo "$submit_resp" | jq . > "$OUTDIR/05-job-md/submit.json" 2>/dev/null
 
@@ -224,7 +227,7 @@ mime_png=$(get_mime "app/datasets/images/sample3.png")
 mime_docx=$(get_mime "app/datasets/docx/sample2.docx")
 mime_csv=$(get_mime "app/datasets/spreadsheets/sample1.csv")
 
-batch_resp=$(curl -sf -X POST "$BASE_URL/ocr/parse/batch?format=json" \
+batch_resp=$(curl -sf "${AUTH[@]}" -X POST "$BASE_URL/ocr/parse/batch?format=json" \
   -F "file=@app/datasets/images/sample3.png;type=$mime_png" \
   -F "file=@app/datasets/docx/sample2.docx;type=$mime_docx" \
   -F "file=@app/datasets/spreadsheets/sample1.csv;type=$mime_csv") && rc=0 || rc=$?
@@ -244,7 +247,7 @@ fi
 # ══════════════════════════════════════════════════════════════════════
 # Test 7: invalid batch ID → 404
 # ══════════════════════════════════════════════════════════════════════
-code=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/ocr/parse/batch/doesnotexist")
+code=$(curl -s "${AUTH[@]}" -o /dev/null -w "%{http_code}" "$BASE_URL/ocr/parse/batch/doesnotexist")
 if [ "$code" = "404" ]; then
   pass "invalid batch  404"
 else
@@ -254,7 +257,7 @@ fi
 # ══════════════════════════════════════════════════════════════════════
 # Test 8: invalid job ID → 404
 # ══════════════════════════════════════════════════════════════════════
-code=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/ocr/parse/jobs/doesnotexist")
+code=$(curl -s "${AUTH[@]}" -o /dev/null -w "%{http_code}" "$BASE_URL/ocr/parse/jobs/doesnotexist")
 if [ "$code" = "404" ]; then
   pass "invalid job    404"
 else
@@ -264,7 +267,7 @@ fi
 # ══════════════════════════════════════════════════════════════════════
 # Test 9: POST without file → 422
 # ══════════════════════════════════════════════════════════════════════
-code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/ocr/parse")
+code=$(curl -s "${AUTH[@]}" -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/ocr/parse")
 if [ "$code" = "422" ]; then
   pass "no file       422"
 else

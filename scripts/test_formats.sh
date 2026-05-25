@@ -5,6 +5,9 @@ BASE_URL="${1:-http://localhost:8000}"
 OUTDIR="tests/outputs/format-test/$(date +%Y-%m-%d_%H%M%S)"
 mkdir -p "$OUTDIR"
 
+API_KEY="${OCR_API_KEY:-sk-local-dev}"
+AUTH=(-H "X-API-Key: $API_KEY")
+
 if ! curl -sf --connect-timeout 3 "$BASE_URL/docs" > /dev/null 2>&1; then
   echo "Error: OCR API not reachable at $BASE_URL" >&2
   exit 1
@@ -34,7 +37,7 @@ run_test() {
 
   printf "%-6s %-8s " "$name" "$fmt"
 
-  resp=$(curl -sf -X POST "$BASE_URL/ocr/parse?format=$fmt" \
+  resp=$(curl -sf "${AUTH[@]}" -X POST "$BASE_URL/ocr/parse?format=$fmt" \
     -F "file=@$path;type=$mime" 2>&1) && rc=$? || rc=$?
 
   if [ $rc -ne 0 ] || [ -z "$resp" ]; then

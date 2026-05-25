@@ -17,7 +17,7 @@ import uuid
 import magic
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 from config import settings
 from services.converter import converter
@@ -38,8 +38,30 @@ TEXT_BASED_TYPES = {
 _ocr_semaphore = asyncio.Semaphore(settings.max_concurrent_jobs)
 
 
+async def _run_ocr(
+    safe_path: Path,
+    display_name: str,
+    detected_type: str,
+    output_format: str,
+    options: Optional[dict] = None,
+):
+    """Dispatch to the right OCR backend by output format. Shared by all source types."""
+    if output_format == "markdown":
+        return await asyncio.to_thread(
+            ocr_service.to_markdown, str(safe_path), display_name, detected_type
+        )
+    elif output_format == "xml":
+        return await asyncio.to_thread(
+            ocr_service.to_xml, str(safe_path), display_name, detected_type
+        )
+    opts = JsonOutputOptions(**options) if options else None
+    return await asyncio.to_thread(
+        ocr_service.process, str(safe_path), display_name, detected_type, opts
+    )
+
+
 async def process_file(
-    content: bytes,
+    content: Union[bytes, Path],
     filename: str,
     declared_type: str,
     output_format: str,
@@ -48,7 +70,8 @@ async def process_file(
     """Full OCR pipeline for an uploaded file.
 
     Args:
-        content: Raw file bytes.
+        content: Raw file bytes OR an existing Path to a temp file
+                 already on disk (avoids double-buffering in memory).
         filename: Original filename (used for display, path sanitized).
         declared_type: MIME type from the upload Content-Type header.
         output_format: "json", "markdown", or "xml".
@@ -59,15 +82,19 @@ async def process_file(
     """
     async with _ocr_semaphore:
         start = time.time()
-        logger.info("Processing file: name=%s, type=%s, size=%d, format=%s", filename, declared_type, len(content), output_format)
+        content_size = len(content) if isinstance(content, bytes) else Path(content).stat().st_size
+        logger.info("Processing file: name=%s, type=%s, size=%d, format=%s", filename, declared_type, content_size, output_format)
 
-        stem = uuid.uuid4().hex
-        safe_filename = Path(filename).name
-        safe = settings.upload_dir_path / f"{stem}_{safe_filename}"
-
-        try:
+        if isinstance(content, Path):
+            safe = content
+            stem = safe.stem
+        else:
+            stem = uuid.uuid4().hex
+            safe_filename = Path(filename).name
+            safe = settings.upload_dir_path / f"{stem}_{safe_filename}"
             safe.write_bytes(content)
 
+        try:
             if declared_type in TEXT_BASED_TYPES:
                 detected = declared_type
             else:
@@ -82,19 +109,7 @@ async def process_file(
                 safe = await converter.to_pdf(safe, detected)
                 detected = "application/pdf"
 
-            if output_format == "markdown":
-                result = await asyncio.to_thread(
-                    ocr_service.to_markdown, str(safe), filename, detected
-                )
-            elif output_format == "xml":
-                result = await asyncio.to_thread(
-                    ocr_service.to_xml, str(safe), filename, detected
-                )
-            else:
-                opts = JsonOutputOptions(**options) if options else None
-                result = await asyncio.to_thread(
-                    ocr_service.process, str(safe), filename, detected, opts
-                )
+            result = await _run_ocr(safe, filename, detected, output_format, options)
 
             elapsed = round((time.time() - start) * 1000, 2)
             logger.info(
@@ -133,13 +148,7 @@ async def process_url(
             validate_url(url_str)
             safe = await converter.url_to_pdf(url_str, safe)
             display_name = f"{stem}.pdf"
-            if output_format == "markdown":
-                result = await asyncio.to_thread(ocr_service.to_markdown, str(safe), display_name, "application/pdf")
-            elif output_format == "xml":
-                result = await asyncio.to_thread(ocr_service.to_xml, str(safe), display_name, "application/pdf")
-            else:
-                opts = JsonOutputOptions(**options) if options else None
-                result = await asyncio.to_thread(ocr_service.process, str(safe), display_name, "application/pdf", opts)
+            result = await _run_ocr(safe, display_name, "application/pdf", output_format, options)
             elapsed = round((time.time() - start) * 1000, 2)
             logger.info("URL processing complete: duration=%sms", elapsed)
             return result, None, elapsed
@@ -169,13 +178,7 @@ async def process_html(
             files_dict = {name: content for name, content in files}
             safe = await converter.html_to_pdf(files_dict, safe)
             display_name = f"{stem}.pdf"
-            if output_format == "markdown":
-                result = await asyncio.to_thread(ocr_service.to_markdown, str(safe), display_name, "application/pdf")
-            elif output_format == "xml":
-                result = await asyncio.to_thread(ocr_service.to_xml, str(safe), display_name, "application/pdf")
-            else:
-                opts = JsonOutputOptions(**options) if options else None
-                result = await asyncio.to_thread(ocr_service.process, str(safe), display_name, "application/pdf", opts)
+            result = await _run_ocr(safe, display_name, "application/pdf", output_format, options)
             elapsed = round((time.time() - start) * 1000, 2)
             logger.info("HTML processing complete: files=%d, duration=%sms", len(files), elapsed)
             return result, None, elapsed

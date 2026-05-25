@@ -7,9 +7,15 @@ HTML endpoints  (/parse/html, /parse/html/jobs, /parse/html/batch)
 Each group has sync, background job, and batch variants.
 All POST + GET job/batch endpoints require X-API-Key auth
 (except health endpoints in routes/health.py).
+
+For background and batch file uploads, content is written to a temp
+file immediately in the route handler to avoid holding large byte
+buffers in memory for the job's TTL lifetime.
 """
 
+import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import cast
 from enum import Enum
 from fastapi import APIRouter, File, Form, Query, UploadFile, HTTPException, Depends
@@ -154,10 +160,16 @@ async def create_job(
 
     filename = cast(str, file.filename)
     content_type = cast(str, file.content_type)
+
+    stem = uuid.uuid4().hex
+    safe = settings.upload_dir_path / f"{stem}_{Path(filename).name}"
+    safe.write_bytes(content)
+
     opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
 
     job_id = background_processor.create_job(
-        filename, content_type, content, output_format.value, output_options=opts,
+        filename, content_type, output_format.value,
+        source_type="file", temp_path=str(safe), output_options=opts,
     )
     job = background_processor.get_job(job_id)
 
@@ -231,7 +243,10 @@ async def parse_batch(
         content = await f.read()
         if len(content) > settings.max_file_size:
             raise HTTPException(413, f"File too large: {f.filename}")
-        files_data.append((cast(str, f.filename), cast(str, f.content_type), content))
+        stem = uuid.uuid4().hex
+        safe = settings.upload_dir_path / f"{stem}_{Path(cast(str, f.filename)).name}"
+        safe.write_bytes(content)
+        files_data.append((cast(str, f.filename), cast(str, f.content_type), str(safe)))
     opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
     batch_id = batch_processor.create_job(files_data, output_format.value, output_options=opts)
     job = batch_processor.get_job(batch_id)
@@ -337,7 +352,7 @@ async def create_url_job(
     """Submit a URL for background OCR. Returns job ID immediately (202)."""
     opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
     job_id = background_processor.create_job(
-        url, "source/url", b"", output_format.value,
+        url, "source/url", output_format.value,
         source_type="url", extra_data=url, output_options=opts,
     )
     job = background_processor.get_job(job_id)
@@ -425,7 +440,7 @@ async def create_html_job(
         file_tuples.append((cast(str, f.filename), content))
     opts = _build_options(output_format, include_bbox=include_bbox, include_confidence=include_confidence, include_extracted_text=include_extracted_text, include_page_image=include_page_image)
     job_id = background_processor.create_job(
-        "index.html", "source/html", b"", output_format.value,
+        "index.html", "source/html", output_format.value,
         source_type="html", extra_data=file_tuples, output_options=opts,
     )
     job = background_processor.get_job(job_id)

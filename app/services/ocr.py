@@ -1,13 +1,13 @@
 """Top-level OCR service facade.
 
-Composes OCREngine (PaddleOCR), StructureEngine (PPStructureV3),
-OCRFormatter, MarkdownConverter, and XML formatter into a unified
-interface. The module-level ocr_service singleton is imported by
-routes and processors.
+Composes an OCREngine, StructureEngine, OCRFormatter,
+MarkdownConverter, and XML formatter into a unified interface.
+The module-level ocr_service singleton is imported by routes and
+processors. Engines are injected via constructor (uses PaddleOCR
+concretions by default).
 
 Each output format uses a different engine:
-    - JSON/Markdown:   OCREngine (PaddleOCR) + OCRFormatter
-    - XML:             OCREngine (PaddleOCR) + OCRFormatter → xml_formatter
+    - JSON/XML:        OCREngine (PaddleOCR) + OCRFormatter
     - Markdown output: StructureEngine (PPStructureV3) + MarkdownConverter
 
 All predict() calls are synchronous and CPU-bound. The caller in
@@ -17,7 +17,7 @@ processor.py wraps them in asyncio.to_thread.
 import logging
 import uuid
 from typing import Optional
-from services.engine import OCREngine, StructureEngine
+from services.engine import OCREngineProtocol, StructureEngineProtocol, PaddleOCREngine, PaddleStructureEngine
 from services.formatter import OCRFormatter
 from services.markdown import MarkdownConverter
 from services.xml_formatter import to_xml as format_xml
@@ -29,13 +29,18 @@ logger = logging.getLogger(__name__)
 class OCRService:
     """Orchestrates OCR engines and formatters.
 
-    Instantiated once at module level. init() loads models (slow).
-    predict methods are synchronous — wrap in to_thread.
+    Engines are injected via constructor so callers can substitute
+    test doubles. init() loads models (slow). predict methods are
+    synchronous — wrap in to_thread.
     """
 
-    def __init__(self):
-        self.engine = OCREngine()
-        self.structure_engine = StructureEngine()
+    def __init__(
+        self,
+        engine: OCREngineProtocol | None = None,
+        struct_engine: StructureEngineProtocol | None = None,
+    ):
+        self.engine = engine or PaddleOCREngine()
+        self.structure_engine = struct_engine or PaddleStructureEngine()
         self.formatter = OCRFormatter()
         self.markdown_converter = MarkdownConverter(self.structure_engine)
 

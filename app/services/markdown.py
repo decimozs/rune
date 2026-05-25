@@ -12,7 +12,11 @@ on disk for direct file access.
 
 import re
 import logging
+from typing import TYPE_CHECKING
 from config import settings
+
+if TYPE_CHECKING:
+    from services.engine import StructureEngineProtocol
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +24,7 @@ logger = logging.getLogger(__name__)
 class MarkdownConverter:
     """Converts PPStructureV3 results into markdown with served image URLs."""
 
-    def __init__(self, structure_engine):
+    def __init__(self, structure_engine: "StructureEngineProtocol"):
         self.engine = structure_engine
 
     def convert(

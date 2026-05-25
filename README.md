@@ -21,7 +21,7 @@ Internal OCR service for **Exist Software Labs**. Uses [PaddleOCR](https://githu
 
 - **Python** 3.11+
 - **uv** — `curl -LsSf https://astral.sh/uv/install.sh | sh`
-- **System libraries** — see [Prerequisites doc](docs/prerequisites.md) for per-OS breakdown
+- **System libraries** — see [Prerequisites doc](kb/prerequisites.md) for per-OS breakdown
 - **Gotenberg** (optional, for office docs + URL/HTML conversion) — `docker run --rm -p 3000:3000 gotenberg/gotenberg:8`
 
 ## Installation
@@ -154,11 +154,11 @@ flowchart TB
 
 | Topic | Description |
 |---|---|
-| [Quick Start](docs/quickstart.md) | Prerequisites, local run, docker-compose, make |
-| [Prerequisites](docs/prerequisites.md) | System dependencies (apt, brew, uv, Gotenberg) |
-| [Configuration](docs/configuration.md) | Environment variables table |
-| [API Reference](docs/api.md) | All endpoints (file, URL, HTML) with curl examples and responses (JSON, Markdown, XML) |
-| [Testing Scripts](docs/scripts.md) | Scripts table and usage examples |
-| [Project Structure](docs/structure.md) | Directory layout |
+| [Quick Start](kb/quickstart.md) | Prerequisites, local run, docker-compose, make |
+| [Prerequisites](kb/prerequisites.md) | System dependencies (apt, brew, uv, Gotenberg) |
+| [Configuration](kb/configuration.md) | Environment variables table |
+| [API Reference](kb/api.md) | All endpoints (file, URL, HTML) with curl examples and responses (JSON, Markdown, XML) |
+| [Testing Scripts](kb/scripts.md) | Scripts table and usage examples |
+| [Project Structure](kb/structure.md) | Directory layout |
 | [Demo Frontend](index.html) | Standalone UI — drag-and-drop, 3 source types (File/URL/HTML), 3 modes, markdown/XML preview |
 | [Makefile](Makefile) | Common task automation (dev, Docker, scripts) |
