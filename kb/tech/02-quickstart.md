@@ -65,7 +65,7 @@ docker run -d --rm -p 3000:3000 --name gotenberg gotenberg/gotenberg:8
 uv run fastapi dev app/main.py --port 8000
 ```
 
-The server runs at `http://localhost:8000`. Images are served directly by FastAPI (no nginx in local dev mode).
+The server runs at `http://localhost:8000`. Page image URLs omit the host (e.g., `/assets/pages/...`) — open them by prepending `http://localhost:8000` or serve the `app/outputs` directory via your own static server. There is no nginx in local dev mode, and FastAPI does not mount a static file handler.
 
 ## Makefile Automation
 
@@ -75,8 +75,8 @@ The server runs at `http://localhost:8000`. Images are served directly by FastAP
 | `make up-ui` | Start all Docker services with demo UI at `http://localhost:8080` |
 | `make down` | Stop all Docker services |
 | `make logs` | See logs from all containers |
-| `make rebuild` | Full clean rebuild (down, build, up) |
-| `make dev` | Start development server with hot reload |
+| `make rebuild` | Full clean rebuild (down -v, build --no-cache, up) |
+| `make dev` | Start Gotenberg container + dev server with hot reload; stops Gotenberg on exit |
 | `make test` | Run unit tests |
 | `make health` | Check if the API is running and ready |
 

@@ -75,7 +75,7 @@ docker compose ps gotenberg
 
 ### OCR is very slow on first run
 
-**Cause:** PaddleOCR and PPStructureV3 download model files from Hugging Face on first startup. These models are several hundred megabytes combined. Subsequent starts use cached models in the `paddle_models` volume.
+**Cause:** PaddleOCR and PPStructureV3 download model files from the PaddlePaddle CDN (Baidu cloud) on first startup. These models are several hundred megabytes combined. Subsequent starts use cached models in the `paddle_models` volume.
 
 **Fix:** This is normal. Allow 30-60 seconds for the first startup. If models need to re-download, check the `paddle_models` volume exists:
 

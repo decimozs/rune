@@ -50,6 +50,7 @@ All settings are configured through environment variables or a `.env` file. Each
 | Variable | Default | What It Does |
 |---|---|---|
 | `OCR_LOG_LEVEL` | `INFO` | How detailed logs should be: `DEBUG`, `INFO`, `WARNING`, `ERROR` |
+| `OCR_LOG_FORMAT` | `text` | Log output format: `text` (human-readable) or `json` (structured for log aggregators) |
 
 ## How to Configure
 

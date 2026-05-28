@@ -94,7 +94,7 @@ Output images are stored in a Docker named volume called `ocr_assets`. Both the 
 
 ## Security Considerations
 
-- All API endpoints (except health checks) require an API key sent as an `X-API-Key` header
+- When authentication is configured, all API endpoints (except health checks) require an API key sent as an `X-API-Key` header. Auth is disabled by default (`OCR_API_KEYS=#`)
 - URL endpoints block requests to internal network addresses (SSRF protection) — the same kind of protection used by cloud document converters
 - Uploaded files are deleted immediately after processing — no permanent storage of source documents
 - Output images expire after 1 hour (configurable) and are automatically cleaned up

@@ -141,8 +141,7 @@ The `page_image_url` points to nginx (port 8080), not the main API. Open that UR
 | 404 | Job or batch ID not found |
 | 413 | File too large (default limit: 50MB) |
 | 415 | File type not supported |
-| 502 | Document conversion failed (Gotenberg issue) |
-| 500 | Internal error |
+| 500 | Internal error (includes Gotenberg conversion failures) |
 
 ### Background Job — `POST /ocr/parse/jobs`
 
@@ -199,9 +198,20 @@ curl -X POST "http://localhost:8000/ocr/parse/url/batch" \
 Upload an HTML file with optional assets (CSS, images) for rendering:
 
 ```bash
+# Sync — wait for result
 curl -X POST "http://localhost:8000/ocr/parse/html" \
   -H "X-API-Key: sk-local-dev" \
   -F "files=@index.html" -F "files=@style.css" -F "files=@logo.png"
+
+# Background job — get job ID, poll later
+curl -X POST "http://localhost:8000/ocr/parse/html/jobs" \
+  -H "X-API-Key: sk-local-dev" \
+  -F "files=@index.html" -F "files=@style.css"
+
+# Batch — process multiple HTML file sets
+curl -X POST "http://localhost:8000/ocr/parse/html/batch" \
+  -H "X-API-Key: sk-local-dev" \
+  -F "files=@report1.html" -F "files=@report2.html"
 ```
 
 ## URL Safety

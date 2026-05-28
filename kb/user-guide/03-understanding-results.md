@@ -8,7 +8,9 @@ JSON output gives you a structured breakdown of every word found on every page. 
 {
   "success": true,
   "metadata": {
+    "timestamp": "2026-05-21T12:00:00Z",
     "model": "PP-OCRv4",
+    "format": "json",
     "processing_time_ms": 123.45,
     "file_name": "receipt.png",
     "file_type": "image/png"
