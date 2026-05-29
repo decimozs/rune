@@ -221,6 +221,24 @@
       letter-spacing: .4px
     }
 
+    .model-select {
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 5px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      outline: 0;
+      transition: border-color .15s
+    }
+
+    .model-select:focus {
+      border-color: var(--accent)
+    }
+
     .btn-group {
       display: flex;
       gap: 2px;
@@ -1168,6 +1186,15 @@
           <button class="btn-opt" data-value="batch">Batch</button>
         </div>
       </div>
+      <div class="control-group">
+        <label>Model</label>
+        <select id="modelSelect" class="model-select">
+          <option value="">Default</option>
+          <option value="PP-OCRv3">PP-OCRv3</option>
+          <option value="PP-OCRv4">PP-OCRv4</option>
+          <option value="PP-OCRv5">PP-OCRv5</option>
+        </select>
+      </div>
       <div class="control-group" id="outputOptionsGroup" style="display:none">
         <label>Output</label>
         <div class="toggle-group">
@@ -1314,6 +1341,15 @@
           pairs.push(btn.dataset.opt + '=' + btn.classList.contains('active'))
         }
         return '&' + pairs.join('&')
+      }
+
+      function model() {
+        return $('modelSelect').value
+      }
+
+      function modelString() {
+        const m = model()
+        return m ? '&model=' + encodeURIComponent(m) : ''
       }
 
       function updateOutputOptionsVisibility() {
@@ -1604,7 +1640,7 @@
       async function processDirect() {
         const src = sourceType()
         if (src === 'url') {
-          const resp = await fetch(`${apiUrl()}${currentEndpoint('')}?format=${format()}${jsonOptionsString()}`, {
+          const resp = await fetch(`${apiUrl()}${currentEndpoint('')}?format=${format()}${jsonOptionsString()}${modelString()}`, {
             method: 'POST',
             headers: getApiHeaders({'Content-Type': 'application/x-www-form-urlencoded'}),
             body: 'url=' + encodeURIComponent(urlEntries[0])
@@ -1625,7 +1661,7 @@
         for (const e of selectedFiles) fd.append(fn, e.file, e.file.name)
         const ep = currentEndpoint('')
         const label = src === 'html' ? currentFileIdent() : selectedFiles[0]?.file?.name
-        const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}`, {method: 'POST', headers: getApiHeaders(), body: fd})
+        const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}${modelString()}`, {method: 'POST', headers: getApiHeaders(), body: fd})
         const json = await resp.json()
         if (!resp.ok) {
           const msg = json.detail || json.error?.message || `HTTP ${resp.status}`
@@ -1642,7 +1678,7 @@
         const ep = currentEndpoint('/jobs')
 
         if (src === 'url') {
-          const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}`, {
+          const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}${modelString()}`, {
             method: 'POST',
             headers: getApiHeaders({'Content-Type': 'application/x-www-form-urlencoded'}),
             body: 'url=' + encodeURIComponent(urlEntries[0])
@@ -1663,7 +1699,7 @@
         const fd = new FormData()
         for (const e of selectedFiles) fd.append(fn, e.file, e.file.name)
         const label = src === 'html' ? ident : selectedFiles[0]?.file?.name
-        const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}`, {method: 'POST', headers: getApiHeaders(), body: fd})
+        const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}${modelString()}`, {method: 'POST', headers: getApiHeaders(), body: fd})
         const json = await resp.json()
         if (!resp.ok) {
           const msg = json.detail || json.error?.message || `HTTP ${resp.status}`
@@ -1708,7 +1744,7 @@
         if (src === 'url') {
           var params = new URLSearchParams()
           for (var ui = 0; ui < urlEntries.length; ui++) params.append('url', urlEntries[ui])
-          const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}`, {
+          const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}${modelString()}`, {
             method: 'POST',
             headers: getApiHeaders({'Content-Type': 'application/x-www-form-urlencoded'}),
             body: params.toString()
@@ -1730,7 +1766,7 @@
         for (const f of selectedFiles) {
           fd.append(fn, f.file, f.file.name)
         }
-        const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}`, {method: 'POST', headers: getApiHeaders(), body: fd})
+        const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}${modelString()}`, {method: 'POST', headers: getApiHeaders(), body: fd})
         const json = await resp.json()
         if (!resp.ok) {
           const msg = json.detail || json.error?.message || `HTTP ${resp.status}`

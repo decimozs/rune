@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+docker compose up -d "$@"
+
+echo "API: http://localhost:8000"
+echo "Health: http://localhost:8000/health"
+echo "Docs: http://localhost:8000/docs"
+echo ""
+echo "Logs: docker compose logs -f"
+echo "Stop: docker compose down"

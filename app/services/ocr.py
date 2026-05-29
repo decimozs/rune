@@ -70,15 +70,20 @@ class OCRService:
         filename: str,
         content_type: str,
         options: JsonOutputOptions | None = None,
+        version: str | None = None,
     ) -> dict:
         """OCR with PaddleOCR → structured dict for JSON output.
 
         Page images are saved to pages/{stem}/page_{N}.png in the
         shared ocr_assets volume and served by nginx. The stem is a
         random UUID to avoid collisions.
+
+        Args:
+            version: Model version override (e.g. "PP-OCRv5").
+                     Falls back to settings.version when None.
         """
         stem = uuid.uuid4().hex
-        result = self.engine.predict(file_path)
+        result = self.engine.predict(file_path, version=version)
         return self.formatter.structure(result, stem=stem, options=options)
 
     def to_markdown(
@@ -86,14 +91,19 @@ class OCRService:
         file_path: str,
         filename: str,
         content_type: str,
+        version: str | None = None,
     ) -> str:
         """Structure-aware OCR → markdown string.
 
         Uses PPStructureV3 which understands tables, headings, and
         basic document layout. Slower than plain OCR but produces
         richer output.
+
+        Args:
+            version: Model version override (e.g. "PP-OCRv5").
+                     Falls back to settings.version when None.
         """
-        result = self.structure_engine.predict(file_path)
+        result = self.structure_engine.predict(file_path, version=version)
         return self.markdown_converter.convert(
             result,
             file_path,
@@ -106,9 +116,15 @@ class OCRService:
         file_path: str,
         filename: str,
         content_type: str,
+        version: str | None = None,
     ) -> str:
-        """OCR → XML string using stdlib xml.etree.ElementTree."""
-        result = self.engine.predict(file_path)
+        """OCR → XML string using stdlib xml.etree.ElementTree.
+
+        Args:
+            version: Model version override (e.g. "PP-OCRv5").
+                     Falls back to settings.version when None.
+        """
+        result = self.engine.predict(file_path, version=version)
         raw = self.formatter.structure(result)
         return format_xml(raw)
 

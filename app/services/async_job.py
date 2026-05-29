@@ -69,12 +69,14 @@ class AsyncJob:
         file_type: str | None = None,
         temp_path: str | None = None,
         extra_data: Any = None,
+        model: str | None = None,
     ):
         self.id = job_id
         self.status = "pending"
         self.output_format = output_format
         self.source_type = source_type
         self.output_options = output_options
+        self.model = model
         self.created_at = datetime.now(UTC)
         self.completed_at: datetime | None = None
         self.processing_time_ms: float | None = None
@@ -135,6 +137,7 @@ class AsyncJobProcessor:
         temp_path: str | None = None,
         extra_data: Any = None,
         output_options: dict | None = None,
+        model: str | None = None,
     ) -> str:
         """Create a single-item background job.
 
@@ -147,7 +150,7 @@ class AsyncJobProcessor:
         to check completion.
         """
         job_id = uuid.uuid4().hex[:12]
-        job = AsyncJob(job_id, output_format, source_type, output_options)
+        job = AsyncJob(job_id, output_format, source_type, output_options, model=model)
         job.file_name = file_name
         job.file_type = file_type
         job.temp_path = temp_path
@@ -172,6 +175,7 @@ class AsyncJobProcessor:
         output_format: str,
         source_type: str = "file",
         output_options: dict | None = None,
+        model: str | None = None,
     ) -> str:
         """Create a batch job with multiple items.
 
@@ -179,7 +183,9 @@ class AsyncJobProcessor:
         The caller polls GET /batch/{id} to check completion.
         """
         batch_id = uuid.uuid4().hex[:12]
-        job = AsyncJob(batch_id, output_format, source_type, output_options)
+        job = AsyncJob(
+            batch_id, output_format, source_type, output_options, model=model
+        )
         job._files = files
         job.total_files = len(files)
         job.results = [None] * len(files)
@@ -216,11 +222,17 @@ class AsyncJobProcessor:
         try:
             if job.source_type == "url":
                 data, error, elapsed = await process_url(
-                    job.extra_data, job.output_format, options=job.output_options
+                    job.extra_data,
+                    job.output_format,
+                    options=job.output_options,
+                    version=job.model,
                 )
             elif job.source_type == "html":
                 data, error, elapsed = await process_html(
-                    job.extra_data, job.output_format, options=job.output_options
+                    job.extra_data,
+                    job.output_format,
+                    options=job.output_options,
+                    version=job.model,
                 )
             else:
                 data, error, elapsed = await process_file(
@@ -229,6 +241,7 @@ class AsyncJobProcessor:
                     job.file_type,
                     job.output_format,
                     options=job.output_options,
+                    version=job.model,
                 )
 
             if error:
@@ -283,7 +296,10 @@ class AsyncJobProcessor:
                     if job.source_type == "url":
                         url_str = job._files[index]
                         data, error, elapsed = await process_url(
-                            url_str, job.output_format, options=job.output_options
+                            url_str,
+                            job.output_format,
+                            options=job.output_options,
+                            version=job.model,
                         )
                         fn = url_str
                         ct = "source/url"
@@ -292,6 +308,7 @@ class AsyncJobProcessor:
                             job._files[index],
                             job.output_format,
                             options=job.output_options,
+                            version=job.model,
                         )
                         fn = f"html_{index}"
                         ct = "source/html"
@@ -307,6 +324,7 @@ class AsyncJobProcessor:
                             ct,
                             job.output_format,
                             options=job.output_options,
+                            version=job.model,
                         )
                     job.results[index] = BatchItemResult(
                         file_name=fn,

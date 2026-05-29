@@ -68,6 +68,7 @@ Upload one file, get results back when processing finishes. The simplest endpoin
 | Parameter | Values | Default | What It Does |
 |---|---|---|---|
 | `format` | `json`, `markdown`, `xml` | `json` | Output format |
+| `model` | `PP-OCRv3`, `PP-OCRv4`, `PP-OCRv5` | env default | OCR model version to use |
 | `include_bbox` | `true`, `false` | `true` | Include position coordinates (JSON only) |
 | `include_confidence` | `true`, `false` | `true` | Include accuracy score per word (JSON only) |
 | `include_extracted_text` | `true`, `false` | `true` | Include full plain text (JSON only) |
@@ -132,6 +133,8 @@ curl -X POST "http://localhost:8000/ocr/parse?format=xml" \
 ```
 
 The `page_image_url` points to nginx (port 8080), not the main API. Open that URL to see the image with detected text regions.
+
+The `metadata.model` field reflects the model version used — either the default from `OCR_version` or the value passed via the `model` query param.
 
 **Error responses:**
 

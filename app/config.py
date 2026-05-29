@@ -14,12 +14,15 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+SUPPORTED_MODELS = ["PP-OCRv3", "PP-OCRv4", "PP-OCRv5"]
+
 
 class Settings(BaseSettings):
     # OCR Engine
     enable_mkldnn: bool = False
     lang: str = "en"
     version: str = "PP-OCRv4"
+    models: str = "PP-OCRv4"
     use_textline_orientation: bool = True
 
     # File Upload
@@ -69,6 +72,11 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False,
     )
+
+    @property
+    def models_list(self) -> list[str]:
+        """Parsed comma-separated list of OCR model versions to pre-load."""
+        return [m.strip() for m in self.models.split(",") if m.strip()]
 
     @property
     def allowed_types_list(self) -> list[str]:

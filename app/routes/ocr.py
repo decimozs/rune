@@ -19,7 +19,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import cast
 
-from config import settings
+from config import SUPPORTED_MODELS, settings
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from schemas.ocr import BatchItemResult, BatchStatus, JsonOutputOptions, SingleJobStatus
 from schemas.response import APIResponse, ResponseMetadata
@@ -74,19 +74,35 @@ def validate_upload(file: UploadFile) -> None:
         )
 
 
+def resolve_model(model: str | None) -> str:
+    """Validate and resolve model version.
+
+    Returns the model string if valid, or the default from settings.
+    Raises HTTP 400 for unsupported values.
+    """
+    resolved = model or settings.version
+    if resolved not in SUPPORTED_MODELS:
+        raise HTTPException(
+            400,
+            f"Unsupported model: {resolved}. Supported: {', '.join(SUPPORTED_MODELS)}",
+        )
+    return resolved
+
+
 def build_response(
     data,
     output_format: OutputFormat,
     filename: str,
     content_type: str,
     elapsed: float,
+    model: str = "",
 ) -> dict:
     """Wrap sync OCR result in APIResponse envelope with metadata."""
     return APIResponse(
         success=True,
         metadata=ResponseMetadata(
             timestamp=datetime.now(UTC),
-            model=settings.version,
+            model=model or settings.version,
             format=output_format.value,
             processing_time_ms=elapsed,
             file_name=filename,
@@ -120,9 +136,11 @@ async def parse_file(
     include_confidence: bool = Query(True),
     include_extracted_text: bool = Query(True),
     include_page_image: bool = Query(True),
+    model: str | None = Query(default=None),
     identity: str | None = Depends(verify_api_key),
 ):
     """OCR a single uploaded file. Returns result synchronously."""
+    resolved_model = resolve_model(model)
     validate_upload(file)
 
     content = await file.read()
@@ -140,13 +158,20 @@ async def parse_file(
     )
 
     data, error, elapsed = await process_file(
-        content, filename, content_type, output_format.value, options=opts
+        content,
+        filename,
+        content_type,
+        output_format.value,
+        options=opts,
+        version=resolved_model,
     )
 
     if error:
         raise HTTPException(500, detail=error)
 
-    return build_response(data, output_format, filename, content_type, elapsed)
+    return build_response(
+        data, output_format, filename, content_type, elapsed, model=resolved_model
+    )
 
 
 @router.post("/parse/jobs", status_code=202)
@@ -157,9 +182,11 @@ async def create_job(
     include_confidence: bool = Query(True),
     include_extracted_text: bool = Query(True),
     include_page_image: bool = Query(True),
+    model: str | None = Query(default=None),
     identity: str | None = Depends(verify_api_key),
 ):
     """Upload a file for background OCR. Returns job ID immediately (202)."""
+    resolved_model = resolve_model(model)
     validate_upload(file)
 
     content = await file.read()
@@ -188,6 +215,7 @@ async def create_job(
         source_type="file",
         temp_path=str(safe),
         output_options=opts,
+        model=resolved_model,
     )
     job = async_job_processor.get_job(job_id)
 
@@ -195,7 +223,7 @@ async def create_job(
         success=True,
         metadata=ResponseMetadata(
             timestamp=datetime.now(UTC),
-            model=settings.version,
+            model=resolved_model,
             format=output_format.value,
         ),
         data={
@@ -222,7 +250,7 @@ async def get_job_status(
         success=True,
         metadata=ResponseMetadata(
             timestamp=datetime.now(UTC),
-            model=settings.version,
+            model=job.model or settings.version,
             format=job.output_format,
         ),
         data=SingleJobStatus(
@@ -247,9 +275,11 @@ async def parse_batch(
     include_confidence: bool = Query(True),
     include_extracted_text: bool = Query(True),
     include_page_image: bool = Query(True),
+    model: str | None = Query(default=None),
     identity: str | None = Depends(verify_api_key),
 ):
     """Upload multiple files for batch OCR. Returns batch ID immediately (202)."""
+    resolved_model = resolve_model(model)
     if len(file) > MAX_BATCH_SIZE:
         raise HTTPException(413, f"Max {MAX_BATCH_SIZE} files per batch")
     if len(file) == 0:
@@ -273,7 +303,7 @@ async def parse_batch(
         include_page_image=include_page_image,
     )
     batch_id = async_job_processor.create_batch(
-        files_data, output_format.value, output_options=opts
+        files_data, output_format.value, output_options=opts, model=resolved_model
     )
     job = async_job_processor.get_job(batch_id)
 
@@ -281,7 +311,7 @@ async def parse_batch(
         success=True,
         metadata=ResponseMetadata(
             timestamp=datetime.now(UTC),
-            model=settings.version,
+            model=resolved_model,
             format=output_format.value,
         ),
         data={
@@ -326,7 +356,7 @@ async def get_batch_status(
         success=True,
         metadata=ResponseMetadata(
             timestamp=datetime.now(UTC),
-            model=settings.version,
+            model=job.model or settings.version,
             format=job.output_format,
         ),
         data=BatchStatus(
@@ -355,9 +385,11 @@ async def parse_url(
     include_confidence: bool = Query(True),
     include_extracted_text: bool = Query(True),
     include_page_image: bool = Query(True),
+    model: str | None = Query(default=None),
     identity: str | None = Depends(verify_api_key),
 ):
     """OCR a web page URL. Returns result synchronously."""
+    resolved_model = resolve_model(model)
     opts = _build_options(
         output_format,
         include_bbox=include_bbox,
@@ -365,10 +397,14 @@ async def parse_url(
         include_extracted_text=include_extracted_text,
         include_page_image=include_page_image,
     )
-    data, error, elapsed = await process_url(url, output_format.value, options=opts)
+    data, error, elapsed = await process_url(
+        url, output_format.value, options=opts, version=resolved_model
+    )
     if error:
         raise HTTPException(500, detail=error)
-    return build_response(data, output_format, url, "source/url", elapsed)
+    return build_response(
+        data, output_format, url, "source/url", elapsed, model=resolved_model
+    )
 
 
 @router.post("/parse/url/jobs", status_code=202)
@@ -379,9 +415,11 @@ async def create_url_job(
     include_confidence: bool = Query(True),
     include_extracted_text: bool = Query(True),
     include_page_image: bool = Query(True),
+    model: str | None = Query(default=None),
     identity: str | None = Depends(verify_api_key),
 ):
     """Submit a URL for background OCR. Returns job ID immediately (202)."""
+    resolved_model = resolve_model(model)
     opts = _build_options(
         output_format,
         include_bbox=include_bbox,
@@ -396,13 +434,14 @@ async def create_url_job(
         source_type="url",
         extra_data=url,
         output_options=opts,
+        model=resolved_model,
     )
     job = async_job_processor.get_job(job_id)
     return APIResponse(
         success=True,
         metadata=ResponseMetadata(
             timestamp=datetime.now(UTC),
-            model=settings.version,
+            model=resolved_model,
             format=output_format.value,
         ),
         data={
@@ -423,9 +462,11 @@ async def parse_url_batch(
     include_confidence: bool = Query(True),
     include_extracted_text: bool = Query(True),
     include_page_image: bool = Query(True),
+    model: str | None = Query(default=None),
     identity: str | None = Depends(verify_api_key),
 ):
     """Submit multiple URLs for batch OCR. Returns batch ID immediately (202)."""
+    resolved_model = resolve_model(model)
     if len(url) > MAX_BATCH_SIZE:
         raise HTTPException(413, f"Max {MAX_BATCH_SIZE} URLs per batch")
     if len(url) == 0:
@@ -438,14 +479,18 @@ async def parse_url_batch(
         include_page_image=include_page_image,
     )
     batch_id = async_job_processor.create_batch(
-        url, output_format.value, source_type="url", output_options=opts
+        url,
+        output_format.value,
+        source_type="url",
+        output_options=opts,
+        model=resolved_model,
     )
     job = async_job_processor.get_job(batch_id)
     return APIResponse(
         success=True,
         metadata=ResponseMetadata(
             timestamp=datetime.now(UTC),
-            model=settings.version,
+            model=resolved_model,
             format=output_format.value,
         ),
         data={
@@ -470,9 +515,11 @@ async def parse_html(
     include_confidence: bool = Query(True),
     include_extracted_text: bool = Query(True),
     include_page_image: bool = Query(True),
+    model: str | None = Query(default=None),
     identity: str | None = Depends(verify_api_key),
 ):
     """OCR an uploaded HTML file with assets. Returns result synchronously."""
+    resolved_model = resolve_model(model)
     if not files:
         raise HTTPException(400, "At least one file required (index.html)")
     file_tuples = []
@@ -489,11 +536,13 @@ async def parse_html(
         include_page_image=include_page_image,
     )
     data, error, elapsed = await process_html(
-        file_tuples, output_format.value, options=opts
+        file_tuples, output_format.value, options=opts, version=resolved_model
     )
     if error:
         raise HTTPException(500, detail=error)
-    return build_response(data, output_format, "index.html", "source/html", elapsed)
+    return build_response(
+        data, output_format, "index.html", "source/html", elapsed, model=resolved_model
+    )
 
 
 @router.post("/parse/html/jobs", status_code=202)
@@ -504,9 +553,11 @@ async def create_html_job(
     include_confidence: bool = Query(True),
     include_extracted_text: bool = Query(True),
     include_page_image: bool = Query(True),
+    model: str | None = Query(default=None),
     identity: str | None = Depends(verify_api_key),
 ):
     """Submit HTML + assets for background OCR. Returns job ID immediately (202)."""
+    resolved_model = resolve_model(model)
     if not files:
         raise HTTPException(400, "At least one file required (index.html)")
     file_tuples = []
@@ -529,13 +580,14 @@ async def create_html_job(
         source_type="html",
         extra_data=file_tuples,
         output_options=opts,
+        model=resolved_model,
     )
     job = async_job_processor.get_job(job_id)
     return APIResponse(
         success=True,
         metadata=ResponseMetadata(
             timestamp=datetime.now(UTC),
-            model=settings.version,
+            model=resolved_model,
             format=output_format.value,
         ),
         data={
@@ -556,6 +608,7 @@ async def parse_html_batch(
     include_confidence: bool = Query(True),
     include_extracted_text: bool = Query(True),
     include_page_image: bool = Query(True),
+    model: str | None = Query(default=None),
     identity: str | None = Depends(verify_api_key),
 ):
     """Upload multiple HTML file groups for batch OCR. Returns batch ID immediately (202).
@@ -563,6 +616,7 @@ async def parse_html_batch(
     Files are grouped by HTML boundary via _split_group_by_html so
     each HTML file plus its assets forms one batch item.
     """
+    resolved_model = resolve_model(model)
     file_tuples = []
     for f in files:
         content = await f.read()
@@ -584,14 +638,18 @@ async def parse_html_batch(
         include_page_image=include_page_image,
     )
     batch_id = async_job_processor.create_batch(
-        items, output_format.value, source_type="html", output_options=opts
+        items,
+        output_format.value,
+        source_type="html",
+        output_options=opts,
+        model=resolved_model,
     )
     job = async_job_processor.get_job(batch_id)
     return APIResponse(
         success=True,
         metadata=ResponseMetadata(
             timestamp=datetime.now(UTC),
-            model=settings.version,
+            model=resolved_model,
             format=output_format.value,
         ),
         data={

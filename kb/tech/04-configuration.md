@@ -7,7 +7,8 @@ All settings are configured through environment variables or a `.env` file. Each
 | Variable | Default | What It Does |
 |---|---|---|
 | `OCR_LANG` | `en` | Language for text recognition |
-| `OCR_VERSION` | `PP-OCRv4` | PaddleOCR model version |
+| `OCR_VERSION` | `PP-OCRv4` | Default PaddleOCR model version |
+| `OCR_MODELS` | `PP-OCRv4` | Comma-separated list of model versions to pre-load at startup (e.g. `PP-OCRv4,PP-OCRv5`). Each loaded model uses ~300MB RAM |
 | `OCR_ENABLE_MKLDNN` | `false` | Intel CPU acceleration (faster on supported hardware) |
 | `OCR_USE_TEXTLINE_ORIENTATION` | `true` | Detect if text is rotated |
 

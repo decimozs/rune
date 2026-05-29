@@ -47,19 +47,24 @@ async def _run_ocr(
     detected_type: str,
     output_format: str,
     options: dict | None = None,
+    version: str | None = None,
 ):
     """Dispatch to the right OCR backend by output format. Shared by all source types."""
     if output_format == "markdown":
         return await asyncio.to_thread(
-            ocr_service.to_markdown, str(safe_path), display_name, detected_type
+            ocr_service.to_markdown,
+            str(safe_path),
+            display_name,
+            detected_type,
+            version,
         )
     elif output_format == "xml":
         return await asyncio.to_thread(
-            ocr_service.to_xml, str(safe_path), display_name, detected_type
+            ocr_service.to_xml, str(safe_path), display_name, detected_type, version
         )
     opts = JsonOutputOptions(**options) if options else None
     return await asyncio.to_thread(
-        ocr_service.process, str(safe_path), display_name, detected_type, opts
+        ocr_service.process, str(safe_path), display_name, detected_type, opts, version
     )
 
 
@@ -69,6 +74,7 @@ async def process_file(
     declared_type: str,
     output_format: str,
     options: dict | None = None,
+    version: str | None = None,
 ) -> tuple[object, str | None, float]:
     """Full OCR pipeline for an uploaded file.
 
@@ -79,6 +85,7 @@ async def process_file(
         declared_type: MIME type from the upload Content-Type header.
         output_format: "json", "markdown", or "xml".
         options: JsonOutputOptions serialized as dict (only for json format).
+        version: Model version override (e.g. "PP-OCRv5").
 
     Returns:
         Tuple of (result_data, error_string_or_None, elapsed_ms).
@@ -128,7 +135,9 @@ async def process_file(
                 safe = await converter.to_pdf(safe, detected)
                 detected = "application/pdf"
 
-            result = await _run_ocr(safe, filename, detected, output_format, options)
+            result = await _run_ocr(
+                safe, filename, detected, output_format, options, version
+            )
 
             elapsed = round((time.time() - start) * 1000, 2)
             logger.info(
@@ -157,6 +166,7 @@ async def process_url(
     url_str: str,
     output_format: str,
     options: dict | None = None,
+    version: str | None = None,
 ) -> tuple[object, str | None, float]:
     """Full OCR pipeline for a URL source.
 
@@ -174,7 +184,7 @@ async def process_url(
             safe = await converter.url_to_pdf(url_str, safe)
             display_name = f"{stem}.pdf"
             result = await _run_ocr(
-                safe, display_name, "application/pdf", output_format, options
+                safe, display_name, "application/pdf", output_format, options, version
             )
             elapsed = round((time.time() - start) * 1000, 2)
             logger.info("URL processing complete: duration=%sms", elapsed)
@@ -191,6 +201,7 @@ async def process_html(
     files: list[tuple[str, bytes]],
     output_format: str,
     options: dict | None = None,
+    version: str | None = None,
 ) -> tuple[object, str | None, float]:
     """Full OCR pipeline for HTML + assets upload.
 
@@ -206,7 +217,7 @@ async def process_html(
             safe = await converter.html_to_pdf(files_dict, safe)
             display_name = f"{stem}.pdf"
             result = await _run_ocr(
-                safe, display_name, "application/pdf", output_format, options
+                safe, display_name, "application/pdf", output_format, options, version
             )
             elapsed = round((time.time() - start) * 1000, 2)
             logger.info(

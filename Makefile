@@ -43,7 +43,7 @@ up-ui: ## Start all Docker services with demo UI
 	$(COMPOSE) -f docker-compose.yml -f docker-compose.ui.yml up -d
 
 down: ## Stop all Docker services
-	$(COMPOSE) down
+	scripts/stop.sh
 
 build: ## Build or rebuild Docker image
 	$(COMPOSE) build
@@ -56,16 +56,16 @@ rebuild: ## Full clean rebuild (down → build --no-cache → up)
 restart: ## Restart all services
 	$(COMPOSE) restart
 
-logs: ## Follow logs from all services
-	$(COMPOSE) logs -f
+logs: ## Follow logs (optional SERVICE arg, e.g. make logs SERVICE=ocr)
+	scripts/logs.sh $(SERVICE)
 
 ps: ## Show service status
 	$(COMPOSE) ps
 
 status: ps ## Alias for ps
 
-app-logs: ## Follow logs from API service only
-	$(COMPOSE) logs -f $(SERVICE)
+app-logs: ## Follow logs from API service only (alias for logs)
+	scripts/logs.sh $(SERVICE)
 
 pull: ## Pull required images (gotenberg)
 	$(COMPOSE) pull gotenberg
