@@ -15,24 +15,59 @@
     }
 
     :root {
-      --bg: #f8f9fb;
-      --surface: #fff;
-      --border: #e2e6ee;
-      --border-bold: #c8cedb;
-      --text: #1a1e2e;
-      --text-dim: #6b7385;
-      --primary: #1a3a6b;
-      --primary-light: #3b6fcb;
-      --accent: #3b82f6;
+      --bg: #f0fdf4;
+      --surface: #ffffff;
+      --border: #d1fae5;
+      --border-bold: #a7f3d0;
+      --text: #064e3b;
+      --text-dim: #6b7280;
+      --primary: #166534;
+      --primary-light: #16a34a;
+      --accent: #22c55e;
       --success: #059669;
       --error: #dc2626;
       --warning: #d97706;
+      --header-h: 56px;
+      --sidebar-w: 280px;
+      --detail-w: 420px;
       --radius: 10px;
       --radius-sm: 6px;
       --shadow: 0 1px 3px rgba(0, 0, 0, .06), 0 1px 2px rgba(0, 0, 0, .04);
       --shadow-lg: 0 4px 16px rgba(0, 0, 0, .08);
       --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
       --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    html.dark {
+      --bg: #030712;
+      --surface: #111827;
+      --border: #1f2937;
+      --border-bold: #374151;
+      --text: #f9fafb;
+      --text-dim: #9ca3af;
+      --primary: #22c55e;
+      --primary-light: #4ade80;
+      --accent: #10b981;
+      --success: #10b981;
+      --error: #ef4444;
+      --warning: #f59e0b;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      html:not(.light):not(.dark) {
+        --bg: #030712;
+        --surface: #111827;
+        --border: #1f2937;
+        --border-bold: #374151;
+        --text: #f9fafb;
+        --text-dim: #9ca3af;
+        --primary: #22c55e;
+        --primary-light: #4ade80;
+        --accent: #10b981;
+        --success: #10b981;
+        --error: #ef4444;
+        --warning: #f59e0b;
+      }
     }
 
     body {
@@ -193,10 +228,9 @@
     /* main */
     main {
       flex: 1;
-      max-width: 920px;
-      width: 100%;
-      margin: 0 auto;
-      padding: 24px 20px 40px
+      min-width: 0;
+      overflow-y: auto;
+      background: var(--bg)
     }
 
     /* controls */
@@ -936,8 +970,8 @@
 
     .viz-page-inner {
       position: relative;
-      display: inline-block;
-      max-width: 100%
+      display: block;
+      width: 100%
     }
 
     .viz-page canvas {
@@ -1139,6 +1173,540 @@
     .url-add-row .btn-url-add:hover {
       background: var(--primary-light)
     }
+
+    /* ===== 3-panel layout ===== */
+    .app-layout {
+      display: flex;
+      height: calc(100vh - var(--header-h));
+      overflow: hidden
+    }
+
+    /* sidebar */
+    .sidebar {
+      width: var(--sidebar-w);
+      flex-shrink: 0;
+      display: none;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      overflow-y: auto
+    }
+
+    .sidebar.open {
+      display: block
+    }
+
+    .sidebar-inner {
+      display: flex;
+      flex-direction: column;
+      height: 100%
+    }
+
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 16px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      border-bottom: 1px solid var(--border)
+    }
+
+    .sidebar-header .count {
+      font-weight: 400;
+      font-size: 11px;
+      background: var(--border);
+      padding: 1px 7px;
+      border-radius: 10px;
+      color: var(--text-dim)
+    }
+
+    #sidebarList {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px
+    }
+
+    .sidebar-empty {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-dim);
+      font-size: 13px
+    }
+
+    .sidebar-empty .icon {
+      font-size: 32px;
+      opacity: .3;
+      margin-bottom: 8px
+    }
+
+    /* sidebar entry */
+    .sidebar-entry {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background .1s;
+      margin-bottom: 4px;
+      border: 1px solid transparent
+    }
+
+    .sidebar-entry:hover {
+      background: var(--bg)
+    }
+
+    .sidebar-entry.selected {
+      background: var(--bg);
+      border-color: var(--border-bold)
+    }
+
+    .sidebar-entry .s-entry-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0
+    }
+
+    .sidebar-entry .s-entry-dot.ok {
+      background: var(--success)
+    }
+
+    .sidebar-entry .s-entry-dot.fail {
+      background: var(--error)
+    }
+
+    .sidebar-entry .s-entry-dot.pending {
+      background: var(--warning);
+      animation: pulse 1.5s infinite
+    }
+
+    .sidebar-entry .s-entry-name {
+      flex: 1;
+      font-size: 12px;
+      font-weight: 500;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap
+    }
+
+    .sidebar-entry .s-entry-model {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 8px;
+      background: var(--border);
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: .2px;
+      flex-shrink: 0
+    }
+
+    .sidebar-entry .s-entry-timing {
+      font-size: 11px;
+      color: var(--text-dim);
+      font-family: var(--mono);
+      flex-shrink: 0
+    }
+
+    /* main center */
+    .main-center {
+      flex: 1;
+      min-width: 0;
+      overflow-y: auto;
+      background: var(--bg)
+    }
+
+    .main-center-inner {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 24px 20px 40px
+    }
+
+    /* right panel — thin tab selector */
+    .rp-panel {
+      width: 56px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      overflow: hidden
+    }
+
+    .rp-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100%
+    }
+
+    .rp-header {
+      width: 100%;
+      padding: 8px 4px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      text-align: center;
+      display: none
+    }
+
+    .rp-header-left {
+      display: none
+    }
+
+    .rp-fname {
+      display: none
+    }
+
+    .rp-model {
+      display: none
+    }
+
+    .rp-close {
+      width: 20px;
+      height: 20px;
+      border: none;
+      border-radius: 50%;
+      background: var(--border);
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all .15s;
+      margin: 0 auto
+    }
+
+    .rp-close:hover {
+      background: var(--error);
+      color: #fff
+    }
+
+    /* right panel tab bar — vertical */
+    .rp-tab-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 8px 4px;
+      width: 100%;
+      flex: 1
+    }
+
+    .rp-tab {
+      font-family: var(--font);
+      font-size: 10px;
+      font-weight: 500;
+      padding: 8px 4px;
+      border: none;
+      cursor: pointer;
+      background: transparent;
+      color: var(--text-dim);
+      transition: all .1s;
+      border-radius: 4px;
+      text-align: center;
+      line-height: 1.2;
+      word-break: break-word
+    }
+
+    .rp-tab:hover {
+      color: var(--text);
+      background: var(--bg)
+    }
+
+    .rp-tab.active {
+      background: var(--primary);
+      color: #fff
+    }
+
+    .btn-icon {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 10px;
+      font-family: var(--font);
+      font-size: 11px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all .15s
+    }
+
+    .btn-icon:hover {
+      border-color: var(--primary-light);
+      color: var(--primary);
+      background: var(--bg)
+    }
+
+    .btn-icon:active {
+      transform: scale(.96)
+    }
+
+    .btn-icon .ico {
+      font-size: 13px;
+      line-height: 1
+    }
+
+    .btn-icon.copied {
+      border-color: var(--success);
+      color: var(--success)
+    }
+
+    /* session folder */
+    .session-folder {
+      margin-bottom: 4px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden
+    }
+
+    .session-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 10px;
+      cursor: pointer;
+      transition: background .1s;
+      font-size: 12px;
+      background: var(--surface)
+    }
+
+    .session-header:hover {
+      background: var(--bg)
+    }
+
+    .session-toggle {
+      font-size: 10px;
+      color: var(--text-dim);
+      transition: transform .15s;
+      flex-shrink: 0
+    }
+
+    .session-toggle.open {
+      transform: rotate(90deg)
+    }
+
+    .session-time {
+      font-size: 11px;
+      color: var(--text-dim);
+      font-family: var(--mono);
+      flex-shrink: 0
+    }
+
+    .session-mode {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 8px;
+      background: var(--border);
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: .3px;
+      flex-shrink: 0
+    }
+
+    .session-model-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 8px;
+      background: var(--border);
+      color: var(--text-dim);
+      flex-shrink: 0
+    }
+
+    .session-files {
+      border-top: 1px solid var(--border);
+      padding: 4px 4px 4px 20px;
+      display: none
+    }
+
+    .session-files.open {
+      display: block
+    }
+
+    /* header buttons */
+    .theme-toggle {
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .15s;
+      flex-shrink: 0;
+      margin-left: auto
+    }
+
+    .theme-toggle:hover {
+      border-color: var(--primary-light);
+      background: var(--bg)
+    }
+
+    .sidebar-toggle {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      cursor: pointer;
+      font-size: 18px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+      flex-shrink: 0;
+      transition: background .15s
+    }
+
+    .sidebar-toggle:hover {
+      background: var(--border)
+    }
+
+    .header-upload-btn {
+      height: 32px;
+      padding: 0 12px;
+      border: 1px solid var(--primary);
+      border-radius: var(--radius-sm);
+      background: var(--primary);
+      color: #fff;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: var(--font);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+      transition: all .15s
+    }
+
+    .header-upload-btn:hover {
+      background: var(--primary-dark);
+      border-color: var(--primary-dark)
+    }
+
+    /* detail area (center content) */
+    .detail-area {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background: var(--surface)
+    }
+
+    .detail-area-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0
+    }
+
+    .detail-header-left {
+      flex: 1;
+      min-width: 0
+    }
+
+    .detail-fname {
+      font-size: 16px;
+      font-weight: 600;
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap
+    }
+
+    .detail-model {
+      font-size: 11px;
+      color: var(--text-dim);
+      font-family: var(--mono);
+      margin-top: 2px;
+      display: block
+    }
+
+    .detail-header-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-shrink: 0
+    }
+
+    .detail-close {
+      width: 24px;
+      height: 24px;
+      border: none;
+      border-radius: 50%;
+      background: var(--border);
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all .15s
+    }
+
+    .detail-close:hover {
+      background: var(--error);
+      color: #fff
+    }
+
+    .detail-body {
+      flex: 1;
+      overflow-y: auto;
+      background: var(--surface);
+      padding: 0
+    }
+
+    .detail-body .body pre {
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.5;
+      padding: 14px 16px;
+      overflow-x: auto;
+      background: var(--bg);
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word
+    }
+
+    .detail-body .body.open {
+      display: block
+    }
+
+    /* inline copy toast */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--text);
+      color: var(--bg);
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 500;
+      z-index: 999;
+      opacity: 0;
+      transition: opacity .2s;
+      pointer-events: none
+    }
+
+    .toast.show {
+      opacity: 1
+    }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
@@ -1146,6 +1714,7 @@
 <body>
 
   <header>
+    <button class="sidebar-toggle" id="sidebarToggle" title="Toggle history">☰</button>
     <h1>Exist OCR</h1>
     <span class="tag">v1</span>
     <div class="health">
@@ -1160,10 +1729,28 @@
       <span>Key</span>
       <input type="password" id="apiKeyInput" placeholder="sk-..." spellcheck="false">
     </div>
+    <button class="theme-toggle" id="themeToggle" title="Toggle theme">🌙</button>
+    <button class="header-upload-btn" id="uploadBtn" title="Upload new files">+ Upload</button>
   </header>
 
-  <main>
-    <div class="source-bar">
+  <div class="app-layout" id="appLayout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <div class="sidebar-header">
+          <span>History</span>
+          <span class="count" id="sidebarCount">0</span>
+        </div>
+        <div id="sidebarList"></div>
+        <div class="sidebar-empty" id="sidebarEmpty">
+          <div class="icon">📋</div>
+          <p>No results yet.</p>
+        </div>
+      </div>
+    </aside>
+    <main id="mainCenter">
+      <div class="upload-area" id="uploadArea">
+      <div class="main-center-inner">
+        <div class="source-bar">
       <button class="source-tab active" data-source="file">📄 File</button>
       <button class="source-tab" data-source="url">🔗 URL</button>
       <button class="source-tab" data-source="html">🕸️ HTML</button>
@@ -1259,17 +1846,43 @@
         <span class="spinner"></span>
         <span class="btn-text">Process Files</span>
       </button>
-    </div>
-
-    <div class="results" id="results">
-      <h2>Results <span class="count" id="resultCount">0</span></h2>
-      <div id="resultList"></div>
-      <div class="empty-state" id="emptyState">
-        <div class="icon">📋</div>
-        <p>Upload files and click Process to see results here.</p>
       </div>
     </div>
+    </div>
+    <div class="detail-area" id="detailArea" style="display:none">
+      <div class="detail-area-header">
+        <div class="detail-header-left">
+          <span class="detail-fname" id="detailFname"></span>
+          <span class="detail-model" id="detailModel"></span>
+        </div>
+        <div class="detail-header-actions">
+          <button class="btn-icon btn-copy-detail" id="detailCopyBtn" title="Copy raw JSON">📋 Copy</button>
+          <button class="btn-icon btn-copy-detail" id="detailDlVizBtn" title="Download visualization with bboxes" style="display:none">⬇ Viz</button>
+        </div>
+      </div>
+      <div class="detail-body" id="detailBody"></div>
+    </div>
   </main>
+    <aside class="rp-panel" id="rpPanel" style="display:none">
+      <div class="rp-inner">
+        <div class="rp-header">
+          <button class="rp-close" id="rpClose" title="Close">✕</button>
+        </div>
+        <div class="rp-tab-bar">
+          <button class="rp-tab active" data-tab="raw">Raw</button>
+          <button class="rp-tab" data-tab="viz">Viz</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <div class="loading-overlay" id="loadingOverlay" style="display:none">
+    <div class="loading-modal">
+      <div class="loading-spinner"></div>
+      <p id="loadingText">Processing...</p>
+    </div>
+  </div>
 
   <script>
     ; (function () {
@@ -1519,6 +2132,12 @@
       }
 
       function addFiles(fileList) {
+        // Clear previous selection — each upload starts fresh
+        for (var fi = 0; fi < selectedFiles.length; fi++) {
+          if (selectedFiles[fi].blobUrl) URL.revokeObjectURL(selectedFiles[fi].blobUrl)
+        }
+        selectedFiles = []
+
         const src = sourceType()
         if (src === 'html') {
           const newFiles = []
@@ -1620,8 +2239,12 @@
         btn.disabled = true
 
         clearResults()
+        startNewSession()
         pollingTimers.forEach(clearInterval)
         pollingTimers = []
+
+        $('loadingOverlay').style.display = ''
+        $('loadingText').textContent = 'Processing...'
 
         const m = mode()
         try {
@@ -1632,6 +2255,7 @@
           addResultCard('Request failed', 'fail', null, err.message || 'Network error')
         }
 
+        $('loadingOverlay').style.display = 'none'
         processing = false
         btn.classList.remove('loading')
         updateProcessBtn()
@@ -1640,19 +2264,25 @@
       async function processDirect() {
         const src = sourceType()
         if (src === 'url') {
-          const resp = await fetch(`${apiUrl()}${currentEndpoint('')}?format=${format()}${jsonOptionsString()}${modelString()}`, {
-            method: 'POST',
-            headers: getApiHeaders({'Content-Type': 'application/x-www-form-urlencoded'}),
-            body: 'url=' + encodeURIComponent(urlEntries[0])
-          })
-          const json = await resp.json()
+          let resp, json
+          try {
+            resp = await fetch(`${apiUrl()}${currentEndpoint('')}?format=${format()}${jsonOptionsString()}${modelString()}`, {
+              method: 'POST',
+              headers: getApiHeaders({'Content-Type': 'application/x-www-form-urlencoded'}),
+              body: 'url=' + encodeURIComponent(urlEntries[0])
+            })
+            json = await resp.json()
+          } catch (e) {
+            addResultCard(urlEntries[0] || 'URL', 'fail', null, 'Cannot reach server: ' + e.message)
+            return
+          }
           if (!resp.ok) {
             const msg = json.detail || json.error?.message || `HTTP ${resp.status}`
             addResultCard(urlEntries[0], 'fail', null, msg)
             return
           }
           const ms = json.metadata?.processing_time_ms
-          addResultCard(urlEntries[0], 'ok', ms, json.data || json, json.metadata)
+          addResultCard(urlEntries[0], 'ok', ms, json.data || json, json.metadata, json)
           return
         }
 
@@ -1661,15 +2291,21 @@
         for (const e of selectedFiles) fd.append(fn, e.file, e.file.name)
         const ep = currentEndpoint('')
         const label = src === 'html' ? currentFileIdent() : selectedFiles[0]?.file?.name
-        const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}${modelString()}`, {method: 'POST', headers: getApiHeaders(), body: fd})
-        const json = await resp.json()
+        let resp, json
+        try {
+          resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}${modelString()}`, {method: 'POST', headers: getApiHeaders(), body: fd})
+          json = await resp.json()
+        } catch (e) {
+          addResultCard(label, 'fail', null, 'Cannot reach server: ' + e.message)
+          return
+        }
         if (!resp.ok) {
           const msg = json.detail || json.error?.message || `HTTP ${resp.status}`
           addResultCard(label, 'fail', null, msg)
           return
         }
         const ms = json.metadata?.processing_time_ms
-        addResultCard(label, 'ok', ms, json.data || json, json.metadata)
+        addResultCard(label, 'ok', ms, json.data || json, json.metadata, json)
       }
 
       async function processJob() {
@@ -1678,12 +2314,18 @@
         const ep = currentEndpoint('/jobs')
 
         if (src === 'url') {
-          const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}${modelString()}`, {
-            method: 'POST',
-            headers: getApiHeaders({'Content-Type': 'application/x-www-form-urlencoded'}),
-            body: 'url=' + encodeURIComponent(urlEntries[0])
-          })
-          const json = await resp.json()
+          let resp, json
+          try {
+            resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}${modelString()}`, {
+              method: 'POST',
+              headers: getApiHeaders({'Content-Type': 'application/x-www-form-urlencoded'}),
+              body: 'url=' + encodeURIComponent(urlEntries[0])
+            })
+            json = await resp.json()
+          } catch (e) {
+            addResultCard(ident, 'fail', null, 'Cannot reach server: ' + e.message)
+            return
+          }
           if (!resp.ok) {
             const msg = json.detail || json.error?.message || `HTTP ${resp.status}`
             addResultCard(ident, 'fail', null, msg)
@@ -1699,8 +2341,14 @@
         const fd = new FormData()
         for (const e of selectedFiles) fd.append(fn, e.file, e.file.name)
         const label = src === 'html' ? ident : selectedFiles[0]?.file?.name
-        const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}${modelString()}`, {method: 'POST', headers: getApiHeaders(), body: fd})
-        const json = await resp.json()
+        let resp, json
+        try {
+          resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}${modelString()}`, {method: 'POST', headers: getApiHeaders(), body: fd})
+          json = await resp.json()
+        } catch (e) {
+          addResultCard(label, 'fail', null, 'Cannot reach server: ' + e.message)
+          return
+        }
         if (!resp.ok) {
           const msg = json.detail || json.error?.message || `HTTP ${resp.status}`
           addResultCard(label, 'fail', null, msg)
@@ -1721,7 +2369,7 @@
               clearInterval(timer)
               const ms = data.processing_time_ms
               var jobMeta = Object.assign({}, json.metadata, {file_name: data.file_name, processing_time_ms: ms})
-              updateResultCard(card, 'ok', ms, data.data, jobMeta)
+              updateResultCard(card, 'ok', ms, data.data, jobMeta, json)
             } else if (data.status === 'failed') {
               clearInterval(timer)
               const err = data.error?.message || data.error || 'Job failed'
@@ -1744,12 +2392,18 @@
         if (src === 'url') {
           var params = new URLSearchParams()
           for (var ui = 0; ui < urlEntries.length; ui++) params.append('url', urlEntries[ui])
-          const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}${modelString()}`, {
-            method: 'POST',
-            headers: getApiHeaders({'Content-Type': 'application/x-www-form-urlencoded'}),
-            body: params.toString()
-          })
-          const json = await resp.json()
+          let resp, json
+          try {
+            resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}${modelString()}`, {
+              method: 'POST',
+              headers: getApiHeaders({'Content-Type': 'application/x-www-form-urlencoded'}),
+              body: params.toString()
+            })
+            json = await resp.json()
+          } catch (e) {
+            addResultCard('URL batch', 'fail', null, 'Cannot reach server: ' + e.message)
+            return
+          }
           if (!resp.ok) {
             const msg = json.detail || json.error?.message || `HTTP ${resp.status}`
             addResultCard('URL batch', 'fail', null, msg)
@@ -1766,8 +2420,14 @@
         for (const f of selectedFiles) {
           fd.append(fn, f.file, f.file.name)
         }
-        const resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}${modelString()}`, {method: 'POST', headers: getApiHeaders(), body: fd})
-        const json = await resp.json()
+        let resp, json
+        try {
+          resp = await fetch(`${apiUrl()}${ep}?format=${format()}${jsonOptionsString()}${modelString()}`, {method: 'POST', headers: getApiHeaders(), body: fd})
+          json = await resp.json()
+        } catch (e) {
+          addResultCard('batch', 'fail', null, 'Cannot reach server: ' + e.message)
+          return
+        }
         if (!resp.ok) {
           const msg = json.detail || json.error?.message || `HTTP ${resp.status}`
           addResultCard('batch', 'fail', null, msg)
@@ -1791,14 +2451,12 @@
               for (const item of data.items || []) {
                 if (item.success) {
                   var itemMeta = Object.assign({}, json.metadata, {file_name: item.file_name, processing_time_ms: item.processing_time_ms})
-                  addResultCard(item.file_name, 'ok', item.processing_time_ms, item.data, itemMeta)
+                  addResultCard(item.file_name, 'ok', item.processing_time_ms, item.data, itemMeta, json)
                 } else {
                   const err = item.error?.message || item.error || 'Failed'
                   addResultCard(item.file_name, 'fail', null, err)
                 }
               }
-              const empty = $('emptyState')
-              if (empty) empty.style.display = 'none'
               return
             }
 
@@ -2085,7 +2743,7 @@
             multi.className = 'viz-multi'
             container.appendChild(multi)
 
-            var scale = 200 / 72
+            var scale = 300 / 72
             var numPages = pdf.numPages
             var observer = new IntersectionObserver(function (entries) {
               for (var ei = 0; ei < entries.length; ei++) {
@@ -2117,12 +2775,218 @@
       }
 
       // ---- result cards ----
+      // ---- sessions + sidebar + right panel ----
+      let currentSessionId = null
+      let sessionSeq = 0
+      const resultDataMap = new Map()
+      const sessionFolderMap = new Map()
+
       function clearResults() {
-        $('resultList').innerHTML = ''
-        const empty = $('emptyState')
-        if (empty) empty.style.display = 'block'
-        $('resultCount').textContent = '0'
+        hideDetail()
+        $('sidebarList').innerHTML = ''
+        sessionFolderMap.clear()
+        resultDataMap.clear()
+        currentSessionId = null
+        sessionSeq = 0
+        const empty = $('sidebarEmpty')
+        if (empty) empty.style.display = ''
+        updateSidebarCount()
         vizDataMap.clear()
+      }
+
+      function startNewSession() {
+        sessionSeq++
+        const now = new Date()
+        const timeStr = now.toLocaleTimeString()
+        const m = mode().toUpperCase()
+        const mdl = model() || ''
+        currentSessionId = 'sess_' + sessionSeq + '_' + now.getTime()
+
+        const folder = document.createElement('div')
+        folder.className = 'session-folder'
+        folder.dataset.sessionId = currentSessionId
+        folder.innerHTML =
+          '<div class="session-header">' +
+          '<span class="session-toggle">▶</span>' +
+          '<span class="session-time">' + esc(timeStr) + '</span>' +
+          '<span class="session-mode">' + esc(m) + '</span>' +
+          (mdl ? '<span class="session-model-badge">' + esc(mdl) + '</span>' : '') +
+          '</div>' +
+          '<div class="session-files open"></div>'
+
+        folder.querySelector('.session-header').addEventListener('click', function () {
+          const files = this.nextElementSibling
+          const toggle = this.querySelector('.session-toggle')
+          files.classList.toggle('open')
+          toggle.classList.toggle('open')
+        })
+
+        $('sidebarList').appendChild(folder)
+        const empty = $('sidebarEmpty')
+        if (empty) empty.style.display = 'none'
+        updateSidebarCount()
+
+        sessionFolderMap.set(currentSessionId, folder.querySelector('.session-files'))
+        $('sidebar').classList.add('open')
+      }
+
+      function addResultCard(name, status, timing, content, meta, fullResponse) {
+        if (!currentSessionId) startNewSession()
+        if (status === 'ok' && meta && meta.format === 'json' && content && typeof content === 'object') {
+          vizDataMap.set(name, content)
+        }
+
+        const id = currentSessionId + '_' + name + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)
+        resultDataMap.set(id, {name: name, status: status, timing: timing, content: content, meta: meta, fullResponse: fullResponse || content})
+
+        const filesContainer = sessionFolderMap.get(currentSessionId)
+        if (!filesContainer) return null
+
+        const modelName = (meta && meta.model) || ''
+        const modelBadge = modelName ? modelName.replace('PP-OCR', 'v') : ''
+        const timingStr = timing != null ? (timing < 1000 ? timing.toFixed(0) + 'ms' : (timing / 1000).toFixed(2) + 's') : ''
+
+        const div = document.createElement('div')
+        div.className = 'sidebar-entry'
+        div.dataset.resultId = id
+        div.innerHTML =
+          '<span class="s-entry-dot ' + status + '"></span>' +
+          '<span class="s-entry-name">' + esc(name) + '</span>' +
+          (modelBadge ? '<span class="s-entry-model">' + esc(modelBadge) + '</span>' : '') +
+          (timingStr ? '<span class="s-entry-timing">' + timingStr + '</span>' : '')
+
+        div.addEventListener('click', function () {
+          selectSidebarEntry(this)
+        })
+
+        filesContainer.appendChild(div)
+        updateSidebarCount()
+        selectSidebarEntry(div)
+        return div
+      }
+
+      function updateResultCard(entryEl, status, timing, content, meta, fullResponse) {
+        if (!entryEl) return
+        const id = entryEl.dataset.resultId
+        const name = entryEl.querySelector('.s-entry-name').textContent
+        if (status === 'ok' && meta && meta.format === 'json' && content && typeof content === 'object') {
+          var fn = meta.file_name
+          if (fn) vizDataMap.set(fn, content)
+        }
+
+        const existing = resultDataMap.get(id) || {}
+        resultDataMap.set(id, {name: name, status: status, timing: timing, content: content, meta: meta, fullResponse: fullResponse || existing.fullResponse || content})
+
+        const dot = entryEl.querySelector('.s-entry-dot')
+        const timingEl = entryEl.querySelector('.s-entry-timing')
+        if (dot) dot.className = 's-entry-dot ' + status
+
+        const modelName = (meta && meta.model) || ''
+        const modelBadge = modelName ? modelName.replace('PP-OCR', 'v') : ''
+        let mb = entryEl.querySelector('.s-entry-model')
+        if (modelBadge) {
+          if (!mb) {
+            mb = document.createElement('span')
+            mb.className = 's-entry-model'
+            entryEl.insertBefore(mb, timingEl || entryEl.lastChild)
+          }
+          mb.textContent = modelBadge
+        } else if (mb) {
+          mb.remove()
+        }
+
+        if (timing != null) {
+          const s = timing < 1000 ? timing.toFixed(0) + 'ms' : (timing / 1000).toFixed(2) + 's'
+          if (timingEl) timingEl.textContent = s
+          else {
+            const el = document.createElement('span')
+            el.className = 's-entry-timing'
+            el.textContent = s
+            entryEl.appendChild(el)
+          }
+        }
+
+        if (entryEl.classList.contains('selected')) {
+          showRightPanel(name, status, timing, content, meta, fullResponse)
+        }
+      }
+
+      function selectSidebarEntry(entryEl) {
+        document.querySelectorAll('.sidebar-entry.selected').forEach(function (e) {
+          e.classList.remove('selected')
+        })
+        entryEl.classList.add('selected')
+
+        const id = entryEl.dataset.resultId
+        const data = resultDataMap.get(id)
+        if (data) {
+          showRightPanel(data.name, data.status, data.timing, data.content, data.meta, data.fullResponse)
+        }
+      }
+
+      function showRightPanel(name, status, timing, content, meta, fullResponse) {
+        $('rpPanel').style.display = ''
+        $('uploadArea').style.display = 'none'
+        $('detailArea').style.display = 'flex'
+        $('detailBody').scrollTop = 0
+
+        const modelName = (meta && meta.model) || ''
+        $('detailFname').textContent = name
+        $('detailModel').textContent = modelName ? 'Model: ' + modelName : ''
+
+        const isObj = content && typeof content === 'object'
+        const rawJSON = fullResponse ? JSON.stringify(fullResponse, null, 2) : (isObj ? JSON.stringify(content, null, 2) : (content || ''))
+        const canViz = isObj && meta && meta.format === 'json' && status === 'ok'
+        const fileName = meta && meta.file_name
+
+        // Copy button only when done
+        $('detailCopyBtn').style.display = status === 'ok' ? '' : 'none'
+        $('detailDlVizBtn').style.display = canViz ? '' : 'none'
+        $('detailDlVizBtn').onclick = downloadVizWithBboxes
+
+        const text = isObj ? JSON.stringify(content, null, 2) : (content || '')
+
+        // Build detail body content
+        const body = $('detailBody')
+        const isMd = isMarkdown(meta, content) && !isObj && status !== 'fail'
+
+        if (isMd) {
+          const rendered = renderMarkdown(text)
+          body.innerHTML =
+            '<div class="tab-content tab-raw"><div class="body open"><pre>' + esc(rawJSON) + '</pre></div></div>' +
+            '<div class="tab-content tab-preview active"><div class="md-render">' + rendered + '</div></div>'
+        } else if (canViz) {
+          body.innerHTML =
+            '<div class="tab-content tab-raw"><div class="body open"><pre>' + esc(rawJSON) + '</pre></div></div>' +
+            '<div class="tab-content tab-viz active" data-filename="' + esc(fileName) + '"><div class="viz-empty">Rendering...</div></div>'
+          // Auto-render viz
+          var vc = body.querySelector('.tab-viz')
+          if (vc) {
+            var fn = vc.dataset.filename
+            if (fn) renderVisualization(vc, fn)
+          }
+        } else {
+          body.innerHTML = '<div class="body open"><pre>' + esc(rawJSON) + '</pre></div>'
+        }
+
+        // Sync right panel active tab
+        $('rpPanel').querySelectorAll('.rp-tab').forEach(function (t) {t.classList.remove('active')})
+        var defaultTab = canViz ? 'viz' : 'raw'
+        var rpTab = $('rpPanel').querySelector('.rp-tab[data-tab="' + defaultTab + '"]')
+        if (rpTab) rpTab.classList.add('active')
+
+        // Bind copy button in detail header
+        $('detailCopyBtn').dataset.copyText = rawJSON
+        $('detailCopyBtn').onclick = function () {copyText(rawJSON)}
+      }
+
+      function hideDetail() {
+        $('rpPanel').style.display = 'none'
+        $('detailArea').style.display = 'none'
+        $('uploadArea').style.display = ''
+        document.querySelectorAll('.sidebar-entry.selected').forEach(function (e) {
+          e.classList.remove('selected')
+        })
       }
 
       function isMarkdown(meta, content) {
@@ -2131,162 +2995,9 @@
         return false
       }
 
-      function makeBodyHTML(content, meta, status) {
-        const isObj = content && typeof content === 'object'
-        const text = isObj ? JSON.stringify(content, null, 2) : (content || '')
-        if (!text) return '<div class="body"><pre></pre></div>'
-
-        const isMd = isMarkdown(meta, content) && !isObj && status !== 'fail'
-        const fileName = meta && meta.file_name
-        const canViz = isObj && meta && meta.format === 'json' && status === 'ok' &&
-          fileName && selectedFiles.some(function (f) {return f.file.name === fileName})
-
-        if (!isMd && !canViz) return '<div class="body open"><pre>' + esc(text) + '</pre></div>'
-
-        if (isMd) {
-          const rendered = renderMarkdown(text)
-          return '<div class="body open">' +
-            '<div class="tab-bar">' +
-            '<button class="tab active" data-tab="raw">Raw</button>' +
-            '<button class="tab" data-tab="preview">Preview</button>' +
-            '</div>' +
-            '<div class="tab-content tab-raw active"><pre>' + esc(text) + '</pre></div>' +
-            '<div class="tab-content tab-preview"><div class="md-render">' + rendered + '</div></div>' +
-            '</div>'
-        }
-
-        return '<div class="body open">' +
-          '<div class="tab-bar">' +
-          '<button class="tab active" data-tab="raw">Raw</button>' +
-          '<button class="tab" data-tab="viz">Visualize</button>' +
-          '</div>' +
-          '<div class="tab-content tab-raw active"><pre>' + esc(text) + '</pre></div>' +
-          '<div class="tab-content tab-viz" data-filename="' + esc(fileName) + '"><div class="viz-empty">Click Visualize tab to render.</div></div>' +
-          '</div>'
-      }
-
-      function addResultCard(name, status, timing, content, meta) {
-        const list = $('resultList')
-        const empty = $('emptyState')
-        if (empty) empty.style.display = 'none'
-
-        if (status === 'ok' && meta && meta.format === 'json' && content && typeof content === 'object') {
-          vizDataMap.set(name, content)
-        }
-
-        const timingStr = timing != null ? (timing < 1000 ? timing.toFixed(0) + 'ms' : (timing / 1000).toFixed(2) + 's') : ''
-        const bodyHTML = makeBodyHTML(content, meta, status)
-
-        const div = document.createElement('div')
-        div.className = 'result-card'
-        div.innerHTML = `
-      <div class="header">
-        <span class="status-dot ${status}"></span>
-        <span class="fname">${esc(name)}</span>
-        ${timingStr ? `<span class="timing">${timingStr}</span>` : ''}
-        <span class="badge ${status}">${status === 'pending' ? '⏳' : status === 'ok' ? '✓' : '✗'} ${status}</span>
-        <span class="toggle">▶</span>
-      </div>
-      ${bodyHTML}`
-
-        div.querySelector('.header').addEventListener('click', function () {
-          const body = this.parentElement.querySelector('.body')
-          const toggle = this.querySelector('.toggle')
-          body.classList.toggle('open')
-          toggle.classList.toggle('open')
-        })
-
-        div.querySelectorAll('.tab').forEach(function (tab) {
-          tab.addEventListener('click', function (e) {
-            e.stopPropagation()
-            const bar = this.parentElement
-            const body = bar.parentElement
-            bar.querySelectorAll('.tab').forEach(function (t) {t.classList.remove('active')})
-            this.classList.add('active')
-            body.querySelectorAll('.tab-content').forEach(function (c) {c.classList.remove('active')})
-            var target = body.querySelector('.tab-' + this.dataset.tab)
-            if (target) target.classList.add('active')
-            if (this.dataset.tab === 'viz') {
-              var vc = body.querySelector('.tab-viz')
-              if (vc && !vc.dataset.rendered) {
-                vc.dataset.rendered = '1'
-                var fn = vc.dataset.filename
-                if (fn) renderVisualization(vc, fn)
-              }
-            }
-          })
-        })
-
-        list.appendChild(div)
-        updateCount()
-
-        if (status === 'ok' && content && typeof content === 'object') {
-          const pre = div.querySelector('pre')
-          if (pre && content && JSON.stringify(content).length > 2000) pre.style.maxHeight = '300px'
-        }
-
-        return div
-      }
-
-      function updateResultCard(card, status, timing, content, meta) {
-        if (status === 'ok' && meta && meta.format === 'json' && content && typeof content === 'object') {
-          var fn = meta.file_name
-          if (fn) vizDataMap.set(fn, content)
-        }
-        const header = card.querySelector('.header')
-        const dot = header.querySelector('.status-dot')
-        const badge = header.querySelector('.badge')
-        const timingEl = header.querySelector('.timing')
-        const body = card.querySelector('.body')
-        const newBodyHTML = makeBodyHTML(content, meta, status)
-        body.outerHTML = newBodyHTML
-        const newBody = card.querySelector('.body')
-
-        dot.className = 'status-dot ' + status
-        badge.className = 'badge ' + status
-        badge.textContent = status === 'pending' ? '⏳ processing' : status === 'ok' ? '✓ ok' : '✗ failed'
-
-        if (timing != null) {
-          const s = timing < 1000 ? timing.toFixed(0) + 'ms' : (timing / 1000).toFixed(2) + 's'
-          if (timingEl) timingEl.textContent = s
-          else {
-            const el = document.createElement('span')
-            el.className = 'timing'
-            el.textContent = s
-            header.insertBefore(el, badge)
-          }
-        }
-
-        // Re-bind tab events
-        card.querySelectorAll('.tab').forEach(function (tab) {
-          tab.addEventListener('click', function (e) {
-            e.stopPropagation()
-            const bar = this.parentElement
-            const b = bar.parentElement
-            bar.querySelectorAll('.tab').forEach(function (t) {t.classList.remove('active')})
-            this.classList.add('active')
-            b.querySelectorAll('.tab-content').forEach(function (c) {c.classList.remove('active')})
-            var target = b.querySelector('.tab-' + this.dataset.tab)
-            if (target) target.classList.add('active')
-            if (this.dataset.tab === 'viz') {
-              var vc = b.querySelector('.tab-viz')
-              if (vc && !vc.dataset.rendered) {
-                vc.dataset.rendered = '1'
-                var fn = vc.dataset.filename
-                if (fn) renderVisualization(vc, fn)
-              }
-            }
-          })
-        })
-
-        if (newBody) newBody.classList.add('open')
-        card.querySelector('.toggle')?.classList.add('open')
-        updateCount()
-      }
-
-      function updateCount() {
-        const count = $('resultList').querySelectorAll('.result-card').length
-        $('resultCount').textContent = count
+      function updateSidebarCount() {
+        const count = $('sidebarList').querySelectorAll('.sidebar-entry').length
+        $('sidebarCount').textContent = count
       }
 
       // ---- utils ----
@@ -2301,6 +3012,105 @@
         if (bytes < 1024) return bytes + 'B'
         if (bytes < 1048576) return (bytes / 1024).toFixed(1) + 'KB'
         return (bytes / 1048576).toFixed(1) + 'MB'
+      }
+
+      function showToast(msg) {
+        const t = $('toast')
+        t.textContent = msg
+        t.classList.add('show')
+        clearTimeout(t._hide)
+        t._hide = setTimeout(function () {t.classList.remove('show')}, 2000)
+      }
+
+      function copyText(text) {
+        navigator.clipboard.writeText(text).then(function () {
+          showToast('Copied to clipboard')
+        }).catch(function () {
+          showToast('Failed to copy')
+        })
+      }
+
+      function downloadImage(url, filename) {
+        const a = document.createElement('a')
+        a.href = resolveUrl(url)
+        a.download = filename || 'image'
+        a.target = '_blank'
+        a.rel = 'noopener'
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+      }
+
+      function downloadVizWithBboxes() {
+        var vizContainer = $('detailBody').querySelector('.tab-viz')
+        var fileName = vizContainer && vizContainer.dataset.filename
+        var data = fileName && vizDataMap.get(fileName)
+        if (!data || !data.pages) {showToast('No OCR data for download'); return}
+
+        var started = 0
+        for (var pi = 0; pi < data.pages.length; pi++) {
+          var pg = data.pages[pi]
+          if (!pg || !pg.words || !pg.page_image_url) continue
+
+          var coordW = pg.ocr_width || 1
+          var coordH = pg.ocr_height || 1
+          var url = resolveUrl(pg.page_image_url)
+
+          started++
+          fetch(url).then(function (r) {return r.blob()}).then((function (words, cw, ch, idx) {
+            return function (blob) {
+              var img = new Image()
+              img.onload = function () {
+                var c = document.createElement('canvas')
+                c.width = img.naturalWidth
+                c.height = img.naturalHeight
+                var ctx = c.getContext('2d')
+                ctx.drawImage(img, 0, 0)
+                ctx.save()
+                ctx.scale(img.naturalWidth / cw, img.naturalHeight / ch)
+                for (var wi = 0; wi < words.length; wi++) {
+                  var wd = words[wi]
+                  var pts = wd.bbox && wd.bbox.points
+                  if (!pts || pts.length < 4) continue
+                  var clr = confidenceColor(wd.confidence)
+                  ctx.beginPath()
+                  ctx.moveTo(pts[0][0], pts[0][1])
+                  for (var pj = 1; pj < pts.length; pj++) ctx.lineTo(pts[pj][0], pts[pj][1])
+                  ctx.closePath()
+                  ctx.strokeStyle = clr
+                  ctx.lineWidth = 3
+                  ctx.stroke()
+                  ctx.fillStyle = clr + '33'
+                  ctx.fill()
+                }
+                ctx.restore()
+                var a = document.createElement('a')
+                a.href = c.toDataURL('image/png')
+                a.download = 'viz_page_' + (idx + 1) + '.png'
+                document.body.appendChild(a)
+                a.click()
+                document.body.removeChild(a)
+                URL.revokeObjectURL(img.src)
+              }
+              img.src = URL.createObjectURL(blob)
+            }
+          })(pg.words, coordW, coordH, pi))
+        }
+        if (started) showToast('Downloading ' + started + ' page(s)...')
+        else showToast('No pages could be rendered')
+      }
+
+      function getPreferredTheme() {
+        const stored = localStorage.getItem('ocrTheme')
+        if (stored === 'dark' || stored === 'light') return stored
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+      }
+
+      function setTheme(theme) {
+        document.documentElement.classList.remove('light', 'dark')
+        document.documentElement.classList.add(theme)
+        localStorage.setItem('ocrTheme', theme)
+        $('themeToggle').textContent = theme === 'dark' ? '☀️' : '🌙'
       }
 
       // ---- health check polling ----
@@ -2334,6 +3144,47 @@
       if (typeof pdfjsLib !== 'undefined') {
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
       }
+
+      // Theme
+      setTheme(getPreferredTheme())
+      $('themeToggle').addEventListener('click', function () {
+        const next = document.documentElement.classList.contains('dark') ? 'light' : 'dark'
+        setTheme(next)
+      })
+
+      // Sidebar toggle
+      $('sidebarToggle').addEventListener('click', function () {
+        $('sidebar').classList.toggle('open')
+      })
+
+      // Right panel close
+      $('rpClose').addEventListener('click', hideDetail)
+
+      // Right panel tab delegation (single listener)
+      $('rpPanel').addEventListener('click', function (e) {
+        var tab = e.target.closest('.rp-tab')
+        if (!tab) return
+        $('rpPanel').querySelectorAll('.rp-tab').forEach(function (t) {t.classList.remove('active')})
+        tab.classList.add('active')
+        var db = $('detailBody')
+        db.querySelectorAll('.tab-content').forEach(function (c) {c.classList.remove('active')})
+        var target = db.querySelector('.tab-' + tab.dataset.tab)
+        if (target) target.classList.add('active')
+        if (tab.dataset.tab === 'viz') {
+          var vc = db.querySelector('.tab-viz')
+          if (vc) {
+            vc.dataset.rendered = ''
+            var fn = vc.dataset.filename
+            if (fn) renderVisualization(vc, fn)
+          }
+        }
+      })
+
+      // Header upload button
+      $('uploadBtn').addEventListener('click', function () {
+        hideDetail()
+      })
+
       onModeChange()
     })()
   </script>
