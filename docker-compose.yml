@@ -41,6 +41,7 @@ services:
     volumes:
       - ocr_assets:/usr/share/nginx/html
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./index.html:/usr/share/nginx/html/index.html:ro
     depends_on:
       - ocr
     restart: unless-stopped

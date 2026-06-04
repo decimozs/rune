@@ -55,7 +55,7 @@ class TestAsyncJobProcessorBatch:
         bp._jobs["b_url"] = job
         await bp._run_batch("b_url")
         mock_process_url.assert_awaited_once_with(
-            "https://example.com", "json", options=None
+            "https://example.com", "json", options=None, version=None
         )
         assert job.status == "completed"
 

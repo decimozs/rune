@@ -13,6 +13,7 @@ on disk for direct file access.
 
 import logging
 import re
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from config import settings
@@ -81,7 +82,8 @@ class MarkdownConverter:
         raw_text = raw_text.lstrip("\n")
 
         # Write .md to disk for direct file access
-        mkd_file_path = settings.output_dir_path / f"{filename}.md"
+        safe_stem = Path(filename).stem
+        mkd_file_path = settings.output_dir_path / f"{safe_stem}.md"
         with open(mkd_file_path, "w", encoding="utf-8") as f:
             f.write(raw_text)
 
@@ -96,8 +98,16 @@ class MarkdownConverter:
 
         # Rewrite relative imgs/ paths to nginx-served URLs
         base = settings.asset_base_url
-        raw_text = re.sub(r"(!\[.*?\]\()imgs/", rf"\1{base}/assets/imgs/", raw_text)
-        raw_text = re.sub(r'(<img[^>]*src=")imgs/', rf"\1{base}/assets/imgs/", raw_text)
+        raw_text = re.sub(
+            r"(!\[.*?\]\()imgs/",
+            lambda m: m.group(1) + f"{base}/assets/imgs/",
+            raw_text,
+        )
+        raw_text = re.sub(
+            r'(<img[^>]*src=")imgs/',
+            lambda m: m.group(1) + f"{base}/assets/imgs/",
+            raw_text,
+        )
         return raw_text
 
     def _handle_image(self, result) -> str:
@@ -132,6 +142,14 @@ class MarkdownConverter:
 
         # Rewrite relative imgs/ paths to nginx-served URLs
         base = settings.asset_base_url
-        raw_text = re.sub(r"(!\[.*?\]\()imgs/", rf"\1{base}/assets/imgs/", raw_text)
-        raw_text = re.sub(r'(<img[^>]*src=")imgs/', rf"\1{base}/assets/imgs/", raw_text)
+        raw_text = re.sub(
+            r"(!\[.*?\]\()imgs/",
+            lambda m: m.group(1) + f"{base}/assets/imgs/",
+            raw_text,
+        )
+        raw_text = re.sub(
+            r'(<img[^>]*src=")imgs/',
+            lambda m: m.group(1) + f"{base}/assets/imgs/",
+            raw_text,
+        )
         return raw_text

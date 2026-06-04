@@ -16,6 +16,7 @@ ocr_assets volume so nginx can serve them.
 import logging
 from typing import Any
 
+import cv2
 from config import settings
 from schemas.ocr import BoundingBox, JsonOutputOptions, OCRPage, OCRResult, WordBlock
 
@@ -80,8 +81,6 @@ class OCRFormatter:
                     pages_dir = settings.output_dir_path / "pages" / stem
                     pages_dir.mkdir(parents=True, exist_ok=True)
                     img_path = pages_dir / f"page_{page_num}.png"
-                    import cv2
-
                     cv2.imwrite(str(img_path), img)
                     page_image_url = f"{settings.asset_base_url}/assets/pages/{stem}/page_{page_num}.png"
 

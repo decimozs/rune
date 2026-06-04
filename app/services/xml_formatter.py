@@ -21,11 +21,21 @@ Uses ElementTree for structure and minidom for pretty-printing.
 No third-party dependencies.
 """
 
+import re
 from typing import Any
 from xml.dom import minidom
 from xml.etree.ElementTree import Element, SubElement, tostring
 
 from schemas.ocr import OCRResult
+
+# XML 1.0 illegal characters: null, control chars (except tab, LF, CR)
+_RE_XML_ILLEGAL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+
+
+def _sanitize(text: str | None) -> str | None:
+    if text is None:
+        return None
+    return _RE_XML_ILLEGAL.sub("", text)
 
 
 def to_xml(result: dict[str, Any]) -> str:
@@ -42,11 +52,11 @@ def to_xml(result: dict[str, Any]) -> str:
                 words_el, "word", confidence=str(round(w.confidence, 4))
             )
             text_el = SubElement(word_el, "text")
-            text_el.text = w.text
+            text_el.text = _sanitize(w.text)
             _build_bbox(word_el, w.bbox.points)
 
         extracted_el = SubElement(page_el, "extractedText")
-        extracted_el.text = page.extracted_text
+        extracted_el.text = _sanitize(page.extracted_text)
 
     rough = tostring(root, encoding="unicode")
     dom = minidom.parseString(rough)

@@ -62,6 +62,12 @@ class Settings(BaseSettings):
     url_allowed_domains: str = ""
     company_domains_only: bool = False
 
+    # CORS
+    cors_origins: str = "*"
+
+    # Rate limiting
+    rate_limit: str = "100/minute"
+
     # Logging
     log_level: str = "INFO"
     log_format: str = "text"
@@ -90,6 +96,11 @@ class Settings(BaseSettings):
     @property
     def output_dir_path(self) -> Path:
         return Path(self.output_dir)
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        """Parsed comma-separated CORS origins."""
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
     @property
     def api_keys_list(self) -> list[str]:

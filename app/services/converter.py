@@ -58,19 +58,25 @@ class DocumentConverter:
         The returned Path points to the new .pdf file.
         """
         pdf_path = path.with_suffix(".pdf")
-        with open(path, "rb") as f:
-            resp = await self._client.post(
-                f"{settings.gotenberg_url}/forms/libreoffice/convert",
-                files={"files": (path.name, f, content_type)},
-            )
         try:
-            resp.raise_for_status()
-        except httpx.HTTPStatusError:
-            logger.error("Gotenberg %s %s: %s", resp.status_code, resp.url, resp.text)
+            with open(path, "rb") as f:
+                resp = await self._client.post(
+                    f"{settings.gotenberg_url}/forms/libreoffice/convert",
+                    files={"files": (path.name, f, content_type)},
+                )
+            try:
+                resp.raise_for_status()
+            except httpx.HTTPStatusError:
+                logger.error(
+                    "Gotenberg %s %s: %.200s", resp.status_code, resp.url, resp.text
+                )
+                raise
+            pdf_path.write_bytes(resp.content)
+            path.unlink(missing_ok=True)
+            logger.info("Converted %s -> %s", path.name, pdf_path.name)
+        except Exception:
+            path.unlink(missing_ok=True)
             raise
-        pdf_path.write_bytes(resp.content)
-        path.unlink(missing_ok=True)
-        logger.info("Converted %s -> %s", path.name, pdf_path.name)
         return pdf_path
 
     async def url_to_pdf(self, url: str, output_path: Path) -> Path:
@@ -87,7 +93,9 @@ class DocumentConverter:
         try:
             resp.raise_for_status()
         except httpx.HTTPStatusError:
-            logger.error("Gotenberg %s %s: %s", resp.status_code, resp.url, resp.text)
+            logger.error(
+                "Gotenberg %s %s: %.200s", resp.status_code, resp.url, resp.text
+            )
             raise
         output_path.write_bytes(resp.content)
         logger.info("URL -> %s", output_path.name)
@@ -120,7 +128,9 @@ class DocumentConverter:
         try:
             resp.raise_for_status()
         except httpx.HTTPStatusError:
-            logger.error("Gotenberg %s %s: %s", resp.status_code, resp.url, resp.text)
+            logger.error(
+                "Gotenberg %s %s: %.200s", resp.status_code, resp.url, resp.text
+            )
             raise
         output_path.write_bytes(resp.content)
         logger.info("HTML -> %s", output_path.name)

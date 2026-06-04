@@ -144,6 +144,8 @@ async def parse_file(
     validate_upload(file)
 
     content = await file.read()
+    if not content:
+        raise HTTPException(400, "Empty file")
     if len(content) > settings.max_file_size:
         raise HTTPException(413, "File too large")
 
@@ -190,6 +192,8 @@ async def create_job(
     validate_upload(file)
 
     content = await file.read()
+    if not content:
+        raise HTTPException(400, "Empty file")
     if len(content) > settings.max_file_size:
         raise HTTPException(413, "File too large")
 
@@ -199,25 +203,28 @@ async def create_job(
     stem = uuid.uuid4().hex
     safe = settings.upload_dir_path / f"{stem}_{Path(filename).name}"
     safe.write_bytes(content)
+    try:
+        opts = _build_options(
+            output_format,
+            include_bbox=include_bbox,
+            include_confidence=include_confidence,
+            include_extracted_text=include_extracted_text,
+            include_page_image=include_page_image,
+        )
 
-    opts = _build_options(
-        output_format,
-        include_bbox=include_bbox,
-        include_confidence=include_confidence,
-        include_extracted_text=include_extracted_text,
-        include_page_image=include_page_image,
-    )
-
-    job_id = async_job_processor.create_job(
-        filename,
-        content_type,
-        output_format.value,
-        source_type="file",
-        temp_path=str(safe),
-        output_options=opts,
-        model=resolved_model,
-    )
-    job = async_job_processor.get_job(job_id)
+        job_id = async_job_processor.create_job(
+            filename,
+            content_type,
+            output_format.value,
+            source_type="file",
+            temp_path=str(safe),
+            output_options=opts,
+            model=resolved_model,
+        )
+        job = async_job_processor.get_job(job_id)
+    except Exception:
+        safe.unlink(missing_ok=True)
+        raise
 
     return APIResponse(
         success=True,
@@ -289,6 +296,8 @@ async def parse_batch(
     for f in file:
         validate_upload(f)
         content = await f.read()
+        if not content:
+            raise HTTPException(400, f"Empty file: {f.filename}")
         if len(content) > settings.max_file_size:
             raise HTTPException(413, f"File too large: {f.filename}")
         stem = uuid.uuid4().hex
@@ -525,6 +534,8 @@ async def parse_html(
     file_tuples = []
     for f in files:
         content = await f.read()
+        if not content:
+            raise HTTPException(400, f"Empty file: {f.filename}")
         if len(content) > settings.max_file_size:
             raise HTTPException(413, f"File too large: {f.filename}")
         file_tuples.append((cast(str, f.filename), content))
@@ -563,6 +574,8 @@ async def create_html_job(
     file_tuples = []
     for f in files:
         content = await f.read()
+        if not content:
+            raise HTTPException(400, f"Empty file: {f.filename}")
         if len(content) > settings.max_file_size:
             raise HTTPException(413, f"File too large: {f.filename}")
         file_tuples.append((cast(str, f.filename), content))

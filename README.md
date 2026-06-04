@@ -26,26 +26,36 @@ Uses [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) (PP-OCRv4), the open
 
 ### Docker Compose (Recommended)
 
+**From a release ZIP:**
+```bash
+unzip exist-ocr-v*.zip
+cd exist-ocr
+cp .env.example .env
+# Edit .env if needed (auth is disabled by default)
+
+docker compose up -d
+# Demo UI: http://localhost:8080
+# API:      http://localhost:8000
+```
+
+**From git:**
 ```bash
 git clone <repo-url>
 cd exist-ocr
 cp .env.example .env
-# Edit .env — at minimum set OCR_API_KEYS
-
 docker compose up -d
 ```
 
 | Service | URL | What It Does |
 |---|---|---|
 | OCR API | `http://localhost:8000` | Process files, return extracted text |
-| nginx | `http://localhost:8080` | Serve page images from OCR output |
+| nginx | `http://localhost:8080` | Serve UI + page images from OCR output |
 | Gotenberg | `http://localhost:3000` | Convert office docs to PDF |
 | API docs | `http://localhost:8000/docs` | Interactive Swagger UI |
 
 ```bash
 # Test it
 curl -X POST http://localhost:8000/ocr/parse \
-  -H "X-API-Key: sk-local-dev" \
   -F "file=@document.pdf"
 ```
 
@@ -70,7 +80,8 @@ uv run fastapi dev app/main.py --port 8000
 
 | Command | What It Does |
 |---|---|
-| `make up` | Start all Docker services |
+| `make up` | Start all Docker services with demo UI at `http://localhost:8080` |
+| `make up-ui` | Same as `make up` (alias) |
 | `make down` | Stop all Docker services |
 | `make logs` | Follow logs from all services |
 | `make dev` | Start dev server with hot reload |

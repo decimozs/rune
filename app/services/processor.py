@@ -21,6 +21,7 @@ import magic
 from config import settings
 from schemas.ocr import JsonOutputOptions
 from services.converter import converter
+from services.exceptions import OCRValidationError
 from services.log_ctx import sanitize_url
 from services.ocr import ocr_service
 from services.url_guard import validate_url
@@ -156,7 +157,7 @@ async def process_file(
                 e,
                 elapsed,
             )
-            return None, f"{type(e).__name__}: {e}", elapsed
+            return None, "Processing failed", elapsed
 
         finally:
             safe.unlink(missing_ok=True)
@@ -189,10 +190,14 @@ async def process_url(
             elapsed = round((time.time() - start) * 1000, 2)
             logger.info("URL processing complete: duration=%sms", elapsed)
             return result, None, elapsed
+        except OCRValidationError as e:
+            elapsed = round((time.time() - start) * 1000, 2)
+            logger.warning("URL validation failed: error=%s, duration=%sms", e, elapsed)
+            return None, str(e), elapsed
         except Exception as e:
             elapsed = round((time.time() - start) * 1000, 2)
             logger.error("URL processing failed: error=%s, duration=%sms", e, elapsed)
-            return None, f"{type(e).__name__}: {e}", elapsed
+            return None, "Processing failed", elapsed
         finally:
             safe.unlink(missing_ok=True)
 
@@ -227,6 +232,6 @@ async def process_html(
         except Exception as e:
             elapsed = round((time.time() - start) * 1000, 2)
             logger.error("HTML processing failed: error=%s, duration=%sms", e, elapsed)
-            return None, f"{type(e).__name__}: {e}", elapsed
+            return None, "Processing failed", elapsed
         finally:
             safe.unlink(missing_ok=True)

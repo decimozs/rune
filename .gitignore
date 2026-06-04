@@ -22,5 +22,9 @@ app/outputs/
 tests/outputs/
 app/datasets/
 
+# SQLite databases
+*.db
+*.sqlite
+
 # Runtime data (SQLite DB, etc.)
 app/data/

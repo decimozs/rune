@@ -4,12 +4,31 @@ Two ways to run: **Docker Compose** (recommended — everything packaged) or **l
 
 ## Option 1: Docker Compose (Recommended)
 
-This starts all services — the OCR application, Gotenberg (document converter), and nginx (image server).
+This starts all services — the OCR application, Gotenberg (document converter), and nginx (image server + demo UI).
+
+### From a Release ZIP
 
 ```bash
-# Start all services in the background
+unzip exist-ocr-v*.zip
+cd exist-ocr
+cp .env.example .env
 docker compose up -d
+```
 
+The demo UI is served at `http://localhost:8080`. The API is at `http://localhost:8000`.
+
+### From Git
+
+```bash
+git clone <repo-url>
+cd exist-ocr
+cp .env.example .env
+docker compose up -d
+```
+
+### Managing Services
+
+```bash
 # Check they are running and healthy
 docker compose ps
 
@@ -34,12 +53,10 @@ Once started:
 ```bash
 # Upload an image and get text back as JSON
 curl -X POST http://localhost:8000/ocr/parse \
-  -H "X-API-Key: sk-local-dev" \
   -F "file=@document.png"
 
 # Get text as markdown instead
 curl -X POST "http://localhost:8000/ocr/parse?format=markdown" \
-  -H "X-API-Key: sk-local-dev" \
   -F "file=@document.png"
 ```
 
@@ -71,8 +88,8 @@ The server runs at `http://localhost:8000`. Page image URLs omit the host (e.g.,
 
 | Command | What It Does |
 |---|---|
-| `make up` | Start all Docker services (headless) |
-| `make up-ui` | Start all Docker services with demo UI at `http://localhost:8080` |
+| `make up` | Start all Docker services with demo UI at `http://localhost:8080` |
+| `make up-ui` | Same as `make up` (alias) |
 | `make down` | Stop all Docker services |
 | `make logs` | See logs from all containers |
 | `make rebuild` | Full clean rebuild (down -v, build --no-cache, up) |
@@ -84,7 +101,11 @@ Run `make help` to see all available commands.
 
 ## Demo UI
 
-Two ways to use it:
+The demo UI is served at `http://localhost:8080` by default (`make up` or `docker compose up -d`). Drag and drop files, choose output format, and see results.
 
-- **Standalone**: Open `index.html` directly in your browser (double-click the file — no server needed). The UI fetches from the API URL you enter.
-- **Via nginx** (`make up-ui`): The UI is served at `http://localhost:8080` alongside OCR image assets. This mode is useful for teams who want to test via browser without opening the file directly.
+To run headless (API only, no UI):
+```bash
+docker compose -f docker-compose.yml -f docker-compose.no-ui.yml up -d
+```
+
+You can also open `index.html` standalone by double-clicking the file — no server needed. The UI fetches from the API URL you enter.

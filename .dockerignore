@@ -9,6 +9,9 @@ outputs/
 app/datasets/
 app/outputs/
 app/data/
+.pytest_cache/
+.coverage
+coverage/
 *.md
 docs/
 .agents/

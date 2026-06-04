@@ -33,6 +33,9 @@ from services.log_ctx import (
     request_id_var,
 )
 from services.ocr import ocr_service
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 logging.basicConfig(
     level=getattr(logging, settings.log_level),
@@ -79,13 +82,27 @@ async def lifespan(_app: FastAPI):
     logger.info("Shutdown complete")
 
 
-app = FastAPI(lifespan=lifespan)
+_prod = settings.cors_origins != "*"
+app = FastAPI(
+    lifespan=lifespan,
+    title="Exist OCR API",
+    version="0.2.0",
+    description="Self-hosted OCR service using PaddleOCR",
+    docs_url=None if _prod else "/docs",
+    redoc_url=None if _prod else "/redoc",
+    openapi_url=None if _prod else "/openapi.json",
+)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins_list,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+limiter = Limiter(key_func=get_remote_address, default_limits=[settings.rate_limit])
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 app.include_router(health_router)
 app.include_router(ocr_router)
 
@@ -184,7 +201,7 @@ async def runtime_error_handler(request, exc: OCRRuntimeError):
             "success": False,
             "error": {
                 "code": "runtime_error",
-                "message": str(exc),
+                "message": "Processing failed",
             },
         },
     )

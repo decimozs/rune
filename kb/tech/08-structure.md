@@ -34,12 +34,12 @@ exist-ocr/
 │   └── datasets/               # Sample files for testing
 │
 ├── nginx/
-│   ├── default.conf            # nginx configuration for serving images (headless)
-│   └── default.with-ui.conf    # nginx configuration with root / for demo UI
+│   ├── default.conf            # nginx config with demo UI at root + /assets/
+│   └── default.no-ui.conf      # nginx config for headless (assets only)
 │
 ├── Dockerfile                  # Builds the OCR API container
 ├── docker-compose.yml          # Defines all services (API, nginx, Gotenberg)
-├── docker-compose.ui.yml       # Override: adds index.html + UI nginx config
+├── docker-compose.no-ui.yml    # Override: removes demo UI (assets only)
 ├── docker-entrypoint.sh        # Fixes file permissions at container startup
 │
 ├── Makefile                    # Common commands (up, down, test, dev)

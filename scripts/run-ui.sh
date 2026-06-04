@@ -3,7 +3,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-docker compose -f docker-compose.yml -f docker-compose.ui.yml up -d "$@"
+docker compose up -d "$@"
 
 echo "Demo UI: http://localhost:8080"
 echo "API: http://localhost:8000"

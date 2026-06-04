@@ -36,11 +36,11 @@ dev-stop: ## Stop Gotenberg container started by make dev
 run: ## Start production server
 	uv run fastapi run app/main.py --port 8000
 
-up: ## Start all Docker services (headless)
+up: ## Start all Docker services with demo UI
 	$(COMPOSE) up -d
 
-up-ui: ## Start all Docker services with demo UI
-	$(COMPOSE) -f docker-compose.yml -f docker-compose.ui.yml up -d
+up-ui: ## Start all Docker services with demo UI (alias for up)
+	$(COMPOSE) up -d
 
 down: ## Stop all Docker services
 	scripts/stop.sh

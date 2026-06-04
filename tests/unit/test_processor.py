@@ -108,8 +108,7 @@ class TestProcessUrl:
         result, error, elapsed = await process_url("https://example.com", "json")
 
         assert result is None
-        assert "RuntimeError" in error
-        assert "Gotenberg down" in error
+        assert error == "Processing failed"
 
     @patch("app.services.processor.uuid.uuid4")
     @patch("app.services.processor.converter")
@@ -127,7 +126,6 @@ class TestProcessUrl:
         result, error, elapsed = await process_url("file:///etc/passwd", "json")
 
         assert result is None
-        assert "OCRValidationError" in error
         assert "Only http/https" in error
 
 

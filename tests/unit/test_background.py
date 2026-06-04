@@ -64,7 +64,7 @@ class TestAsyncJobProcessor:
         bp._jobs["j1"] = job
         await bp._run_single("j1")
         mock_process_url.assert_awaited_once_with(
-            "https://example.com", "json", options=None
+            "https://example.com", "json", options=None, version=None
         )
         assert job.status == "completed"
         assert job.data == "result"
