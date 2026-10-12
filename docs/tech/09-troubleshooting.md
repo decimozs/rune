@@ -10,7 +10,7 @@
 
 ```bash
 docker compose down
-docker volume rm exist-ocr_ocr_data exist-ocr_ocr_assets
+docker volume rm rune_ocr_data rune_ocr_assets
 docker compose up -d
 ```
 
@@ -80,7 +80,7 @@ docker compose ps gotenberg
 **Fix:** This is normal. Allow 30-60 seconds for the first startup. If models need to re-download, check the `paddle_models` volume exists:
 
 ```bash
-docker volume inspect exist-ocr_paddle_models
+docker volume inspect rune_paddle_models
 ```
 
 ### "Unable to open database file" even after removing volumes
@@ -115,8 +115,8 @@ curl http://localhost:3000/health
 
 ## Getting Help
 
-Check the existing knowledge base documentation in `kb/`:
+Check the existing documentation in `docs/`:
 
-- `kb/tech/03-api.md` — API reference and error codes
-- `kb/tech/04-configuration.md` — all configurable settings
-- `kb/tech/05-deployment.md` — deployment setup guide
+- `docs/tech/03-api.md` — API reference and error codes
+- `docs/tech/04-configuration.md` — all configurable settings
+- `docs/tech/05-deployment.md` — deployment setup guide

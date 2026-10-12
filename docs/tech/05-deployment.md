@@ -6,8 +6,8 @@ This is the simplest deployment — everything runs on one machine using Docker.
 
 ```bash
 # Clone the repository
-git clone <repo-url> exist-ocr
-cd exist-ocr
+git clone <repo-url> rune
+cd rune
 
 # Copy and edit configuration
 cp .env.example .env
@@ -56,11 +56,11 @@ docker compose up -d
 
 ```bash
 # Back up the database (API keys)
-docker run --rm -v exist-ocr_ocr_data:/data -v $(pwd):/backup alpine \
+docker run --rm -v rune_ocr_data:/data -v $(pwd):/backup alpine \
   cp -r /data/ocr.db /backup/ocr.db.backup
 
 # Back up any output files still within TTL
-docker run --rm -v exist-ocr_ocr_assets:/data -v $(pwd):/backup alpine \
+docker run --rm -v rune_ocr_assets:/data -v $(pwd):/backup alpine \
   tar czf /backup/assets-backup.tar.gz -C /data .
 ```
 
@@ -95,8 +95,8 @@ SSH back in, then:
 
 ```bash
 # Clone the repository
-git clone <repo-url> exist-ocr
-cd exist-ocr
+git clone <repo-url> rune
+cd rune
 
 # Configure
 cp .env.example .env
@@ -135,7 +135,7 @@ Requires=docker.service
 After=docker.service
 
 [Service]
-WorkingDirectory=/opt/exist-ocr
+WorkingDirectory=/opt/rune
 ExecStart=/usr/bin/docker compose up
 ExecStop=/usr/bin/docker compose down
 Restart=always

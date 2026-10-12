@@ -126,24 +126,24 @@ class TestValidateUrl:
         self._call("http://sub.bad-site.com")
 
     @patch("services.url_guard.settings.company_domains_only", True)
-    @patch("services.url_guard.settings.url_allowed_domains", "exist.com")
+    @patch("services.url_guard.settings.url_allowed_domains", "example.com")
     def test_not_in_allowlist_fails(self):
         with pytest.raises(OCRValidationError, match="not in company allowlist"):
             self._call("http://evil.com")
 
     @patch("services.url_guard.settings.company_domains_only", True)
-    @patch("services.url_guard.settings.url_allowed_domains", "exist.com")
+    @patch("services.url_guard.settings.url_allowed_domains", "example.com")
     @patch("services.url_guard.socket.gethostbyname")
     def test_in_allowlist_passes(self, mock_dns):
         mock_dns.return_value = "93.184.216.34"
-        self._call("http://docs.exist.com")
+        self._call("http://docs.example.com")
 
     @patch("services.url_guard.settings.company_domains_only", True)
-    @patch("services.url_guard.settings.url_allowed_domains", "exist.com")
+    @patch("services.url_guard.settings.url_allowed_domains", "example.com")
     @patch("services.url_guard.socket.gethostbyname")
     def test_allowlist_with_dns_to_public_passes(self, mock_dns, *_):
         mock_dns.return_value = "93.184.216.34"
-        self._call("http://exist.com")
+        self._call("http://example.com")
 
     @patch("services.url_guard.socket.gethostbyname")
     def test_url_with_trailing_dot_hostname(self, mock_dns):

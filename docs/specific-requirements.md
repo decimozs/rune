@@ -2,7 +2,7 @@
 
 ## Overview
 
-Exist OCR is a self-hosted OCR service using PaddleOCR (PP-OCRv4). It accepts images, PDFs, office documents, URLs, and HTML — returns extracted text as JSON, Markdown, or XML.
+Rune is a self-hosted OCR service using PaddleOCR (PP-OCRv4). It accepts images, PDFs, office documents, URLs, and HTML — returns extracted text as JSON, Markdown, or XML.
 
 ## Software Requirements
 
@@ -106,7 +106,7 @@ Not required. PaddlePaddle wheels used are CPU-only. GPU support requires switch
 
 | Image | Size |
 |---|---|
-| exist-ocr (built API image) | **4.53 GB** |
+| rune (built API image) | **4.53 GB** |
 | gotenberg/gotenberg:8 | 2.41 GB |
 | nginx:alpine | 93.6 MB |
 

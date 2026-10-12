@@ -1,7 +1,7 @@
 # Project Structure
 
 ```
-exist-ocr/
+rune/
 │
 ├── app/
 │   ├── main.py                 # FastAPI entry point — starts all services
@@ -51,7 +51,7 @@ exist-ocr/
 │
 ├── tests/                      # Unit tests
 │
-└── kb/                         # Documentation (this folder)
+└── docs/                         # Documentation (this folder)
     ├── research.md             # Academic references and studies
     ├── tech/                   # Technical documentation
     └── user-guide/             # End-user documentation

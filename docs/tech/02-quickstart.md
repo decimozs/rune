@@ -9,8 +9,8 @@ This starts all services — the OCR application, Gotenberg (document converter)
 ### From a Release ZIP
 
 ```bash
-unzip exist-ocr-v*.zip
-cd exist-ocr
+unzip rune-v*.zip
+cd rune
 cp .env.example .env
 docker compose up -d
 ```
@@ -21,7 +21,7 @@ The demo UI is served at `http://localhost:8080`. The API is at `http://localhos
 
 ```bash
 git clone <repo-url>
-cd exist-ocr
+cd rune
 cp .env.example .env
 docker compose up -d
 ```

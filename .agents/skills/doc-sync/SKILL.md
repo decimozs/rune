@@ -1,11 +1,11 @@
 ---
 name: doc-sync
-description: Keep kb/ documentation in sync with code changes. Maps source changes to affected docs, updates them, and stages for commit. Use when committing code changes or when user asks to update documentation.
+description: Keep docs/ documentation in sync with code changes. Maps source changes to affected docs, updates them, and stages for commit. Use when committing code changes or when user asks to update documentation.
 ---
 
 # Doc Sync
 
-Keep the `kb/` documentation accurate when code changes. Run this before every commit that touches application code.
+Keep the `docs/` documentation accurate when code changes. Run this before every commit that touches application code.
 
 ## Workflow
 
@@ -31,46 +31,46 @@ git diff --staged -- app/routes/ app/config.py docker-compose.yml
 
 | Changed Files | Affected Docs | What to Update |
 |---|---|---|
-| `app/routes/ocr.py`, `app/routes/health.py` | `kb/tech/03-api.md` | New/removed endpoints, changed params, response schema |
-| `app/config.py` | `kb/tech/04-configuration.md` | New/removed/changed settings. Add rows to table, update defaults |
-| `docker-compose.yml`, `Dockerfile`, `nginx/*`, `docker-entrypoint.sh` | `kb/tech/02-quickstart.md`, `kb/tech/05-deployment.md` | Changed ports, services, volumes, environment variables |
-| `app/services/*.py`, `app/schemas/*.py` | `kb/tech/08-structure.md` | New/renamed/removed files. Update directory tree |
-| `scripts/*` | `kb/tech/07-scripts.md` | New/removed scripts, changed args |
-| `app/main.py` | `kb/tech/08-structure.md` | Lifespan changes, middleware changes |
-| Any public API behavior | `kb/user-guide/02-getting-started.md`, `kb/user-guide/03-understanding-results.md` | Changed inputs, outputs, or workflows |
-| Any public feature change | `kb/user-guide/01-what-is-this.md`, `kb/user-guide/04-faq.md` | Changed capabilities, new questions |
+| `app/routes/ocr.py`, `app/routes/health.py` | `docs/tech/03-api.md` | New/removed endpoints, changed params, response schema |
+| `app/config.py` | `docs/tech/04-configuration.md` | New/removed/changed settings. Add rows to table, update defaults |
+| `docker-compose.yml`, `Dockerfile`, `nginx/*`, `docker-entrypoint.sh` | `docs/tech/02-quickstart.md`, `docs/tech/05-deployment.md` | Changed ports, services, volumes, environment variables |
+| `app/services/*.py`, `app/schemas/*.py` | `docs/tech/08-structure.md` | New/renamed/removed files. Update directory tree |
+| `scripts/*` | `docs/tech/07-scripts.md` | New/removed scripts, changed args |
+| `app/main.py` | `docs/tech/08-structure.md` | Lifespan changes, middleware changes |
+| Any public API behavior | `docs/user-guide/02-getting-started.md`, `docs/user-guide/03-understanding-results.md` | Changed inputs, outputs, or workflows |
+| Any public feature change | `docs/user-guide/01-what-is-this.md`, `docs/user-guide/04-faq.md` | Changed capabilities, new questions |
 | `index.html`, `Makefile`, `README.md` | `README.md` | Updated links, changed targets, demo UI changes |
-| Any deployment change | `kb/tech/05-deployment.md` | Changed setup steps, ports, volumes, env config |
-| Any dependency/library change | `kb/tech/01-overview.md`, `kb/tech/06-prerequisites.md` | Changed system deps, Python version, services |
+| Any deployment change | `docs/tech/05-deployment.md` | Changed setup steps, ports, volumes, env config |
+| Any dependency/library change | `docs/tech/01-overview.md`, `docs/tech/06-prerequisites.md` | Changed system deps, Python version, services |
 
 ### 3. Read Existing Docs Before Editing
 
 Always read the full doc before making changes. Maintain the existing tone and structure:
 
 ```bash
-cat kb/tech/03-api.md
+cat docs/tech/03-api.md
 ```
 
 ### 4. Update Each Affected Doc
 
 Apply targeted edits — do not rewrite entire docs unless the changes are pervasive.
 
-**For API docs (`kb/tech/03-api.md`):**
+**For API docs (`docs/tech/03-api.md`):**
 - Endpoint added → add new section following existing pattern (curl example, response JSON, error codes)
 - Endpoint removed → remove section, update "Processing Modes" table in README
 - Parameter changed → update query param table, curl examples
 - Response changed → update example JSON
 
-**For config docs (`kb/tech/04-configuration.md`):**
+**For config docs (`docs/tech/04-configuration.md`):**
 - New setting → add row to the appropriate table
 - Removed setting → delete row
 - Default changed → update default column
 
-**For structure docs (`kb/tech/08-structure.md`):**
+**For structure docs (`docs/tech/08-structure.md`):**
 - New/renamed file → update directory tree
 - Deleted file → remove from tree
 
-**For deployment docs (`kb/tech/05-deployment.md`):**
+**For deployment docs (`docs/tech/05-deployment.md`):**
 - Port changes → update port tables
 - Volume changes → update volume descriptions
 - New setup steps → add steps
@@ -89,7 +89,7 @@ If the change affects what end users see or do, update the corresponding user-gu
 ### 6. Stage the Updated Docs
 
 ```bash
-git add kb/tech/ kb/user-guide/
+git add docs/tech/ docs/user-guide/
 ```
 
 ### 7. Verify with Pre-commit
@@ -103,24 +103,24 @@ uv run pre-commit run --all-files
 ```
 # Config change
 app/config.py: new field "ocr_asset_base_url"
-→ kb/tech/04-configuration.md: add row to "Output" table
+→ docs/tech/04-configuration.md: add row to "Output" table
 
 # API route change
 app/routes/ocr.py: new endpoint POST /ocr/parse/url/batch
-→ kb/tech/03-api.md: add new section following existing URL batch pattern
+→ docs/tech/03-api.md: add new section following existing URL batch pattern
 
 # Service rename
 app/services/batch.py → app/services/async_job.py
-→ kb/tech/08-structure.md: update directory tree, remove batch.py, add async_job.py
+→ docs/tech/08-structure.md: update directory tree, remove batch.py, add async_job.py
 
 # Docker change
 docker-compose.yml: add nginx service
-→ kb/tech/02-quickstart.md: update port table, add nginx entry
-→ kb/tech/05-deployment.md: update service descriptions, add nginx port info
+→ docs/tech/02-quickstart.md: update port table, add nginx entry
+→ docs/tech/05-deployment.md: update service descriptions, add nginx port info
 
 # New script
 scripts/create_api_key.py
-→ kb/tech/07-scripts.md: add row to key management scripts table
+→ docs/tech/07-scripts.md: add row to key management scripts table
 ```
 
 ## Rules

@@ -1,6 +1,6 @@
-# Exist OCR Service
+# Rune Service
 
-Internal OCR (Optical Character Recognition) service for **Exist Software Labs**. Takes images, PDFs, office documents, URLs, and HTML pages — extracts the text out of them.
+Self-hosted OCR (Optical Character Recognition) service. Takes images, PDFs, office documents, URLs, and HTML pages — extracts the text out of them.
 
 Uses [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) (PP-OCRv4), the open-source OCR engine from Baidu. Designed to run on your own infrastructure so documents never leave your network.
 
@@ -28,8 +28,8 @@ Uses [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) (PP-OCRv4), the open
 
 **From a release ZIP:**
 ```bash
-unzip exist-ocr-v*.zip
-cd exist-ocr
+unzip rune-v*.zip
+cd rune
 cp .env.example .env
 # Edit .env if needed (auth is disabled by default)
 
@@ -41,7 +41,7 @@ docker compose up -d
 **From git:**
 ```bash
 git clone <repo-url>
-cd exist-ocr
+cd rune
 cp .env.example .env
 docker compose up -d
 ```
@@ -194,24 +194,24 @@ All POST endpoints and GET job/batch endpoints require the `X-API-Key` header wh
 
 | Topic | Description |
 |---|---|
-| [Architecture Overview](kb/tech/01-overview.md) | Services, data flow, Mermaid diagram |
-| [Quick Start](kb/tech/02-quickstart.md) | Docker, local dev, Makefile, demo UI |
-| [API Reference](kb/tech/03-api.md) | All endpoints with curl examples and response formats |
-| [Configuration](kb/tech/04-configuration.md) | Environment variables table |
-| [Deployment Guide](kb/tech/05-deployment.md) | Docker, Azure VM, systemd, backups |
-| [Prerequisites](kb/tech/06-prerequisites.md) | System dependencies (apt, brew, uv, Gotenberg) |
-| [Testing Scripts](kb/tech/07-scripts.md) | Scripts table and usage examples |
-| [Project Structure](kb/tech/08-structure.md) | Directory layout |
-| [Troubleshooting](kb/tech/09-troubleshooting.md) | Common errors and fixes |
+| [Architecture Overview](docs/tech/01-overview.md) | Services, data flow, Mermaid diagram |
+| [Quick Start](docs/tech/02-quickstart.md) | Docker, local dev, Makefile, demo UI |
+| [API Reference](docs/tech/03-api.md) | All endpoints with curl examples and response formats |
+| [Configuration](docs/tech/04-configuration.md) | Environment variables table |
+| [Deployment Guide](docs/tech/05-deployment.md) | Docker, Azure VM, systemd, backups |
+| [Prerequisites](docs/tech/06-prerequisites.md) | System dependencies (apt, brew, uv, Gotenberg) |
+| [Testing Scripts](docs/tech/07-scripts.md) | Scripts table and usage examples |
+| [Project Structure](docs/tech/08-structure.md) | Directory layout |
+| [Troubleshooting](docs/tech/09-troubleshooting.md) | Common errors and fixes |
 
 ### User Guide (non-technical)
 
 | Topic | Description |
 |---|---|
-| [What Is This?](kb/user-guide/01-what-is-this.md) | Plain English overview with analogies |
-| [Getting Started](kb/user-guide/02-getting-started.md) | Web UI, curl, Python/JS examples |
-| [Understanding Results](kb/user-guide/03-understanding-results.md) | How to read JSON, Markdown, XML output |
-| [FAQ](kb/user-guide/04-faq.md) | Common questions |
+| [What Is This?](docs/user-guide/01-what-is-this.md) | Plain English overview with analogies |
+| [Getting Started](docs/user-guide/02-getting-started.md) | Web UI, curl, Python/JS examples |
+| [Understanding Results](docs/user-guide/03-understanding-results.md) | How to read JSON, Markdown, XML output |
+| [FAQ](docs/user-guide/04-faq.md) | Common questions |
 
 ### Other
 
@@ -220,7 +220,7 @@ All POST endpoints and GET job/batch endpoints require the `X-API-Key` header wh
 | [Demo Frontend](index.html) | Standalone drag-and-drop UI, 3 source types, 3 modes, visualize bbox overlays |
 | [Makefile](Makefile) | Task automation (dev, Docker, scripts) |
 | [.env.example](.env.example) | Configuration template |
-| [Research References](kb/research.md) | Academic studies, benchmarks, and surveys related to OCR and document processing |
+| [Research References](docs/research.md) | Academic studies, benchmarks, and surveys related to OCR and document processing |
 
 ---
 
@@ -238,4 +238,4 @@ All POST endpoints and GET job/batch endpoints require the `X-API-Key` header wh
 
 ## License
 
-Internal use — Exist Software Labs.
+Internal use.

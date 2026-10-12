@@ -20,18 +20,18 @@ install: ## Install Python deps via uv
 	uv sync
 
 dev: ## Start Gotenberg + dev server with hot reload
-	docker rm -f exist-ocr-gotenberg 2>/dev/null || true
-	docker run --rm -d -p 3000:3000 --name exist-ocr-gotenberg gotenberg/gotenberg:8
+	docker rm -f rune-gotenberg 2>/dev/null || true
+	docker run --rm -d -p 3000:3000 --name rune-gotenberg gotenberg/gotenberg:8
 	@echo "Waiting for Gotenberg..."; \
 	for i in $$(seq 1 10); do \
 		curl -sf http://localhost:3000/health > /dev/null 2>&1 && echo "Gotenberg ready" && break; \
 		sleep 1; \
 	done
 	uv run fastapi dev app/main.py --port 8000 || true
-	docker stop exist-ocr-gotenberg 2>/dev/null || true
+	docker stop rune-gotenberg 2>/dev/null || true
 
 dev-stop: ## Stop Gotenberg container started by make dev
-	docker stop exist-ocr-gotenberg 2>/dev/null || true
+	docker stop rune-gotenberg 2>/dev/null || true
 
 run: ## Start production server
 	uv run fastapi run app/main.py --port 8000

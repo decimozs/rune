@@ -85,7 +85,7 @@ async def lifespan(_app: FastAPI):
 _prod = settings.cors_origins != "*"
 app = FastAPI(
     lifespan=lifespan,
-    title="Exist OCR API",
+    title="Rune API",
     version="0.2.0",
     description="Self-hosted OCR service using PaddleOCR",
     docs_url=None if _prod else "/docs",
