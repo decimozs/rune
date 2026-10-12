@@ -186,37 +186,12 @@ All POST endpoints and GET job/batch endpoints require the `X-API-Key` header wh
 
 ## Documentation
 
-### Technical
+Full docs live in [`docs/`](docs/):
 
-| Topic | Description |
-|---|---|
-| [Architecture Overview](docs/tech/01-overview.md) | Services, data flow, Mermaid diagram |
-| [Quick Start](docs/tech/02-quickstart.md) | Docker, local dev, Makefile, demo UI |
-| [API Reference](docs/tech/03-api.md) | All endpoints with curl examples and response formats |
-| [Configuration](docs/tech/04-configuration.md) | Environment variables table |
-| [Deployment Guide](docs/tech/05-deployment.md) | Docker, Azure VM, systemd, backups |
-| [Prerequisites](docs/tech/06-prerequisites.md) | System dependencies (apt, brew, uv, Gotenberg) |
-| [Testing Scripts](docs/tech/07-scripts.md) | Scripts table and usage examples |
-| [Project Structure](docs/tech/08-structure.md) | Directory layout |
-| [Troubleshooting](docs/tech/09-troubleshooting.md) | Common errors and fixes |
-
-### User Guide (non-technical)
-
-| Topic | Description |
-|---|---|
-| [What Is This?](docs/user-guide/01-what-is-this.md) | Plain English overview with analogies |
-| [Getting Started](docs/user-guide/02-getting-started.md) | Web UI, curl, Python/JS examples |
-| [Understanding Results](docs/user-guide/03-understanding-results.md) | How to read JSON, Markdown, XML output |
-| [FAQ](docs/user-guide/04-faq.md) | Common questions |
-
-### Other
-
-| File | Description |
-|---|---|
-| [Demo Frontend](index.html) | Standalone drag-and-drop UI, 3 source types, 3 modes, visualize bbox overlays |
-| [Makefile](Makefile) | Task automation (dev, Docker, scripts) |
-| [.env.example](.env.example) | Configuration template |
-| [Research References](docs/research.md) | Academic studies, benchmarks, and surveys related to OCR and document processing |
+- `docs/tech/` — technical docs (architecture, quick start, API reference, configuration, deployment, prerequisites, scripts, structure, troubleshooting)
+- `docs/user-guide/` — non-technical guide (overview, getting started, understanding results, FAQ)
+- `docs/research.md` — research references
+- `docs/specific-requirements.md` — specific requirements
 
 ---
 
@@ -231,7 +206,3 @@ All POST endpoints and GET job/batch endpoints require the `X-API-Key` header wh
 | **Image server** | nginx | Serves output images, offloads FastAPI |
 | **Auth** | SQLite + SHA-256 | API key storage and verification |
 | **Deployment** | Docker Compose | Multi-container orchestration |
-
-## License
-
-Internal use.
