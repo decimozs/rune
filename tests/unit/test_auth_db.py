@@ -1,4 +1,5 @@
 import hashlib
+import sqlite3
 from unittest.mock import patch
 
 import pytest
@@ -201,7 +202,7 @@ class TestKeyDB:
         kh = hash_api_key(raw)
         prefix = key_prefix(raw)
         await db.add_key(kh, prefix, "first", "team")
-        with pytest.raises(Exception):
+        with pytest.raises(sqlite3.IntegrityError):
             await db.add_key(kh, prefix, "second", "team")
 
 

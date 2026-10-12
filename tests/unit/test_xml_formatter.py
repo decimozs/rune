@@ -20,7 +20,7 @@ class TestToXml:
         assert "ocrResult" in xml
 
     @pytest.mark.parametrize(
-        "words,expected_word_count,expected_points",
+        ("words", "expected_word_count", "expected_points"),
         [
             (
                 [("hello", 0.98, [[0, 0], [10, 0], [10, 10], [0, 10]])],

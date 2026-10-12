@@ -51,7 +51,7 @@ class OCRFormatter:
             boxes = page.get("rec_polys", []) or []
 
             words = []
-            for text, score, box in zip(texts, scores, boxes):
+            for text, score, box in zip(texts, scores, boxes, strict=False):
                 bbox = (
                     BoundingBox(points=box.tolist() if hasattr(box, "tolist") else box)
                     if options is None or options.include_bbox

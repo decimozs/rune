@@ -25,7 +25,16 @@ line-length = 88
 target-version = "py311"
 
 [tool.ruff.lint]
-select = ["E4", "E7", "E9", "F", "I", "N", "UP"]
+select = ["E4", "E7", "E9", "F", "I", "N", "UP", "B", "C4", "SIM", "PT"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.File",
+    "fastapi.Form",
+    "fastapi.Query",
+    "fastapi.Security",
+]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -39,4 +48,5 @@ addopts = "--cov=app --cov-report=term-missing --cov-fail-under=50"
 [dependency-groups]
 dev = [
     "pre-commit>=4.6.0",
+    "ruff>=0.11",
 ]

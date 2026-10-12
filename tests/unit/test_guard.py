@@ -46,7 +46,7 @@ class TestValidateUrl:
             self._call("")
 
     @pytest.mark.parametrize(
-        "url,msg",
+        ("url", "msg"),
         [
             ("http://localhost:8080/admin", "Local/private host not allowed"),
             ("http://127.0.0.1:3000", "Local/private host not allowed"),

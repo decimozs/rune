@@ -7,7 +7,7 @@ from app.services.processor import TEXT_BASED_TYPES, _ocr_semaphore
 
 class TestTextBasedTypes:
     @pytest.mark.parametrize(
-        "mime,expected",
+        ("mime", "expected"),
         [
             ("text/csv", True),
             ("text/rtf", True),

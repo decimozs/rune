@@ -9,7 +9,7 @@ COMPOSE ?= docker compose
 SERVICE ?= ocr
 
 .PHONY: help install dev run test up up-ui down build rebuild restart logs ps app-logs \
-        pull shell health test-routes test-formats test-auth benchmark stress convert clean
+        lint format check pull shell health test-routes test-formats test-auth benchmark stress convert clean
 
 help: ## Show this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage: make \033[36mtarget\033[0m\n"} \
@@ -78,6 +78,17 @@ health: ## Check liveness + readiness
 	@curl -sf $(API_URL)/health && echo " ok" || echo " FAIL"
 	@echo "=== Readiness ==="
 	@curl -sf $(API_URL)/health/ready && echo " ok" || echo " FAIL"
+
+lint: ## Lint with ruff
+	uv run ruff check .
+
+format: ## Format with ruff (writes changes)
+	uv run ruff format .
+	uv run ruff check --fix .
+
+check: ## Lint + format check, no writes (same as CI)
+	uv run ruff check .
+	uv run ruff format --check .
 
 test: ## Run unit tests (pytest)
 	uv run pytest tests/ -v

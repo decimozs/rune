@@ -15,7 +15,14 @@ class TestStructure:
         assert result["pages"] == []
 
     @pytest.mark.parametrize(
-        "texts,scores,polys,expected_count,expected_text,expected_conf",
+        (
+            "texts",
+            "scores",
+            "polys",
+            "expected_count",
+            "expected_text",
+            "expected_conf",
+        ),
         [
             (
                 ["Hello"],

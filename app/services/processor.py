@@ -218,7 +218,7 @@ async def process_html(
         stem = uuid.uuid4().hex
         safe = settings.upload_dir_path / f"{stem}.pdf"
         try:
-            files_dict = {name: content for name, content in files}
+            files_dict = dict(files)
             safe = await converter.html_to_pdf(files_dict, safe)
             display_name = f"{stem}.pdf"
             result = await _run_ocr(

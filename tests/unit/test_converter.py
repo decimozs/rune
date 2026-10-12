@@ -7,7 +7,7 @@ from app.services.converter import CONVERTIBLE_TYPES, DocumentConverter, convert
 
 class TestConvertibleTypes:
     @pytest.mark.parametrize(
-        "mime,expected",
+        ("mime", "expected"),
         [
             ("application/msword", True),
             (
@@ -28,7 +28,7 @@ class TestConvertibleTypes:
 
 class TestNeedsConversion:
     @pytest.mark.parametrize(
-        "mime,expected",
+        ("mime", "expected"),
         [
             ("application/msword", True),
             (

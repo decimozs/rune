@@ -127,7 +127,7 @@ def _check_host(hostname: str) -> None:
             ip_str = socket.gethostbyname(hostname)
         except socket.gaierror:
             logger.warning("Blocked URL (DNS failure): host=%s", hostname)
-            raise OCRValidationError("Could not resolve hostname")
+            raise OCRValidationError("Could not resolve hostname") from None
 
     ip = ipaddress.ip_address(ip_str)
     if ip.is_private:

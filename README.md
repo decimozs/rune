@@ -195,6 +195,19 @@ Full docs live in [`docs/`](docs/):
 
 ---
 
+## Development
+
+```bash
+make install   # uv sync
+make check     # ruff lint + format check (same as CI)
+make format    # auto-format and fix lint issues
+make test      # unit tests
+```
+
+CI (`.github/workflows/ci.yml`) runs lint, format check, unit tests, and a Docker build on every push to `main` and every pull request.
+
+---
+
 ## Tech Stack
 
 | Component | Technology | Purpose |
