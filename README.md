@@ -1,12 +1,8 @@
-# Rune Service
+# Rune
 
 Self-hosted OCR (Optical Character Recognition) service. Takes images, PDFs, office documents, URLs, and HTML pages — extracts the text out of them.
 
 Uses [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) (PP-OCRv4), the open-source OCR engine from Baidu. Designed to run on your own infrastructure so documents never leave your network.
-
-> **Status: Beta** — API and core features are stable. Active development in progress.
-
----
 
 ## Key Features
 
