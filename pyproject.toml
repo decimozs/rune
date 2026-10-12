@@ -5,7 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi[standard]>=0.136.1",
+    "fastapi[standard]>=0.143.0",
     "paddleocr[all]>=3.5.0",
     "paddlepaddle>=3.3.1",
     "pydantic-settings>=2.0",
