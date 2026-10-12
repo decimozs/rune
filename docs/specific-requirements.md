@@ -37,7 +37,7 @@ Rune is a self-hosted OCR service using PaddleOCR (PP-OCRv4). It accepts images,
 | Service | Purpose | Required For |
 |---|---|---|
 | Gotenberg (port 3000) | Convert office docs, URLs, HTML to PDF | DOC/DOCX/XLSX/PPTX/RTF/CSV/URL/HTML sources |
-| nginx (port 8080) | Serve page images from OCR output | Viz tab in UI, page_image_url in API responses |
+| nginx (port 8080) | Serve page images from OCR output | page_image_url in API responses |
 | OCR API (port 8000) | The application itself | Everything |
 
 Images and native PDFs work without Gotenberg.
@@ -139,7 +139,7 @@ Not required. PaddlePaddle wheels used are CPU-only. GPU support requires switch
 | Port | Service | Purpose |
 |---|---|---|
 | 8000 | OCR API | API requests (docker maps 8000->80) |
-| 8080 | nginx | UI + page images |
+| 8080 | nginx | Page images |
 | 3000 | Gotenberg | Document conversion (internal only) |
 
 ### External Connectivity

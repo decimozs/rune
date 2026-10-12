@@ -4,7 +4,7 @@ Two ways to run: **Docker Compose** (recommended — everything packaged) or **l
 
 ## Option 1: Docker Compose (Recommended)
 
-This starts all services — the OCR application, Gotenberg (document converter), and nginx (image server + demo UI).
+This starts all services — the OCR application, Gotenberg (document converter), and nginx (image server).
 
 ### From a Release ZIP
 
@@ -15,7 +15,7 @@ cp .env.example .env
 docker compose up -d
 ```
 
-The demo UI is served at `http://localhost:8080`. The API is at `http://localhost:8000`.
+The API is at `http://localhost:8000`.
 
 ### From Git
 
@@ -88,8 +88,7 @@ The server runs at `http://localhost:8000`. Page image URLs omit the host (e.g.,
 
 | Command | What It Does |
 |---|---|
-| `make up` | Start all Docker services with demo UI at `http://localhost:8080` |
-| `make up-ui` | Same as `make up` (alias) |
+| `make up` | Start all Docker services |
 | `make down` | Stop all Docker services |
 | `make logs` | See logs from all containers |
 | `make rebuild` | Full clean rebuild (down -v, build --no-cache, up) |
@@ -98,14 +97,3 @@ The server runs at `http://localhost:8000`. Page image URLs omit the host (e.g.,
 | `make health` | Check if the API is running and ready |
 
 Run `make help` to see all available commands.
-
-## Demo UI
-
-The demo UI is served at `http://localhost:8080` by default (`make up` or `docker compose up -d`). Drag and drop files, choose output format, and see results.
-
-To run headless (API only, no UI):
-```bash
-docker compose -f docker-compose.yml -f docker-compose.no-ui.yml up -d
-```
-
-You can also open `index.html` standalone by double-clicking the file — no server needed. The UI fetches from the API URL you enter.

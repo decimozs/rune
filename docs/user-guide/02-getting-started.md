@@ -8,18 +8,7 @@ This guide walks you through your first OCR request. You do not need to be a dev
 - **API key** — a secret key that identifies you to the system. Get this from your team's admin or DevOps contact
 - **A file** — an image, PDF, or office document you want to extract text from
 
-## Option 1: Web Interface (Easiest)
-
-If the demo frontend is available, open `index.html` in your browser (double-click the file). You will see a page with:
-
-1. A **file upload area** — drag and drop your file here, or click to browse
-2. **Format selector** — choose JSON (most detailed), Markdown (formatted), or XML (technical)
-3. **Mode selector** — choose Sync (immediate), Background Job (returns later), or Batch (multiple files)
-4. **Result tabs** — Raw (see the JSON/XML), Preview (formatted text), Visualize (see text overlaid on the image)
-
-Click the Upload button and wait for the result.
-
-## Option 2: Command Line (curl)
+## Option 1: Command Line (curl)
 
 If you have access to a terminal, you can use `curl` — a tool built into macOS and Linux, and available for Windows.
 
@@ -56,7 +45,7 @@ curl -X POST http://localhost:8000/ocr/parse \
 
 Look for the `page_image_url` field in the response — it will look like `http://your-nginx-server:8080/assets/pages/abc123/page_1.png`.
 
-## Option 3: From Your Own Application
+## Option 2: From Your Own Application
 
 You can call the OCR API from any programming language. Here are examples:
 

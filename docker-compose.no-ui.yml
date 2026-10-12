@@ -1,4 +1,0 @@
-services:
-  nginx:
-    volumes:
-      - ./nginx/default.no-ui.conf:/etc/nginx/conf.d/default.conf:ro

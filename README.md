@@ -14,7 +14,7 @@ Uses [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) (PP-OCRv4), the open
 - **API key authentication** — database-backed with secure SHA-256 hashing
 - **SSRF protection** — URL endpoints block internal network addresses
 - **Auto-cleanup** — output files expire after 1 hour (configurable)
-- **Docker Compose** — single-command deployment with Gotenberg + nginx
+- **Docker Compose** — single-command deployment with Gotenberg + nginx (page image server)
 
 ---
 
@@ -30,7 +30,6 @@ cp .env.example .env
 # Edit .env if needed (auth is disabled by default)
 
 docker compose up -d
-# Demo UI: http://localhost:8080
 # API:      http://localhost:8000
 ```
 
@@ -45,7 +44,7 @@ docker compose up -d
 | Service | URL | What It Does |
 |---|---|---|
 | OCR API | `http://localhost:8000` | Process files, return extracted text |
-| nginx | `http://localhost:8080` | Serve UI + page images from OCR output |
+| nginx | `http://localhost:8080` | Serve page images from OCR output |
 | Gotenberg | `http://localhost:3000` | Convert office docs to PDF |
 | API docs | `http://localhost:8000/docs` | Interactive Swagger UI |
 
@@ -76,8 +75,7 @@ uv run fastapi dev app/main.py --port 8000
 
 | Command | What It Does |
 |---|---|
-| `make up` | Start all Docker services with demo UI at `http://localhost:8080` |
-| `make up-ui` | Same as `make up` (alias) |
+| `make up` | Start all Docker services |
 | `make down` | Stop all Docker services |
 | `make logs` | Follow logs from all services |
 | `make dev` | Start dev server with hot reload |
